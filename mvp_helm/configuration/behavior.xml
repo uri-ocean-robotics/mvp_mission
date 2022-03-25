@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<BehaviorConfiguration xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <Behavior name="bhv00" plugin="path_following">
+
+        <State name="survey" priority="1"/>
+
+        <State name="surface" priority="1"/>
+
+        <Parameters type="ros">
+            <param name="file" type="string" value="test"/>
+            <rosparam command="load" file="$(find mvp_helm)/param/behavior_01.yaml"/>
+        </Parameters>
+
+    </Behavior>
+
+    <Behavior name="bhv01" plugin="stop_everything">
+        <State name="stop" priority="inf"/>
+
+        <Parameters>
+
+        </Parameters>
+
+    </Behavior>
+
+    <Behavior name="bhv02" plugin="periodic_surface">
+        <State name="surface" priority="1"/>
+
+        <Parameters type="helm">
+            <period>60</period>
+        </Parameters>
+    </Behavior>
+
+</BehaviorConfiguration>

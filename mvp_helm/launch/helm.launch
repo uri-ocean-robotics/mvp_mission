@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node pkg="mvp_helm" type="helm" name="helm" output="screen">
+        <param
+            name="configuration"
+            command="$(find xacro)/xacro '$(find mvp_helm)/configuration/helm.xml'"/>
+    </node>
+
+</launch>
