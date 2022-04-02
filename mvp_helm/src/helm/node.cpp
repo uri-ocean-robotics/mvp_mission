@@ -9,7 +9,8 @@ int main(int argc, char* argv[]) {
 
     obj.initialize();
 
-    ros::spin();
+    obj.run();
+
 
     return 0;
 }

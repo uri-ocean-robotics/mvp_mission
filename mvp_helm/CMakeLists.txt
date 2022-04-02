@@ -151,7 +151,7 @@ add_executable(helm
   src/helm/behavior_container.cpp
   src/helm/helm.cpp
   src/helm/parser.cpp
-  src/helm/fsm.cpp
+  src/helm/sm.cpp
 )
 
 ## Rename C++ executable without prefix

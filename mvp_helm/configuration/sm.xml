@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<FiniteStateMachine xmlns:xacro="http://ros.org/wiki/xacro">
+<StateMachine xmlns:xacro="http://ros.org/wiki/xacro">
 
-    <State name="survey" mode="flight">
+    <State initial="true" name="survey" mode="flight">
         <Transition to="surface"/>
         <Transition to="stop"/>
     </State>
@@ -23,4 +23,4 @@
 
     </State>
 
-</FiniteStateMachine>
+</StateMachine>

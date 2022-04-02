@@ -1,25 +1,42 @@
 #pragma once
 
+#include "vector"
+#include "string"
+
 #define CONST_STRING static constexpr const char *
 
 namespace helm {
 
+    /***************************************************************************
+     * Constants
+     */
+
+    static constexpr double DEFAULT_HELM_FREQ = 50;
+
+
    /****************************************************************************
     * structs and types
     */
-   struct fsm_state_t {
-       std::string name;
-       std::string mode;
-   };
-
-    struct fsm_transition_t {
-        std::string from;
-        std::string to;
+    struct sm_state_t {
+        bool initial;
+        std::string name;
+        std::string mode;
+        std::vector<std::string> transitions;
     };
 
-    struct fsm_state_priority_t{
+    struct behavior_sm_state_t{
         std::string name;
         int priority;
+    };
+
+    struct behavior_component_t{
+        std::string name;
+        std::string plugin;
+        std::map<std::string, int> states;
+    };
+
+    struct helm_configuration_t{
+        double frequency;
     };
 
     /***************************************************************************
@@ -32,27 +49,49 @@ namespace helm {
 
         CONST_STRING TAG = "Helm";
 
-        struct fsm {
-            CONST_STRING TAG = "Fsm";
+        /***********************************************************************
+         * Helm XML tags and attributes
+         */
+         struct helmconf {
+             CONST_STRING TAG = "HelmConfiguration";
+
+             struct frequency {
+                 CONST_STRING TAG = "frequency";
+             };
+
+         };
+
+
+        /***********************************************************************
+         * State machine XML tags and attributes
+         */
+        struct sm {
+            CONST_STRING TAG = "StateMachine";
 
             struct state {
                 CONST_STRING TAG = "State";
                 struct ATTRS {
+                    CONST_STRING INITIAL = "initial";
                     CONST_STRING NAME = "name";
                     CONST_STRING MODE = "mode";
                 };
+
+                struct transition {
+                    CONST_STRING TAG = "Transition";
+                    struct ATTRS{
+                        CONST_STRING TO = "to";
+                    };
+                };
+
             };
 
-            CONST_STRING TAG_STATE = "State";
-            struct ATTRS_STATE {
-                CONST_STRING NAME = "name";
-                CONST_STRING MODE = "mode";
-            };
         };
 
+        /***********************************************************************
+         * Behavior configuration XML tags and attributes
+         */
         struct bhvconf {
             CONST_STRING TAG = "BehaviorConfiguration";
-
 
             struct behavior {
                 CONST_STRING TAG = "Behavior";

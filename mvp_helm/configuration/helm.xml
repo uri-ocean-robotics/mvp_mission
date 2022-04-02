@@ -1,9 +1,13 @@
 <?xml version="1.0"?>
 <Helm  xmlns:xacro="http://ros.org/wiki/xacro">
 
+    <HelmConfiguration>
+        <frequency>50</frequency>
+    </HelmConfiguration>
+
     <xacro:include filename="$(find mvp_helm)/configuration/behavior.xml" />
 
-    <xacro:include filename="$(find mvp_helm)/configuration/fsm.xml" />
+    <xacro:include filename="$(find mvp_helm)/configuration/sm.xml" />
 
     <xacro:include filename="$(find mvp_helm)/configuration/actions.xml" />
 

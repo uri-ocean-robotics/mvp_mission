@@ -1,27 +1,40 @@
 #pragma once
 
+/*******************************************************************************
+ * STD
+ */
 #include "memory"
+#include "thread"
 
+/*******************************************************************************
+ * ROS
+ */
 #include "ros/ros.h"
 #include "pluginlib/class_loader.h"
+#include "mvp_control/ControlModes.h"
+#include "mvp_control/ControlProcess.h"
 
+/*******************************************************************************
+ * Helm
+ */
 #include "behavior_container.h"
 #include "obj.h"
 #include "parser.h"
-#include "fsm.h"
-
-#include "mvp_control/ControlModes.h"
-#include "mvp_control/ControlState.h"
+#include "sm.h"
 
 namespace helm {
 
     class Helm : public HelmObj {
     private:
 
+        double m_helm_freq;
+
         /**
          * @brief Controller state
+         * This variable holds the state of the low level controller such as
+         * position & orientation.
          */
-        mvp_control::ControlState m_controller_state;
+        mvp_control::ControlProcess m_controller_process_values;
 
         /**
          * @brief Controller modes message object
@@ -43,26 +56,23 @@ namespace helm {
         void f_get_controller_modes();
 
         /**
-         * @brief Generate behaviors as parser parses the XML helm configuration
          *
-         * @param name Name of the behavior. Later be used as ros namespace
-         * @param type Type of the behavior. Also referred as class name
-         * @param states State definitions of behaviors. First element is state
-         *               name, second element is priority.
+         * @param behavior_component
          */
         void f_generate_behaviors(
-            std::string name,
-            std::string type,
-            std::map<std::string, int> states);
+            const behavior_component_t& behavior_component);
 
         /**
-         * @brief Generate Finite state machine states
-         * @param name Name of the finite state machine
-         * @param mode Low level controller of the mode
+         *
+         * @param state
          */
-        void f_generate_fsm_states(
-            std::string name,
-            std::string mode);
+        void f_generate_sm_states(sm_state_t state);
+
+        /**
+         *
+         * @param conf
+         */
+        void f_configure_helm(helm_configuration_t conf);
 
         /**
          * @brief Initiates the plugins
@@ -76,14 +86,23 @@ namespace helm {
          */
         Parser::Ptr m_parser;
 
-        FiniteStateMachine::Ptr m_finite_state_machine;
+        /**
+         * @brief State Machine object
+         */
+        StateMachine::Ptr m_state_machine;
 
         /**
-         * @brief
+         * @brief Executes one iteration of helm
          *
          */
         void f_iterate();
 
+
+        /**
+         * @brief Runs the #Helm::f_iterate function defined by
+         * #Helm::m_helm_freq.
+         */
+        void f_helm_loop();
 
 
         /***********************************************************************
@@ -91,22 +110,36 @@ namespace helm {
          */
 
         //! @brief Controller state subscriber
-        ros::Subscriber m_sub_controller_current_state;
+        ros::Subscriber m_sub_controller_process_values;
 
         //! @brief Controller state request
-        ros::Publisher m_pub_controller_desired_state;
+        ros::Publisher m_pub_controller_set_point;
 
         /**
          * @brief Topic callback for state
          * @param msg
          */
-        void f_cb_controller_state(const mvp_control::ControlState::ConstPtr& msg);
+        void f_cb_controller_state(
+            const mvp_control::ControlProcess::ConstPtr& msg);
 
     public:
 
+        /**
+         * @brief Trivial constructor
+         */
         Helm();
 
+        /**
+         * @brief Initialize Helm
+         */
         void initialize();
+
+        /**
+         * @brief Run the Helm
+         */
+        void run();
+
+        ~Helm();
 
     };
 }

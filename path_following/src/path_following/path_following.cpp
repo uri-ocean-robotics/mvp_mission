@@ -15,11 +15,14 @@ PathFollowing::PathFollowing() {
     std::cout << "a message from path following" << std::endl;
 }
 
-bool PathFollowing::request_control(mvp_control::ControlState* msg) {
+bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point)
+{
 
-    *msg = mvp_control::ControlState();
+    *set_point = mvp_control::ControlProcess();
 
     return true;
 }
+
+
 
 PLUGINLIB_EXPORT_CLASS(helm::PathFollowing, helm::BehaviorBase)

@@ -16,20 +16,22 @@
 
 namespace helm {
 
-    class FiniteStateMachine {
+    class StateMachine {
     private:
 
-        std::vector<fsm_state_t> m_states;
+        std::vector<sm_state_t> m_states;
 
-        fsm_state_t m_active_state;
+        sm_state_t m_active_state;
 
     public:
 
-        typedef std::shared_ptr<FiniteStateMachine> Ptr;
+        typedef std::shared_ptr<StateMachine> Ptr;
 
-        FiniteStateMachine() = default;
+        StateMachine() = default;
 
-        void append_state(fsm_state_t state);
+        void initialize();
+
+        void append_state(sm_state_t state);
 
         auto translate_to(const std::string& state_name) -> bool;
 

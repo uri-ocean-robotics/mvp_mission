@@ -20,7 +20,7 @@ namespace helm {
 
         PathFollowing();
 
-        bool request_control(mvp_control::ControlState *msg) override;
+        bool request_set_point(mvp_control::ControlProcess *msg) override;
 
     };
 }

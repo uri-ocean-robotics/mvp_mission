@@ -1,12 +1,27 @@
 #pragma once
 
+/*******************************************************************************
+ * ROS
+ */
 #include "ros/ros.h"
+
+/*******************************************************************************
+ * STD
+ */
 #include "string"
 #include "vector"
 #include "memory"
 #include "functional"
+
+/*******************************************************************************
+ * Helm
+ */
 #include "obj.h"
 #include "behavior_container.h"
+
+/*******************************************************************************
+ * Mist
+ */
 #include "tinyxml2.h"
 
 namespace helm {
@@ -14,28 +29,23 @@ namespace helm {
     class Parser : public HelmObj {
     private:
 
-        tinyxml2::XMLDocument m_doc;
+        //! @brief Root xml element for accessing elements
+        tinyxml2::XMLElement * m_xml_root{};
 
-        tinyxml2::XMLElement * m_xml_root;
+        /**
+         * @brief
+         */
+        void f_parse_behavior_components();
 
-        void f_query_behavior_components();
+        void f_parse_sm_components();
 
-        void f_query_fsm_components();
+        void f_parse_helm_configuration();
 
-        std::function<
-            void (
-                std::string name,
-                std::string type,
-                std::map<std::string, int> states
-            )
-        > m_op_behavior_component;
+        std::function<void(behavior_component_t)> m_op_behavior_component;
 
-        std::function<
-            void (
-                std::string name,
-                std::string mode
-            )
-        > m_op_fsm_component;
+        std::function<void(sm_state_t)> m_op_sm_component;
+
+        std::function<void(helm_configuration_t)> m_op_helmconf_component;
 
     public:
 
@@ -45,7 +55,9 @@ namespace helm {
 
         void set_op_behavior_component(decltype(m_op_behavior_component));
 
-        void set_op_fsm_component(decltype(m_op_fsm_component));
+        void set_op_sm_component(decltype(m_op_sm_component) f);
+
+        void set_op_helmconf_component(decltype(m_op_helmconf_component) f);
 
         typedef std::shared_ptr<Parser> Ptr;
 

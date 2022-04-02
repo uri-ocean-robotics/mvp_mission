@@ -15,6 +15,8 @@
  * Helm
  */
 #include "helm.h"
+
+#include <utility>
 #include "behavior_container.h"
 #include "dictionary.h"
 #include "utils.h"
@@ -29,9 +31,22 @@ using namespace helm;
  * Implementations
  */
 
+
+/*******************************************************************************
+ * Public methods
+ */
+
 Helm::Helm() : HelmObj() {
 
 };
+
+Helm::~Helm() {
+
+    m_sub_controller_process_values.shutdown();
+
+    m_pub_controller_set_point.shutdown();
+
+}
 
 void Helm::initialize() {
 
@@ -41,36 +56,39 @@ void Helm::initialize() {
 
     m_parser.reset(new Parser());
 
-    m_finite_state_machine.reset(new FiniteStateMachine());
+    m_state_machine.reset(new StateMachine());
 
     /***************************************************************************
      * Parse mission file
      */
 
     m_parser->set_op_behavior_component(std::bind(
-        &Helm::f_generate_behaviors, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3
+        &Helm::f_generate_behaviors, this, std::placeholders::_1
     ));
 
-    m_parser->set_op_fsm_component(std::bind(
-        &Helm::f_generate_fsm_states, this,
-        std::placeholders::_1, std::placeholders::_2
+    m_parser->set_op_sm_component(std::bind(
+        &Helm::f_generate_sm_states, this, std::placeholders::_1
     ));
+
+    m_parser->set_op_helmconf_component(std::bind(
+        &Helm::f_configure_helm, this, std::placeholders::_1
+    ));
+
     m_parser->initialize();
 
     /***************************************************************************
      * Initialize subscriber
      *
      */
-    m_sub_controller_current_state = m_nh->subscribe(
-        ctrl::TOPIC_CONTROL_STATE_CURRENT,
+    m_sub_controller_process_values = m_nh->subscribe(
+        ctrl::TOPIC_CONTROL_PROCESS_VALUE,
         100,
         &Helm::f_cb_controller_state,
         this
     );
 
-    m_pub_controller_desired_state = m_nh->advertise<mvp_control::ControlState>(
-        ctrl::TOPIC_CONTROL_STATE_DESIRED,
+    m_pub_controller_set_point = m_nh->advertise<mvp_control::ControlProcess>(
+        ctrl::TOPIC_CONTROL_PROCESS_SET_POINT,
         100
     );
 
@@ -80,6 +98,19 @@ void Helm::initialize() {
     f_initialize_behaviors();
 
 }
+
+void Helm::run() {
+
+    std::thread helm_loop([this] { f_helm_loop(); });
+
+    ros::spin();
+
+    helm_loop.join();
+}
+
+/*******************************************************************************
+ * Private methods
+ */
 
 void Helm::f_initialize_behaviors() {
 
@@ -91,9 +122,8 @@ void Helm::f_initialize_behaviors() {
 
 void Helm::f_get_controller_modes() {
 
-    auto client = m_pnh->serviceClient<mvp_control::GetControlModes>(
-        ctrl::SERVICE_GET_CONTROL_MODES
-    );
+    auto client = m_pnh->serviceClient
+        <mvp_control::GetControlModes>(ctrl::SERVICE_GET_CONTROL_MODES);
 
     while(!client.waitForExistence(ros::Duration(5))) {
         ROS_WARN_STREAM(
@@ -107,41 +137,37 @@ void Helm::f_get_controller_modes() {
 
 }
 
-void Helm::f_generate_behaviors(
-    std::string name,
-    std::string type,
-    std::map<std::string, int> states)
+void Helm::f_generate_behaviors(const behavior_component_t& component)
 {
-
-    std::vector<fsm_state_priority_t> fsm_states;
-
-    for(const auto& i : states) {
-        fsm_states.emplace_back(fsm_state_priority_t {
-            i.first,
-            i.second
-        });
-    }
+    /**
+     * This function is called each time parser reads a tag defined by
+     * #helm::xml::bhvconf::behavior::TAG. This function is defined so that
+     * initiating of the objects are done by an #helm::Helm object.
+     */
 
     BehaviorContainer::Ptr b = std::make_shared<BehaviorContainer>(
-        name, type, fsm_states);
+        component
+    );
 
     m_behavior_containers.emplace_back(b);
 
 }
 
-void Helm::f_generate_fsm_states(std::string name, std::string mode) {
+void Helm::f_generate_sm_states(sm_state_t state) {
 
-    fsm_state_t s{
-        std::move(name), std::move(mode)
-    };
+    m_state_machine->append_state(std::move(state));
 
-    m_finite_state_machine->append_state(s);
+}
+
+void Helm::f_configure_helm(helm_configuration_t conf) {
+
+    m_helm_freq = conf.frequency;
 
 }
 
 void Helm::f_cb_controller_state(
-    const mvp_control::ControlState::ConstPtr& msg) {
-    m_controller_state = *msg;
+    const mvp_control::ControlProcess::ConstPtr& msg) {
+    m_controller_process_values = *msg;
 }
 
 void Helm::f_iterate() {
@@ -150,58 +176,51 @@ void Helm::f_iterate() {
      * Acquire state information from finite state machine. Get state name and
      * respective mode to that state.
      */
-    auto active_state = m_finite_state_machine->get_active_state();
+    auto active_state = m_state_machine->get_active_state();
 
     /**
      * Create holders for priorities and control inputs.
      */
-    std::array<double, ctrl::STATE_DOF_SIZE> dof_ctrl{};
-    std::array<int, ctrl::STATE_DOF_SIZE> dof_priority{};
+    std::array<double, ctrl::CONTROLLABLE_DOF_LENGTH> dof_ctrl{};
+    std::array<int, ctrl::CONTROLLABLE_DOF_LENGTH> dof_priority{};
 
     for(const auto& i : m_behavior_containers) {
-
-        // find the behavior
-        auto bhv_state = std::find_if(
-            i->get_states().begin(),
-            i->get_states().end(),
-            [active_state](const fsm_state_priority_t& s) {
-                return active_state.name == s.name;
-            }
-        );
 
         /**
          * Update the system state inside behavior
          */
-        i->get_behavior()->register_state(m_controller_state);
-
-        /**
-         * If the behavior is not defined for the state we are in not, continue.
-         */
-        if(bhv_state == std::end(i->get_states())) {
-            continue;
-        }
-
+        i->get_behavior()->register_process_values(m_controller_process_values);
 
         /**
          * Request control command from the behavior
          */
-        mvp_control::ControlState control_command;
-        if(!i->get_behavior()->request_control(&control_command)) {
+        mvp_control::ControlProcess set_point;
+        if(!i->get_behavior()->request_set_point(&set_point)) {
             // todo: do something about dysfunctional behavior
             continue;
         }
+
+        if(!i->get_opts().states.count(active_state.name)) {
+            continue;
+        }
+
+        auto priority = i->get_opts().states[active_state.name];
 
         /**
          * Turn requested control command into an array so that it can be
          * processed by iterating degree of freedoms.
          */
         auto bhv_control_array =
-            utils::control_state_msg_to_array(control_command);
+            utils::control_process_to_array(set_point);
 
         for(const auto& dof : i->get_behavior()->get_dofs()) {
-            if(bhv_state->priority > dof_priority[dof]) {
+
+            /**
+             * This is where the magic happens
+             */
+            if(priority > dof_priority[dof]) {
                 dof_ctrl[dof] = bhv_control_array[dof];
-                dof_priority[dof] = bhv_state->priority;
+                dof_priority[dof] = priority;
             }
         }
 
@@ -210,10 +229,20 @@ void Helm::f_iterate() {
     /**
      * Push commands to low level controller
      */
-    auto msg = utils::array_to_control_state_msg(dof_ctrl);
+    auto msg = utils::array_to_control_process_msg(dof_ctrl);
+
     msg.control_mode = active_state.mode;
     msg.header.stamp = ros::Time::now();
+    m_pub_controller_set_point.publish(msg);
 
-    m_pub_controller_desired_state.publish(msg);
+}
+
+void Helm::f_helm_loop() {
+
+    ros::Rate r(m_helm_freq);
+    while(ros::ok()) {
+        f_iterate();
+        r.sleep();
+    }
 
 }
