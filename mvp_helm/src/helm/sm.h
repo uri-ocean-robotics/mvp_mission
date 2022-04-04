@@ -31,7 +31,7 @@ namespace helm {
 
         void initialize();
 
-        void append_state(sm_state_t state);
+        void append_state(const sm_state_t& state);
 
         auto translate_to(const std::string& state_name) -> bool;
 

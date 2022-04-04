@@ -33,18 +33,42 @@ namespace helm {
         tinyxml2::XMLElement * m_xml_root{};
 
         /**
-         * @brief
+         * @brief Parses behavior components in the helm xml configuration
+         *
+         * It reads and parses the XML file. After parsing, it calls operation
+         * defined by #Parser::m_op_behavior_component.
          */
         void f_parse_behavior_components();
 
+        /**
+         * @brief Parses State Machine components in the helm xml configuration
+         *
+         * It reads and parses the XML file. After parsing, it calls operation
+         * defined by #Parser::m_op_sm_component.
+         */
         void f_parse_sm_components();
 
+        /**
+         * @brief Parses Helm Configuration components in the xml configuration
+         *
+         * It reads and parses the XML file. After parsing, it calls operation
+         * defined by #Parser::m_op_helmconf_component.
+         */
         void f_parse_helm_configuration();
 
+        /**
+         * @brief Behavior component operation
+         */
         std::function<void(behavior_component_t)> m_op_behavior_component;
 
+        /**
+         * @brief State machine component operation
+         */
         std::function<void(sm_state_t)> m_op_sm_component;
 
+        /**
+         * @brief Helm Configuration component operation
+         */
         std::function<void(helm_configuration_t)> m_op_helmconf_component;
 
     public:

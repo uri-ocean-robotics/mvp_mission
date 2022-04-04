@@ -85,7 +85,7 @@ void Parser::f_parse_behavior_components() {
             if(state_priority == nullptr) {
                 throw HelmException("A state without priority!");
             }
-            the_behavior.states[state_name] =
+            bhv_states[state_name] =
                 xml_state->IntAttribute(xml::bhvconf::behavior::state::ATTRS::PRIORITY);
         }
 
@@ -100,7 +100,7 @@ void Parser::f_parse_behavior_components() {
 }
 
 void Parser::f_parse_sm_components() {
-    for(auto * xml_state = m_xml_root->FirstChildElement(xml::sm::TAG);
+    for(auto * xml_state = m_xml_root->FirstChildElement(xml::sm::state::TAG);
         xml_state != nullptr;
         xml_state = xml_state->NextSiblingElement(xml::sm::state::TAG) )
     {
@@ -111,18 +111,20 @@ void Parser::f_parse_sm_components() {
         if(state_name == nullptr) {
             throw HelmException("A state machine state without name!");
         }
+        the_state.name = std::string(state_name);
 
         auto state_mode = xml_state->Attribute(xml::sm::state::ATTRS::MODE);
         if(state_mode == nullptr) {
             throw HelmException("A state machine state without low level controller mode!");
         }
+        the_state.mode = std::string(state_mode);
 
         auto state_init = xml_state->Attribute(xml::sm::state::ATTRS::INITIAL);
         if(state_init != nullptr) {
             the_state.initial = xml_state->BoolAttribute(xml::sm::state::ATTRS::INITIAL);
         }
 
-        for(auto *xml_transition = xml_state->FirstChildElement() ;
+        for(auto *xml_transition = xml_state->FirstChildElement();
             xml_transition != nullptr ;
             xml_transition = xml_transition->NextSiblingElement(
                 xml::sm::state::transition::TAG

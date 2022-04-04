@@ -20,12 +20,8 @@ bool PeriodicSurface::request_set_point(mvp_control::ControlProcess *set_point)
 
     *set_point = mvp_control::ControlProcess();
 
-    ROS_INFO_STREAM("Requested set point from behavior " << m_name <<
-             ", type periodic surface");
-
     return true;
 }
-
 
 
 PLUGINLIB_EXPORT_CLASS(helm::PeriodicSurface, helm::BehaviorBase)

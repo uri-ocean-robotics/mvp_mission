@@ -93,9 +93,20 @@ void Helm::initialize() {
     );
 
     /***************************************************************************
+     * Initialize state machine
+     */
+    m_state_machine->initialize();
+
+    /***************************************************************************
      * Initialize behavior plugins
      */
     f_initialize_behaviors();
+
+
+    /***************************************************************************
+     * setup connection with low level controller
+     */
+    f_get_controller_modes();
 
 }
 
@@ -122,12 +133,12 @@ void Helm::f_initialize_behaviors() {
 
 void Helm::f_get_controller_modes() {
 
-    auto client = m_pnh->serviceClient
+    auto client = m_nh->serviceClient
         <mvp_control::GetControlModes>(ctrl::SERVICE_GET_CONTROL_MODES);
 
     while(!client.waitForExistence(ros::Duration(5))) {
         ROS_WARN_STREAM(
-            "Service " << client.getService() << " can not be found!"
+            "Waiting for service: " << client.getService()
         );
     }
 
@@ -153,9 +164,9 @@ void Helm::f_generate_behaviors(const behavior_component_t& component)
 
 }
 
-void Helm::f_generate_sm_states(sm_state_t state) {
+void Helm::f_generate_sm_states(const sm_state_t& state) {
 
-    m_state_machine->append_state(std::move(state));
+    m_state_machine->append_state(state);
 
 }
 
@@ -178,6 +189,30 @@ void Helm::f_iterate() {
      */
     auto active_state = m_state_machine->get_active_state();
 
+    auto active_mode = std::find_if(
+        m_controller_modes.modes.begin(),
+        m_controller_modes.modes.end(),
+        [active_state](const mvp_control::ControlMode& mode){
+            return mode.name == active_state.mode;
+        }
+    );
+
+    if(active_mode == std::end(m_controller_modes.modes)) {
+        ROS_WARN_STREAM_THROTTLE(10,
+            "Active mode '" << active_state.mode << "' can not be found in low"
+            " level controller configuration! Helm is skipping.");
+        return;
+    }
+    // Type cast the vector
+    std::vector<ctrl::DOF::IDX> dofs;
+    std::for_each(
+        active_mode->dofs.begin(),
+        active_mode->dofs.end(),
+        [&](const auto & elem){
+            dofs.emplace_back((ctrl::DOF::IDX)elem);
+        }
+    );
+
     /**
      * Create holders for priorities and control inputs.
      */
@@ -185,6 +220,11 @@ void Helm::f_iterate() {
     std::array<int, ctrl::CONTROLLABLE_DOF_LENGTH> dof_priority{};
 
     for(const auto& i : m_behavior_containers) {
+
+        /**
+         * Inform the behavior about the active DOFs
+         */
+        i->get_behavior()->set_active_dofs(dofs);
 
         /**
          * Update the system state inside behavior
@@ -200,11 +240,28 @@ void Helm::f_iterate() {
             continue;
         }
 
+        /*
+         * Check if behavior should be active in active state
+         */
         if(!i->get_opts().states.count(active_state.name)) {
             continue;
         }
 
+        /**
+         * Get the priority of the behavior in given state
+         */
         auto priority = i->get_opts().states[active_state.name];
+
+        /**
+         * A behavior might only check for system state and take other actions
+         * rather than communicating with the low level controller. Such as
+         * drop weight, or cut all the power to the motors etc. In this case,
+         * DOFs might not be defined in the behavior. A behavior can do whatever
+         * it wants in #BehaviorBase::request_set_point method.
+         */
+        if(i->get_behavior()->get_dofs().empty()) {
+            continue;
+        }
 
         /**
          * Turn requested control command into an array so that it can be
@@ -214,7 +271,6 @@ void Helm::f_iterate() {
             utils::control_process_to_array(set_point);
 
         for(const auto& dof : i->get_behavior()->get_dofs()) {
-
             /**
              * This is where the magic happens
              */
@@ -238,8 +294,6 @@ void Helm::f_iterate() {
 }
 
 void Helm::f_helm_loop() {
-
-    std::cout << m_helm_freq << std::endl;
 
     ros::Rate r(m_helm_freq);
     while(ros::ok()) {

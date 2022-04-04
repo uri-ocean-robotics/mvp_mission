@@ -26,9 +26,13 @@ namespace helm
             );
         }
 
-        m_behavior = m_class_loader->createInstance(m_opts.plugin);
+        m_behavior.reset(
+            m_class_loader->createUnmanagedInstance(m_opts.plugin)
+        );
 
         m_behavior->set_name(m_opts.name);
+
+        m_behavior->initialize();
 
     }
 

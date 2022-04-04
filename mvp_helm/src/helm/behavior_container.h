@@ -16,7 +16,6 @@
 /*******************************************************************************
  * Boost
  */
-#include "boost/shared_ptr.hpp"
 
 /*******************************************************************************
  * ROS
@@ -34,12 +33,16 @@ namespace helm {
 
     private:
 
+        /**
+         * @brief Behavior component settings
+         *
+         */
         behavior_component_t m_opts;
 
         /**
          * @brief Behavior defined by #m_class_name
          */
-        boost::shared_ptr<BehaviorBase> m_behavior;
+        std::shared_ptr<BehaviorBase> m_behavior;
 
         /**
          * @brief Pluginlib class loader

@@ -69,7 +69,7 @@ namespace helm {
          *
          * @param state
          */
-        void f_generate_sm_states(sm_state_t state);
+        void f_generate_sm_states(const sm_state_t& state);
 
         /**
          *

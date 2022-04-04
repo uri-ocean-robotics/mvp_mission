@@ -7,6 +7,7 @@
 #include "iostream"
 #include "vector"
 #include "functional"
+#include "memory"
 
 /*******************************************************************************
  * MVP
@@ -26,12 +27,17 @@ namespace helm
     protected:
 
         /**
-         * @brief A vector holds controlled degrees of freedom
+         * @brief A vector holds controlled DOFs by behavior
          * Each behavior must present the degrees of freedoms that they want
          * to control. Helm will be controlling this information during
          * execution.
          */
         std::vector<ctrl::DOF::IDX> m_dofs;
+        /**
+         * @brief A vector holds DOFs active at the moment by controller
+         *
+         */
+        std::vector<ctrl::DOF::IDX> m_active_dofs;
 
         /**
          * @brief Unique name for the behavior.
@@ -52,6 +58,9 @@ namespace helm
 
     public:
 
+        /**
+         * @brief Trivial generic pointer type
+         */
         typedef std::shared_ptr<BehaviorBase> Ptr;
 
         /**
@@ -59,7 +68,18 @@ namespace helm
          *
          * @return std::vector<ctrl::DOF::IDX>
          */
-        virtual std::vector<ctrl::DOF::IDX> get_dofs() { return m_dofs; };
+        auto get_dofs() -> const decltype(m_dofs)& {
+            return m_dofs;
+        };
+
+        /**
+         * @brief retrieve degrees of freedoms controlled by the behavior
+         *
+         * @return std::vector<ctrl::DOF::IDX>
+         */
+        virtual void set_active_dofs(const std::vector<ctrl::DOF::IDX>& dofs) {
+            m_active_dofs = dofs;
+        };
 
         /**
          * @brief Set the name of the behavior

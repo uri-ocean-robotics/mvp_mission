@@ -3,7 +3,7 @@
 
 using namespace helm;
 
-void StateMachine::append_state(sm_state_t state) {
+void StateMachine::append_state(const sm_state_t& state) {
     m_states.emplace_back(state);
 }
 
