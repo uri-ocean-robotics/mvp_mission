@@ -1,0 +1,5 @@
+<library path="lib/libperiodic_surface">
+  <class type="helm::PeriodicSurface" base_class_type="helm::BehaviorBase">
+    <description>A periodic surfacing behavior.</description>
+  </class>
+</library>

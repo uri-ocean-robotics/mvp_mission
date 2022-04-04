@@ -44,7 +44,7 @@ namespace helm {
         /**
          * @brief Pluginlib class loader
          */
-        boost::shared_ptr<pluginlib::ClassLoader<BehaviorBase>> m_class_loader;
+        std::shared_ptr<pluginlib::ClassLoader<BehaviorBase>> m_class_loader;
 
 
     public:

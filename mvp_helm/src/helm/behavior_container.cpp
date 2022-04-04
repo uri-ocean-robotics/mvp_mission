@@ -10,10 +10,11 @@ namespace helm
     BehaviorContainer::BehaviorContainer(behavior_component_t opts) {
         m_opts = std::move(opts);
 
-        m_class_loader =
-            boost::make_shared<pluginlib::ClassLoader<BehaviorBase>>(
+        m_class_loader.reset(
+            new pluginlib::ClassLoader<BehaviorBase>(
                 "behavior_interface", "helm::BehaviorBase"
-            );
+            )
+        );
 
     }
 

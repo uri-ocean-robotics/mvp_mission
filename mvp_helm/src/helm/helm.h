@@ -27,6 +27,9 @@ namespace helm {
     class Helm : public HelmObj {
     private:
 
+        /**
+         * @brief Helm frequency in hertz
+         */
         double m_helm_freq;
 
         /**

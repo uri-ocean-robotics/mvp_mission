@@ -239,6 +239,8 @@ void Helm::f_iterate() {
 
 void Helm::f_helm_loop() {
 
+    std::cout << m_helm_freq << std::endl;
+
     ros::Rate r(m_helm_freq);
     while(ros::ok()) {
         f_iterate();

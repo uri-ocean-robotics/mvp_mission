@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <BehaviorConfiguration xmlns:xacro="http://ros.org/wiki/xacro">
 
-    <Behavior name="bhv00" plugin="path_following">
+    <Behavior name="bhv00" plugin="helm::PathFollowing">
 
         <State name="survey" priority="1"/>
 
@@ -14,7 +14,7 @@
 
     </Behavior>
 
-    <Behavior name="bhv01" plugin="stop_everything">
+    <Behavior name="bhv01" plugin="helm::StopEverything">
         <State name="stop" priority="inf"/>
 
         <Parameters>
@@ -23,7 +23,7 @@
 
     </Behavior>
 
-    <Behavior name="bhv02" plugin="periodic_surface">
+    <Behavior name="bhv02" plugin="helm::PeriodicSurface">
         <State name="surface" priority="1"/>
 
         <Parameters type="helm">

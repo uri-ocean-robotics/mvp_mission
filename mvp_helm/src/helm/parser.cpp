@@ -39,6 +39,8 @@ void Parser::initialize() {
 
     f_parse_sm_components();
 
+    f_parse_helm_configuration();
+
 }
 
 
@@ -143,7 +145,10 @@ void Parser::f_parse_helm_configuration() {
 
     helm_configuration_t conf{};
 
-    auto xml_freq = m_xml_root->FirstChildElement(xml::helmconf::frequency::TAG);
+    auto xml_helm_conf = m_xml_root->FirstChildElement(xml::helmconf::TAG);
+
+    auto xml_freq = xml_helm_conf->FirstChildElement(xml::helmconf::frequency::TAG);
+
     if(xml_freq != nullptr) {
         double a;
         auto error = xml_freq->QueryDoubleText(&a);

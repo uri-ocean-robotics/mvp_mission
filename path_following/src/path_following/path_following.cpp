@@ -20,6 +20,9 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point)
 
     *set_point = mvp_control::ControlProcess();
 
+    ROS_INFO_STREAM("Requested set point from behavior " << m_name <<
+             ", type path following");
+
     return true;
 }
 
