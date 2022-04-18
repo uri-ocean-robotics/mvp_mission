@@ -7,6 +7,12 @@
 
 #include "tinyxml2.h"
 #include "behavior_container.h"
+#include "ros/package.h"
+
+#include "unistd.h"
+#include "cstdlib"
+#include "cstdio"
+#include "sys/wait.h"
 
 using namespace helm;
 
@@ -35,11 +41,12 @@ void Parser::initialize() {
         throw HelmException("Check formatting of your xml file!");
     }
 
+    f_parse_helm_configuration();
+
     f_parse_behavior_components();
 
     f_parse_sm_components();
 
-    f_parse_helm_configuration();
 
 }
 
@@ -89,10 +96,48 @@ void Parser::f_parse_behavior_components() {
                 xml_state->IntAttribute(xml::bhvconf::behavior::state::ATTRS::PRIORITY);
         }
 
+        tinyxml2::XMLElement* bhv_parameters = xml_bhv->FirstChildElement(
+            xml::bhvconf::behavior::parameters::TAG
+        );
+
+        tinyxml2::XMLPrinter param_printer;
+        if(bhv_parameters != nullptr) {
+            auto type = bhv_parameters->Attribute(
+                xml::bhvconf::behavior::parameters::ATTRS::TYPE);
+
+            if(type != nullptr) {
+                if(std::strcmp(type, xml::bhvconf::behavior::parameters::ATTRS::OPTIONS_TYPE::ROS) == 0) {
+                    // load ros param
+
+                    tinyxml2::XMLDocument doc;
+
+
+                    auto * launch = doc.NewElement("launch");
+                    auto * group = doc.NewElement("group");
+                    group->SetAttribute("ns",
+                                        (ros::this_node::getName() + "/" + std::string(bhv_name)).c_str());
+                    doc.InsertEndChild(launch);
+                    launch->InsertEndChild(group);
+                    for(auto * e = bhv_parameters->FirstChild();
+                        e != nullptr;
+                        e = e->NextSiblingElement())
+                    {
+                        group->InsertEndChild(e->DeepClone(&doc));
+                    }
+                    doc.Accept(&param_printer);
+
+                    f_load_ros_param(param_printer.CStr());
+
+                }
+            }
+
+        }
+
+
         the_behavior.name = std::string(bhv_name);
         the_behavior.plugin = std::string(bhv_plugin);
         the_behavior.states = bhv_states;
-
+        the_behavior.params = std::string(param_printer.CStr());
         m_op_behavior_component(the_behavior);
 
     }
@@ -149,16 +194,19 @@ void Parser::f_parse_helm_configuration() {
 
     auto xml_helm_conf = m_xml_root->FirstChildElement(xml::helmconf::TAG);
 
-    auto xml_freq = xml_helm_conf->FirstChildElement(xml::helmconf::frequency::TAG);
 
-    if(xml_freq != nullptr) {
-        double a;
-        auto error = xml_freq->QueryDoubleText(&a);
+    for(auto * xml_param = xml_helm_conf->FirstChildElement(xml::generic::param::TAG);
+        xml_param != nullptr;
+        xml_param = xml_param->NextSiblingElement(xml::generic::param::TAG) )
+    {
+        auto name = xml_param->Attribute(xml::generic::param::ATTRS::NAME);
 
-        if(error == tinyxml2::XML_SUCCESS) {
-            conf.frequency = a;
+        if(strcmp(xml::helmconf::param_types::FREQUENCY, name) == 0) {
+            double value;
+            xml_param->QueryAttribute(xml::generic::param::ATTRS::VALUE, &value);
+            conf.frequency = value;
         } else {
-            conf.frequency = DEFAULT_HELM_FREQ;
+            // rest of the configuration variables will go here
         }
 
     }
@@ -179,3 +227,50 @@ void Parser::set_op_helmconf_component(decltype(m_op_helmconf_component) f) {
     m_op_helmconf_component = std::move(f);
 }
 
+void Parser::f_load_ros_param(const std::string& launch) {
+
+    int pfd[2];
+
+    int the_stdout = dup(STDOUT_FILENO);
+
+    pid_t cpid;
+
+    if(pipe(pfd) == -1) {
+        fprintf(stderr, "Pipe error\n");
+        exit(-1);
+    }
+    cpid = fork();
+    if(cpid == -1) {
+        fprintf(stderr, "Fork error\n");
+        exit(-1);
+    }
+    if( cpid == 0 ) {
+        close(pfd[1]);
+        close(STDIN_FILENO);
+        int new_stdin = dup(pfd[0]);
+
+        execlp("roslaunch",
+               "roslaunch","-","--wait", "--no-summary", "--disable-title",
+               nullptr);
+
+        close(pfd[0]);
+        close(new_stdin);
+        exit(0);
+    } else {
+        /* Father */
+        close(pfd[0]);
+        close(STDOUT_FILENO);
+
+        int new_stdout = dup(pfd[1]);
+
+        std::cout << launch << std::endl;
+        close(pfd[1]);
+        close(new_stdout);
+        /* waiting for child */
+        wait(nullptr);
+    }
+
+    dup2(the_stdout, STDOUT_FILENO);
+    close(the_stdout);
+
+}

@@ -9,9 +9,20 @@
 
         <Parameters type="ros">
             <param name="file" type="string" value="test"/>
-            <rosparam command="load" file="$(find mvp_helm)/param/behavior_01.yaml"/>
+            <param name="world_frame" type="string" value="world"/>
+            <rosparam command="load" file="$(find mvp_helm)/param/bhv00.yaml"/>
         </Parameters>
 
+    </Behavior>
+
+    <Behavior name="eval00" plugin="helm::MotionEvaluation">
+
+        <State name="evaluation" priority="1"/>
+
+    </Behavior>
+
+    <Behavior name="recovery_bhv" plugin="helm::PathFollowing">
+        <State name="recover" priority="0"/>
     </Behavior>
 
     <Behavior name="bhv01" plugin="helm::StopEverything">

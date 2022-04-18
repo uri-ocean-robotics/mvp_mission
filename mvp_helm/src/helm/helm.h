@@ -30,14 +30,14 @@ namespace helm {
         /**
          * @brief Helm frequency in hertz
          */
-        double m_helm_freq;
+        double m_helm_freq{};
 
         /**
          * @brief Controller state
          * This variable holds the state of the low level controller such as
          * position & orientation.
          */
-        mvp_control::ControlProcess m_controller_process_values;
+        mvp_control::ControlProcess::ConstPtr m_controller_process_values;
 
         /**
          * @brief Controller modes message object

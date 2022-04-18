@@ -20,6 +20,8 @@ bool StopEverything::request_set_point(mvp_control::ControlProcess *set_point)
 
     *set_point = mvp_control::ControlProcess();
 
+    set_point->velocity.x = 0;
+
     return true;
 }
 

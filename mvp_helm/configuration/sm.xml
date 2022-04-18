@@ -6,6 +6,12 @@
         <Transition to="stop"/>
     </State>
 
+    <State name="evaluation" mode="teleop">
+        <Transition to="survey"/>
+        <Transition to="stop"/>
+    </State>
+
+
     <State name="surface" mode="flight">
         <Transition to="survey"/>
         <Transition to="stop"/>

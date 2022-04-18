@@ -51,6 +51,10 @@ namespace helm
         mvp_control::ControlProcess m_process_values;
 
         /**
+         * @brief Frequency of the helm
+         */
+        double m_helm_frequency;
+        /**
          * @brief Construct a new Behavior Base object
          *
          */
@@ -93,6 +97,10 @@ namespace helm
          */
         void register_process_values(const mvp_control::ControlProcess& pv) {
             m_process_values = pv;
+        }
+
+        void set_helm_frequency(const double& f) {
+            m_helm_frequency = f;
         }
 
         /**

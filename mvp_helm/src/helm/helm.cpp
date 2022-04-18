@@ -127,6 +127,8 @@ void Helm::f_initialize_behaviors() {
 
     for(const auto& i : m_behavior_containers) {
         i->initialize();
+
+        i->get_behavior()->set_helm_frequency(m_helm_freq);
     }
 
 }
@@ -178,11 +180,13 @@ void Helm::f_configure_helm(helm_configuration_t conf) {
 
 void Helm::f_cb_controller_state(
     const mvp_control::ControlProcess::ConstPtr& msg) {
-    m_controller_process_values = *msg;
+    m_controller_process_values = msg;
 }
 
 void Helm::f_iterate() {
-
+    if(m_controller_process_values == nullptr) {
+        return;
+    }
     /**
      * Acquire state information from finite state machine. Get state name and
      * respective mode to that state.
@@ -229,7 +233,8 @@ void Helm::f_iterate() {
         /**
          * Update the system state inside behavior
          */
-        i->get_behavior()->register_process_values(m_controller_process_values);
+
+        i->get_behavior()->register_process_values(*m_controller_process_values);
 
         /**
          * Request control command from the behavior

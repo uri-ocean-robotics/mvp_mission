@@ -71,6 +71,13 @@ namespace helm {
          */
         std::function<void(helm_configuration_t)> m_op_helmconf_component;
 
+        static void f_load_ros_param(const std::string& launch);
+
+        template <typename T>
+        static void
+        f_read_generic_param(tinyxml2::XMLElement *e, T *p, std::string *name);
+
+
     public:
 
         Parser();

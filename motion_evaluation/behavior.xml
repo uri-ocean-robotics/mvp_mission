@@ -1,0 +1,5 @@
+<library path="lib/libmotion_evaluation">
+  <class type="helm::MotionEvaluation" base_class_type="helm::BehaviorBase">
+    <description>A behavior for vehicle motion evaluation.</description>
+  </class>
+</library>

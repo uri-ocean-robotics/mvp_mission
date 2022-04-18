@@ -33,6 +33,7 @@ namespace helm {
         std::string name;
         std::string plugin;
         std::map<std::string, int> states;
+        std::string params;
     };
 
     struct helm_configuration_t{
@@ -52,13 +53,26 @@ namespace helm {
         /***********************************************************************
          * Helm XML tags and attributes
          */
+        struct generic {
+
+            struct param {
+                CONST_STRING TAG = "param";
+                struct ATTRS {
+                    CONST_STRING NAME = "name";
+                    CONST_STRING VALUE = "value";
+                    CONST_STRING TYPE = "type";
+                };
+            };
+
+        };
+
+
          struct helmconf {
              CONST_STRING TAG = "HelmConfiguration";
 
-             struct frequency {
-                 CONST_STRING TAG = "frequency";
+             struct param_types {
+                 CONST_STRING FREQUENCY = "frequency";
              };
-
          };
 
 
