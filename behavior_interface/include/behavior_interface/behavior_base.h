@@ -3,6 +3,8 @@
 /*******************************************************************************
  * STD
  */
+#include <utility>
+
 #include "cstdint"
 #include "iostream"
 #include "vector"
@@ -25,6 +27,11 @@ namespace helm
 
     class BehaviorBase {
     protected:
+        /**
+         * @brief Construct a new Behavior Base object
+         *
+         */
+        BehaviorBase() = default;
 
         /**
          * @brief A vector holds controlled DOFs by behavior
@@ -54,11 +61,30 @@ namespace helm
          * @brief Frequency of the helm
          */
         double m_helm_frequency;
+
+
         /**
-         * @brief Construct a new Behavior Base object
          *
          */
-        BehaviorBase() = default;
+        bool m_activated = false;
+
+        /**
+         * @brief This function is triggered when a behavior gets activated
+         * A plugin may or may not override this function.
+         */
+        virtual void activated() {};
+
+        /**
+         * @brief This function is triggered when a behavior gets disabled
+         * A plugin may or may not override this function.
+         */
+        virtual void disabled() {};
+
+        /**
+         * @brief
+         *
+         */
+        std::function<bool(const std::string&)> f_change_state;
 
     public:
 
@@ -72,36 +98,58 @@ namespace helm
          *
          * @return std::vector<ctrl::DOF::IDX>
          */
-        auto get_dofs() -> const decltype(m_dofs)& {
+        virtual auto get_dofs() -> const decltype(m_dofs)& final
+        {
             return m_dofs;
-        };
-
-        /**
-         * @brief retrieve degrees of freedoms controlled by the behavior
-         *
-         * @return std::vector<ctrl::DOF::IDX>
-         */
-        virtual void set_active_dofs(const std::vector<ctrl::DOF::IDX>& dofs) {
-            m_active_dofs = dofs;
-        };
+        }
 
         /**
          * @brief Set the name of the behavior
          *
          * @param name
          */
-        void set_name(const std::string name) { m_name = name; }
+        virtual void set_name(const std::string name) final
+        {
+            m_name = name;
+        }
 
         /**
          * @brief Registers the state of the system to the behavior
          */
-        void register_process_values(const mvp_control::ControlProcess& pv) {
+        virtual auto register_process_values(
+                const mvp_control::ControlProcess& pv) -> void final
+        {
             m_process_values = pv;
         }
 
-        void set_helm_frequency(const double& f) {
+        virtual auto set_helm_frequency(const double& f) -> void final
+        {
             m_helm_frequency = f;
         }
+
+        virtual auto activate() -> void final
+        {
+            if(!m_activated) {
+                activated();
+            }
+            m_activated = true;
+        }
+
+        virtual auto disable() -> auto final
+        {
+            if(m_activated) {
+                disabled();
+            }
+            m_activated = false;
+        }
+
+        virtual auto set_state_change_function(
+            decltype(f_change_state) f) -> void final
+        {
+            f_change_state = std::move(f);
+        }
+
+        virtual ~BehaviorBase() = default;
 
         /**
          * @brief
@@ -118,7 +166,16 @@ namespace helm
          */
         virtual void initialize() = 0;
 
-        virtual ~BehaviorBase() = default;
+
+        /**
+         * @brief retrieve degrees of freedoms controlled by the behavior
+         *
+         * @return std::vector<ctrl::DOF::IDX>
+         */
+        virtual void set_active_dofs(const std::vector<ctrl::DOF::IDX>& dofs)
+        {
+            m_active_dofs = dofs;
+        }
 
     };
 
