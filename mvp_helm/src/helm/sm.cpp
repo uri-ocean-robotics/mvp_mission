@@ -17,9 +17,18 @@ auto StateMachine::translate_to(const std::string& state_name) -> bool {
         }
     );
 
-    /**
-     * todo: implement and check transition table
-     */
+    auto transition_idx = std::find_if(
+        m_active_state.transitions.begin(),
+        m_active_state.transitions.end(),
+        [state_name](const auto& val) {
+            return val == state_name;
+        }
+    );
+
+    if(transition_idx == std::end(m_active_state.transitions)) {
+        // illegal state transition requested
+        return false;
+    }
 
     if(state_idx != std::end(m_states)) {
         m_active_state = sm_state_t (*state_idx);
@@ -51,4 +60,23 @@ void StateMachine::initialize() {
         m_active_state = m_states.front();
     }
 
+}
+
+auto StateMachine::get_state(const std::string &name,
+                             sm_state_t *state) -> bool {
+
+    auto state_idx = std::find_if(
+        m_states.begin(),
+        m_states.end(),
+        [name](const sm_state_t& val) {
+            return val.name == name;
+        }
+    );
+
+    if(state_idx != m_states.end()) {
+        *state = *state_idx;
+        return true;
+    }
+
+    return false;
 }

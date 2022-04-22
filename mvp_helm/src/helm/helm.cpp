@@ -16,7 +16,6 @@
  */
 #include "helm.h"
 
-#include <utility>
 #include "behavior_container.h"
 #include "dictionary.h"
 #include "utils.h"
@@ -45,6 +44,12 @@ Helm::~Helm() {
     m_sub_controller_process_values.shutdown();
 
     m_pub_controller_set_point.shutdown();
+
+    m_get_states_srv.shutdown();
+
+    m_get_state_srv.shutdown();
+
+    m_change_state_srv.shutdown();
 
 }
 
@@ -83,13 +88,34 @@ void Helm::initialize() {
     m_sub_controller_process_values = m_nh->subscribe(
         ctrl::TOPIC_CONTROL_PROCESS_VALUE,
         100,
-        &Helm::f_cb_controller_state,
+        &Helm::f_cb_controller_process,
         this
     );
 
     m_pub_controller_set_point = m_nh->advertise<mvp_control::ControlProcess>(
         ctrl::TOPIC_CONTROL_PROCESS_SET_POINT,
         100
+    );
+
+    /***************************************************************************
+     * Initialize ros services
+     */
+
+    m_change_state_srv = m_pnh->advertiseService(
+        "change_state",
+        &Helm::f_cb_change_state,
+        this);
+
+    m_get_state_srv = m_pnh->advertiseService(
+        "get_state",
+        &Helm::f_cb_get_state,
+        this
+    );
+
+    m_get_states_srv = m_pnh->advertiseService(
+        "get_states",
+        &Helm::f_cb_get_states,
+        this
     );
 
     /***************************************************************************
@@ -126,7 +152,12 @@ void Helm::run() {
 void Helm::f_initialize_behaviors() {
 
     for(const auto& i : m_behavior_containers) {
+
         i->initialize();
+
+        i->get_behavior()->set_state_change_function(
+            std::bind(&Helm::f_change_state, this, std::placeholders::_1)
+        );
 
         i->get_behavior()->set_helm_frequency(m_helm_freq);
     }
@@ -178,7 +209,7 @@ void Helm::f_configure_helm(helm_configuration_t conf) {
 
 }
 
-void Helm::f_cb_controller_state(
+void Helm::f_cb_controller_process(
     const mvp_control::ControlProcess::ConstPtr& msg) {
     m_controller_process_values = msg;
 }
@@ -234,7 +265,19 @@ void Helm::f_iterate() {
          * Update the system state inside behavior
          */
 
-        i->get_behavior()->register_process_values(*m_controller_process_values);
+        i->get_behavior()->register_process_values(
+            *m_controller_process_values);
+
+        /*
+         * Check if behavior should be active in active state
+         */
+        bool pass = false;
+        if(!i->get_opts().states.count(active_state.name)) {
+            i->get_behavior()->disable();
+            pass = true;
+        } else {
+            i->get_behavior()->activate();
+        }
 
         /**
          * Request control command from the behavior
@@ -245,10 +288,14 @@ void Helm::f_iterate() {
             continue;
         }
 
-        /*
-         * Check if behavior should be active in active state
+        /**
+         * We still want to request an action from a behavior. A behavior may
+         * implement its core functionality inside
+         * #BevahiorBase::request_set_point. That functionality might be related
+         * with safety. But at the same time, we want to tell the behavior
+         * whether or not is active.
          */
-        if(!i->get_opts().states.count(active_state.name)) {
+        if(pass) {
             continue;
         }
 
@@ -306,4 +353,72 @@ void Helm::f_helm_loop() {
         r.sleep();
     }
 
+}
+
+bool Helm::f_cb_change_state(mvp_helm::ChangeState::Request &req,
+                             mvp_helm::ChangeState::Response &resp) {
+
+    if(f_change_state(req.state)) {
+
+        sm_state_t s;
+        m_state_machine->get_state(req.state, &s);
+
+        resp.state.name = s.name;
+        resp.state.mode = s.mode;
+        resp.state.transitions = s.transitions;
+        resp.status = true;
+
+        return true;
+    }
+
+    resp.state.name = m_state_machine->get_active_state().name;
+    resp.state.mode = m_state_machine->get_active_state().mode;
+    resp.state.transitions = m_state_machine->get_active_state().transitions;
+    resp.status = false;
+
+    return true;
+}
+
+bool Helm::f_cb_get_state(mvp_helm::GetState::Request &req,
+                          mvp_helm::GetState::Response &resp) {
+
+    if(req.name.empty()) {
+
+        resp.state.name = m_state_machine->get_active_state().name;
+        resp.state.mode = m_state_machine->get_active_state().mode;
+        resp.state.transitions =
+            m_state_machine->get_active_state().transitions;
+
+        return true;
+    }
+
+    sm_state_t s;
+    if (m_state_machine->get_state(req.name, &s)) {
+
+        resp.state.name = s.name;
+        resp.state.mode = s.mode;
+        resp.state.transitions = s.transitions;
+
+        return true;
+    }
+    throw HelmException("no state found with name " + req.name);
+}
+
+
+bool Helm::f_cb_get_states(mvp_helm::GetStates::Request &req,
+                           mvp_helm::GetStates::Response &resp) {
+    for(const auto& i : m_state_machine->get_states()) {
+        mvp_helm::HelmState s;
+        s.mode = i.mode;
+        s.name = i.name;
+        s.transitions = i.transitions;
+
+        resp.states.emplace_back(s);
+    }
+
+    return true;
+}
+
+bool Helm::f_change_state(std::string name) {
+    return m_state_machine->translate_to(name);
 }

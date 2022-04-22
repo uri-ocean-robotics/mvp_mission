@@ -13,7 +13,9 @@
 #include "pluginlib/class_loader.h"
 #include "mvp_control/ControlModes.h"
 #include "mvp_control/ControlProcess.h"
-
+#include "mvp_helm/GetState.h"
+#include "mvp_helm/GetStates.h"
+#include "mvp_helm/ChangeState.h"
 /*******************************************************************************
  * Helm
  */
@@ -30,7 +32,7 @@ namespace helm {
         /**
          * @brief Helm frequency in hertz
          */
-        double m_helm_freq{};
+        double m_helm_freq;
 
         /**
          * @brief Controller state
@@ -122,8 +124,28 @@ namespace helm {
          * @brief Topic callback for state
          * @param msg
          */
-        void f_cb_controller_state(
+        void f_cb_controller_process(
             const mvp_control::ControlProcess::ConstPtr& msg);
+
+        ros::ServiceServer m_change_state_srv;
+
+        ros::ServiceServer m_get_states_srv;
+
+        ros::ServiceServer m_get_state_srv;
+
+        bool f_cb_change_state(
+            mvp_helm::ChangeState::Request& req,
+            mvp_helm::ChangeState::Response& resp);
+
+        bool f_cb_get_state(
+            mvp_helm::GetState::Request& req,
+            mvp_helm::GetState::Response& resp);
+
+        bool f_cb_get_states(
+            mvp_helm::GetStates::Request& req,
+            mvp_helm::GetStates::Response& resp);
+
+        bool f_change_state(std::string name);
 
     public:
 
