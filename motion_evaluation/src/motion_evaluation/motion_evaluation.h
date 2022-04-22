@@ -45,9 +45,14 @@ namespace helm {
 
         double m_pitch_rate_phase;
 
+        void activated() override {};
+
+        void disabled() override {};
+
     public:
 
         MotionEvaluation();
+
 
         bool request_set_point(mvp_control::ControlProcess *msg) override;
 
