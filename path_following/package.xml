@@ -52,11 +52,11 @@
   <depend>geometry_msgs</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
-  <depend>alpha_helm</depend>
   <depend>pluginlib</depend>
   <depend>behavior_interface</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_eigen</depend>
+  <depend>visualization_msgs</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

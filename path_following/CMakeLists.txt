@@ -109,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 # INCLUDE_DIRS include
   LIBRARIES path_following
-  CATKIN_DEPENDS geometry_msgs roscpp std_msgs tf2_ros
+  CATKIN_DEPENDS geometry_msgs roscpp std_msgs tf2_ros visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -127,6 +127,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}/path_following.cpp
+  src/${PROJECT_NAME}/path_following_misc.cpp
 )
 
 ## Add cmake target dependencies of the library

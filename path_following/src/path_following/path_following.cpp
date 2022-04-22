@@ -29,13 +29,17 @@ void PathFollowing::initialize() {
         new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
     );
 
+    m_nh.reset(new ros::NodeHandle());
+
     m_dofs = decltype(m_dofs){
         ctrl::DOF::SURGE,
         ctrl::DOF::YAW,
     };
 
     std::string update_topic_name;
+
     std::string append_topic_name;
+
     m_pnh->param<std::string>(
         "update_topic",
         update_topic_name,
@@ -51,6 +55,15 @@ void PathFollowing::initialize() {
         m_world_frame,
         "world");
 
+    m_pnh->param<double>("acceptance_radius", m_acceptance_radius, 1.0);
+
+    m_pnh->param<double>("lookahead_distance", m_lookahead_distance, 2.0);
+
+    m_pnh->param<double>("overshoot_timeout", m_overshoot_timeout, 30);
+
+    m_pnh->param<std::string>("state_done", m_state_done, "");
+
+    m_pnh->param<std::string>("state_fail", m_state_fail, "");
 
     f_parse_param_waypoints();
 
@@ -75,6 +88,13 @@ void PathFollowing::initialize() {
             true
         )
     );
+
+    m_full_trajectory_publisher = m_pnh->advertise<visualization_msgs::Marker>(
+        "path", 0);
+
+    m_trajectory_segment_publisher = m_pnh->advertise<visualization_msgs::Marker>(
+        "segment", 0);
+
 
     m_transform_listener.reset(new
         tf2_ros::TransformListener(m_transform_buffer)
@@ -105,6 +125,8 @@ void PathFollowing::f_waypoint_cb(
 
         // replace
         m_waypoints = a;
+
+        m_line_index = 0;
     }
 }
 
@@ -184,45 +206,44 @@ PathFollowing::f_transform_waypoints(
     }
 }
 
-void PathFollowing::f_2point_to_line(double y2, double x2, double y1, double x1,
-                                     double *a, double *b, double *c)
-{
-    *a = y1 - y2;
-    *b = x2 - x1;
-    *c = (x1 - x2) * y1 + (y2 - y1) * x1;
+void PathFollowing::f_next_line_segment() {
+
+    auto length = m_waypoints.polygon.points.size();
+
+    m_wpt_first = m_waypoints.polygon.points[m_line_index % length];
+    m_wpt_second = m_waypoints.polygon.points[(m_line_index + 1) % length];
+
+    m_line_index++;
+
+    if(m_line_index == length) {
+        f_change_state(m_state_done);
+        m_line_index = 0;
+    }
+
 }
 
-void
-PathFollowing::f_shortest_dist_to_line(double a, double b, double c,
-                                       double x0, double y0,
-                                       double *dist)
-{
-    *dist = std::fabs(a * x0 + b * y0 + c) / std::sqrt(a * a + b * b);
-}
+void PathFollowing::activated() {
 
-void
-PathFollowing::f_closest_point_to_line(double a, double b, double c,
-                                       double x0, double y0,
-                                       double *x, double *y)
-{
-    *x = (b * (b * x0 - a * y0) - a * c) / (a * a + b * b);
-    *y = (a * (-b* x0 + a * y0) - b * c) / (a * a + b * b);
-}
+    geometry_msgs::Point32 p;
 
-int
-PathFollowing::f_direction_of_point(double ax, double ay,
-                                    double bx, double by,
-                                    double x, double y)
-{
-    return std::signbit((bx - ax) * (y - ay) - (by - ay) * (x - ax)) ? 1 : -1;
-}
+    p.x = static_cast<float>(m_process_values.position.x);
 
-void
-PathFollowing::f_proceed_to_next_line() {
+    p.y = static_cast<float>(m_process_values.position.y);
+
+    m_wpt_first = p;
+    m_wpt_second = m_waypoints.polygon.points[
+        m_line_index % m_waypoints.polygon.points.size()
+    ];
 
 }
 
 bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
+
+    if(!m_activated) {
+        f_visualize_segment(true);
+        f_visualize_path(true);
+        return false;
+    }
 
     if(m_waypoints.polygon.points.size() < 2) {
         ROS_ERROR_STREAM_THROTTLE(30,
@@ -234,6 +255,9 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
     /*
      * Decide the action needs to be taken
      */
+    f_visualize_path();
+
+    f_visualize_segment();
 
     geometry_msgs::PolygonStamped poly;
     // todo: i don't like the placement of this
@@ -244,41 +268,64 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
         &poly
     );
 
-    auto fpt = m_waypoints.polygon.points.at(m_line_index);
-    auto spt = m_waypoints.polygon.points.at(m_line_index + 1);
+    std::cout << poly << std::endl;
 
-    double a,b,c;
-    f_2point_to_line(spt.y, spt.x, fpt.y, fpt.x,
-                     &a, &b, &c);
+    double x = m_process_values.position.x;
+    double y = m_process_values.position.y;
 
-    std::cout << "a: " << a << " b: " << b << " c: " << c << std::endl;
 
-    double dist;
-    f_shortest_dist_to_line(a, b, c,
-                            m_process_values.position.x,
-                            m_process_values.position.y,
-                            &dist);
+    double Yp = std::atan2(
+        m_wpt_second.y - m_wpt_first.y,
+        m_wpt_second.x - m_wpt_first.x);
 
-    std::cout << "dist: " << dist << std::endl;
+    double Xke = (x - m_wpt_second.x) * cos(Yp) + (y - m_wpt_second.y) * sin(Yp);
+    double Xe = (x - m_wpt_first.x) * cos(Yp) + (y - m_wpt_first.y) * sin(Yp);
+    double Ye = -(x - m_wpt_first.x) * sin(Yp) + (y - m_wpt_first.y) * cos(Yp);
 
-    dist *=
-        f_direction_of_point(
-            spt.x, spt.y, fpt.x, fpt.y,
-            m_process_values.position.x,
-            m_process_values.position.y);
+    double lookahead = m_lookahead_distance;
+    if(Xke > 0 ) {
+        // overshoot detected
+        ROS_WARN_THROTTLE(5, "Overshoot detected!");
 
-    std::cout << "dist(2): " << dist << std::endl;
+        // Look back
+        lookahead = -lookahead;
 
-    double dh = 2; // meters
+        // we are at the opposite side now
+        Yp = Yp + M_PI;
 
-    double yp = - std::atan2(a, b);
+        // record the time
+        auto t = ros::Time::now();
 
-    double yaw_desired = yp + atan2(- dist, dh);
+        // if overshoot timer is not set, set it now.
+        if((t - m_overshoot_timer).toSec() == t.toSec()) {
+            m_overshoot_timer = ros::Time::now();
+        }
 
-    m_cmd.orientation.z = yaw_desired;
-    std::cout << "yaw_desired: " << yaw_desired << std::endl;
+        // check if overshoot timer passed the timeout.
+        if((t - m_overshoot_timer).toSec() > m_overshoot_timeout) {
+            ROS_ERROR_THROTTLE(10, "Overshoot abort!");
+            f_change_state(m_state_fail);
+            return false;
+        }
 
-    m_cmd.velocity.x = 0.2;
+    }
+
+    // Calculate side slip angle
+    double beta =
+        atan2(m_process_values.velocity.y, m_process_values.velocity.x);
+
+    // set an arbitrary velocity
+    m_cmd.velocity.x = 0.7;
+
+    // set the heading for line of sight
+    m_cmd.orientation.z = Yp + atan( - Ye / lookahead) - beta;
+
+    // check the acceptance radius
+    auto dist = std::sqrt(Xke * Xke + Ye*Ye);
+    if(dist < m_acceptance_radius ) {
+        f_next_line_segment();
+        m_overshoot_timer.fromSec(0);
+    }
 
     /*
      * Command it to the helm

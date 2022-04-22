@@ -5,6 +5,8 @@
 #include "mvp_control/ControlProcess.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "tf2_ros/transform_listener.h"
+#include "visualization_msgs/Marker.h"
+
 
 namespace helm {
 
@@ -17,29 +19,18 @@ namespace helm {
         void initialize() override;
 
         /***********************************************************************
-         * utils
-         */
-        void f_2point_to_line(double y2, double x2, double y1, double x1,
-                              double *a, double *b, double *c);
-
-        void f_shortest_dist_to_line(double a, double b, double c, double x0,
-                                     double y0, double *dist);
-
-        void f_closest_point_to_line(double a, double b, double c, double x0,
-                                     double y0, double *x, double *y);
-
-        int f_direction_of_point(double ax, double ay,
-                                  double bx, double by,
-                                  double x, double y);
-
-        /***********************************************************************
          * ROS
          */
 
         /**
-         * @brief Trivial node handle
+         * @brief Trivial node handler
          */
         ros::NodeHandlePtr m_pnh;
+
+        /**
+         * @brief Trivial node handler
+         */
+        ros::NodeHandlePtr m_nh;
 
         /**
          * @brief Control Process command message
@@ -56,35 +47,155 @@ namespace helm {
          */
         ros::Subscriber m_append_waypoint_sub;
 
+        /**
+         * @brief Trivial marker publisher
+         */
+        ros::Publisher m_full_trajectory_publisher;
+
+        /**
+         * @brief Trajectory segment publisher
+         */
+        ros::Publisher m_trajectory_segment_publisher;
+
+        /**
+         * @brief Waypoints to be traversed
+         */
         geometry_msgs::PolygonStamped m_waypoints;
 
+        /**
+         * @brief World frame name
+         */
+        std::string m_world_frame;
+        /**
+         * @brief Index of the lines
+         */
         int m_line_index;
 
-        //! @brief Transform buffer for TF2
+        /**
+         * @brief Acceptance radius in meters
+         */
+        double m_acceptance_radius;
+
+        /**
+         * @brief Lookahead distance in meters
+         */
+        double m_lookahead_distance;
+
+        /**
+         * @brief Overshoot timeout in seconds
+         */
+        double m_overshoot_timeout;
+
+        /**
+         * @brief Overshoot timer
+         * This variable will hold the time it passed since the overshoot.
+         */
+        ros::Time m_overshoot_timer;
+
+        /**
+         * @brief Done state
+         * Behavior will request a state change to helm with the value this
+         * variable holds.
+         */
+        std::string m_state_done;
+
+        /**
+         * @brief Fail state
+         * Behavior will request a state change to helm with the value this
+         * variable holds.
+         */
+        std::string m_state_fail;
+
+        /**
+         * @brief First point in the active line segment
+         */
+        geometry_msgs::Point32 m_wpt_first;
+
+        /**
+         * @brief Second point in the active line segment
+         */
+        geometry_msgs::Point32 m_wpt_second;
+
+        /**
+         * @brief Transform buffer for TF2
+         */
         tf2_ros::Buffer m_transform_buffer;
 
-        //! @brief Transform listener for TF2
+        /**
+         * @brief Transform listener for TF2
+         */
         std::shared_ptr<tf2_ros::TransformListener> m_transform_listener;
 
-        std::string m_world_frame;
 
+        /**
+         * @brief Parses waypoints from ROS parameter server
+         */
         void f_parse_param_waypoints();
 
+        /**
+         * @brief Transform waypoints to world frame
+         *
+         * @param in Waypoints in their original frame
+         * @param out Waypoints in #PathFollowing::m_world_frame
+         */
         void f_transform_waypoints(const geometry_msgs::PolygonStamped &in,
                                    geometry_msgs::PolygonStamped *out);
 
+        /**
+         * @brief Transform waypoints to #target_frame
+         *
+         * @param target_frame
+         * @param in
+         * @param out
+         */
         void f_transform_waypoints(
             const std::string &target_frame,
             const geometry_msgs::PolygonStamped &in,
             geometry_msgs::PolygonStamped *out
         );
 
+        /**
+         * @brief Trivial waypoint callback
+         *
+         * @param m Message
+         * @param append Append if true, replace if false
+         */
         void f_waypoint_cb(const geometry_msgs::PolygonStamped::ConstPtr &m,
                            bool append);
 
-        void f_proceed_to_next_line();
+        /**
+         * @brief Progress to the next line segment
+         */
+        void f_next_line_segment();
 
+        /**
+         * @brief Sends visualization messages to RViZ.
+         *
+         * @param clear Clears if true, publishes otherwise
+         */
+        void f_visualize_path(bool clear = false);
+
+        /**
+         * @brief Sends visualization messages to RViZ.
+         *
+         * @param clear Clears if true, publishes otherwise
+         */
+        void f_visualize_segment(bool clear = false);
+
+        /**
+         * @brief Destroy the Path Following object
+         */
         ~PathFollowing() override;
+
+        /**
+         * @brief This function is inherited from #BehaviorBase
+         */
+        void activated() override;
+
+        /**
+         * @brief This function is inherited from #BehaviorBase
+         */
+        void disabled() override {}
 
     public:
 
@@ -94,11 +205,12 @@ namespace helm {
         PathFollowing();
 
         /**
-         * @brief
+         * @brief This function is inherited from #BehaviorBase
          * @param msg
          * @return
          */
         bool request_set_point(mvp_control::ControlProcess *msg) override;
+
 
     };
 }
