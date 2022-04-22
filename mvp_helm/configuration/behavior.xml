@@ -1,45 +1,34 @@
 <?xml version="1.0"?>
-<BehaviorConfiguration xmlns:xacro="http://ros.org/wiki/xacro">
+<xacro xmlns:xacro="http://ros.org/wiki/xacro">
 
-    <Behavior name="bhv00" plugin="helm::PathFollowing">
+    <behavior-configuration>
 
-        <State name="survey" priority="1"/>
+        <behavior name="bhv00" plugin="helm::PathFollowing">
+            <state name="survey" priority="1"/>
+            <state name="surface" priority="1"/>
+            <parameters type="ros">
+                <rosparam command="load" file="$(find mvp_helm)/param/bhv00.yaml"/>
+                <param name="state_done" type="string" value="start"/>
+                <param name="state_fail" type="string" value="kill"/>
+            </parameters>
+        </behavior>
 
-        <State name="surface" priority="1"/>
+        <behavior name="eval00" plugin="helm::MotionEvaluation">
+            <state name="evaluation" priority="1"/>
+        </behavior>
 
-        <Parameters type="ros">
-            <param name="file" type="string" value="test"/>
-            <param name="world_frame" type="string" value="world"/>
-            <rosparam command="load" file="$(find mvp_helm)/param/bhv00.yaml"/>
-        </Parameters>
+        <behavior name="recovery_bhv" plugin="helm::PathFollowing">
+            <state name="recover" priority="0"/>
+        </behavior>
 
-    </Behavior>
+        <behavior name="bhv01" plugin="helm::StopEverything">
+            <state name="stop" priority="inf"/>
+        </behavior>
 
-    <Behavior name="eval00" plugin="helm::MotionEvaluation">
+        <behavior name="bhv02" plugin="helm::PeriodicSurface">
+            <state name="surface" priority="1"/>
+        </behavior>
 
-        <State name="evaluation" priority="1"/>
+    </behavior-configuration>
 
-    </Behavior>
-
-    <Behavior name="recovery_bhv" plugin="helm::PathFollowing">
-        <State name="recover" priority="0"/>
-    </Behavior>
-
-    <Behavior name="bhv01" plugin="helm::StopEverything">
-        <State name="stop" priority="inf"/>
-
-        <Parameters>
-
-        </Parameters>
-
-    </Behavior>
-
-    <Behavior name="bhv02" plugin="helm::PeriodicSurface">
-        <State name="surface" priority="1"/>
-
-        <Parameters type="helm">
-            <period>60</period>
-        </Parameters>
-    </Behavior>
-
-</BehaviorConfiguration>
+</xacro>

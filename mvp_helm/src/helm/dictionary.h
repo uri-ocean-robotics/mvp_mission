@@ -48,7 +48,7 @@ namespace helm {
 
     namespace xml {
 
-        CONST_STRING TAG = "Helm";
+        CONST_STRING TAG = "helm";
 
         /***********************************************************************
          * Helm XML tags and attributes
@@ -68,7 +68,7 @@ namespace helm {
 
 
          struct helmconf {
-             CONST_STRING TAG = "HelmConfiguration";
+             CONST_STRING TAG = "helm-configuration";
 
              struct param_types {
                  CONST_STRING FREQUENCY = "frequency";
@@ -79,11 +79,11 @@ namespace helm {
         /***********************************************************************
          * State machine XML tags and attributes
          */
-        struct sm {
-            CONST_STRING TAG = "StateMachine";
+        struct smconf {
+            CONST_STRING TAG = "state-machine-configuration";
 
             struct state {
-                CONST_STRING TAG = "State";
+                CONST_STRING TAG = "state";
                 struct ATTRS {
                     CONST_STRING INITIAL = "initial";
                     CONST_STRING NAME = "name";
@@ -91,7 +91,7 @@ namespace helm {
                 };
 
                 struct transition {
-                    CONST_STRING TAG = "Transition";
+                    CONST_STRING TAG = "transition";
                     struct ATTRS{
                         CONST_STRING TO = "to";
                     };
@@ -105,17 +105,17 @@ namespace helm {
          * Behavior configuration XML tags and attributes
          */
         struct bhvconf {
-            CONST_STRING TAG = "BehaviorConfiguration";
+            CONST_STRING TAG = "behavior-configuration";
 
             struct behavior {
-                CONST_STRING TAG = "Behavior";
+                CONST_STRING TAG = "behavior";
                 struct ATTRS {
                     CONST_STRING NAME = "name";
                     CONST_STRING PLUGIN = "plugin";
                 };
 
                 struct state {
-                    CONST_STRING TAG = "State";
+                    CONST_STRING TAG = "state";
                     struct ATTRS {
                         CONST_STRING NAME = "name";
                         CONST_STRING PRIORITY = "priority";
@@ -123,7 +123,7 @@ namespace helm {
                 };
 
                 struct parameters {
-                    CONST_STRING TAG = "Parameters";
+                    CONST_STRING TAG = "parameters";
                     struct ATTRS {
                         CONST_STRING TYPE = "type";
                         struct OPTIONS_TYPE {

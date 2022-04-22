@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<helm>
+
+    <helm-configuration>
+        <param name="frequency" value="10"/>
+    </helm-configuration>
+
+    <state-machine-configuration>
+        <state initial="true" name="start" mode="flight">
+            <transition to="survey"/>
+            <transition to="kill"/>
+        </state>
+
+        <state name="survey" mode="flight">
+            <transition to="start"/>
+            <transition to="kill"/>
+        </state>
+
+        <state name="survey2" mode="flight">
+            <transition to="start"/>
+            <transition to="survey"/>
+            <transition to="kill"/>
+        </state>
+        <state name="kill" mode="idle">
+            <transition to="start"/>
+        </state>
+    </state-machine-configuration>
+
+    <behavior-configuration>
+        <behavior name="bhv_los" plugin="helm::PathFollowing">
+            <state name="survey" priority="1"/>
+            <state name="survey2" priority="1"/>
+            <parameters type="ros">
+                <rosparam command="load" file="$(find mvp_helm)/param/bhv00.yaml"/>
+                <param name="state_done" type="string" value="start"/>
+                <param name="state_fail" type="string" value="kill"/>
+            </parameters>
+        </behavior>
+    </behavior-configuration>
+
+</helm>

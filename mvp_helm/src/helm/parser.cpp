@@ -1,7 +1,7 @@
 
 #include "parser.h"
 
-#include <utility>
+#include "utility"
 #include "exception.h"
 #include "dictionary.h"
 
@@ -54,7 +54,14 @@ void Parser::initialize() {
 
 void Parser::f_parse_behavior_components() {
 
-    for(auto * xml_bhv = m_xml_root->FirstChildElement(xml::bhvconf::behavior::TAG);
+    auto xml_bhvs = m_xml_root->FirstChildElement(xml::bhvconf::TAG);
+
+
+    if(xml_bhvs == nullptr) {
+        throw HelmException("no <" + std::string(xml::bhvconf::TAG) + "/>  is provided");
+    }
+
+    for(auto * xml_bhv = xml_bhvs->FirstChildElement(xml::bhvconf::behavior::TAG);
         xml_bhv != nullptr;
         xml_bhv = xml_bhv->NextSiblingElement(xml::bhvconf::behavior::TAG) )
     {
@@ -145,39 +152,49 @@ void Parser::f_parse_behavior_components() {
 }
 
 void Parser::f_parse_sm_components() {
-    for(auto * xml_state = m_xml_root->FirstChildElement(xml::sm::state::TAG);
+
+    auto xml_states = m_xml_root->FirstChildElement(xml::smconf::TAG);
+
+    if(xml_states == nullptr) {
+        throw HelmException("no <" + std::string(xml::smconf::TAG) + "/>  is provided");
+    }
+
+    for(auto * xml_state = xml_states->FirstChildElement(xml::smconf::state::TAG);
         xml_state != nullptr;
-        xml_state = xml_state->NextSiblingElement(xml::sm::state::TAG) )
+        xml_state = xml_state->NextSiblingElement(xml::smconf::state::TAG) )
     {
         sm_state_t the_state;
 
-        auto state_name = xml_state->Attribute(xml::sm::state::ATTRS::NAME);
+        auto state_name = xml_state->Attribute(xml::smconf::state::ATTRS::NAME);
 
         if(state_name == nullptr) {
             throw HelmException("A state machine state without name!");
         }
         the_state.name = std::string(state_name);
 
-        auto state_mode = xml_state->Attribute(xml::sm::state::ATTRS::MODE);
+        auto state_mode = xml_state->Attribute(xml::smconf::state::ATTRS::MODE);
         if(state_mode == nullptr) {
             throw HelmException("A state machine state without low level controller mode!");
         }
         the_state.mode = std::string(state_mode);
 
-        auto state_init = xml_state->Attribute(xml::sm::state::ATTRS::INITIAL);
+        auto state_init = xml_state->Attribute(xml::smconf::state::ATTRS::INITIAL);
+        the_state.initial = false;
         if(state_init != nullptr) {
-            the_state.initial = xml_state->BoolAttribute(xml::sm::state::ATTRS::INITIAL);
+            the_state.initial = xml_state->BoolAttribute(xml::smconf::state::ATTRS::INITIAL);
+
+            std::cout << "initial state: " << the_state.name << std::endl;
         }
 
         for(auto *xml_transition = xml_state->FirstChildElement();
             xml_transition != nullptr ;
             xml_transition = xml_transition->NextSiblingElement(
-                xml::sm::state::transition::TAG
+                xml::smconf::state::transition::TAG
             ))
         {
             the_state.transitions.emplace_back(
                 xml_transition->Attribute(
-                    xml::sm::state::transition::ATTRS::TO
+                    xml::smconf::state::transition::ATTRS::TO
                 )
             );
         }
@@ -194,6 +211,9 @@ void Parser::f_parse_helm_configuration() {
 
     auto xml_helm_conf = m_xml_root->FirstChildElement(xml::helmconf::TAG);
 
+    if(xml_helm_conf == nullptr) {
+        throw HelmException("no <" + std::string(xml::helmconf::TAG) + "/>  is provided");
+    }
 
     for(auto * xml_param = xml_helm_conf->FirstChildElement(xml::generic::param::TAG);
         xml_param != nullptr;
