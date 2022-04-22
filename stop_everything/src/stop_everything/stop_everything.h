@@ -16,11 +16,16 @@ namespace helm {
 
         ros::NodeHandlePtr m_nh;
 
+
+        void activated() override {};
+
+        void disabled() override {};
     public:
 
         StopEverything();
 
         bool request_set_point(mvp_control::ControlProcess *msg) override;
+
 
     };
 }
