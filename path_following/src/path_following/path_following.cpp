@@ -61,6 +61,8 @@ void PathFollowing::initialize() {
 
     m_pnh->param<double>("overshoot_timeout", m_overshoot_timeout, 30);
 
+    m_pnh->param<double>("surge_velocity", m_surge_velocity, 0.5); // m/s
+
     m_pnh->param<std::string>("state_done", m_state_done, "");
 
     m_pnh->param<std::string>("state_fail", m_state_fail, "");
@@ -315,7 +317,7 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
         atan2(m_process_values.velocity.y, m_process_values.velocity.x);
 
     // set an arbitrary velocity
-    m_cmd.velocity.x = 0.7;
+    m_cmd.velocity.x = m_surge_velocity;
 
     // set the heading for line of sight
     m_cmd.orientation.z = Yp + atan( - Ye / lookahead) - beta;

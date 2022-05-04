@@ -87,6 +87,11 @@ namespace helm {
         double m_overshoot_timeout;
 
         /**
+         * @brief Surge velocity for the behavior
+         */
+        double m_surge_velocity;
+
+        /**
          * @brief Overshoot timer
          * This variable will hold the time it passed since the overshoot.
          */
