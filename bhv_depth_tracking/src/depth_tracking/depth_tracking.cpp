@@ -20,7 +20,7 @@ void DepthTracking::initialize() {
 
     m_nh->param("p_gain", m_p_gain, 1.0);
 
-    m_nh->param("d_gain", m_d_gain, 0.1);
+    m_nh->param("d_gain", m_d_gain, 0.0);
 
     m_nh->param("max_pitch", m_max_pitch, M_PI_2);
 }
@@ -43,10 +43,10 @@ bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
 
     auto error = m_requested_depth - m_process_values.position.z;
 
-    auto pitch = - m_p_gain * error + m_d_gain * (-m_process_values.position.z);
+    auto pitch = - (m_p_gain * error + m_d_gain * (-m_process_values.velocity.z));
 
     if(fabs(pitch) > m_max_pitch) {
-        set_point->orientation.y = pitch > 0 ? m_max_pitch : -m_max_pitch;
+        set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;
     } else {
         set_point->orientation.y = pitch;
     }

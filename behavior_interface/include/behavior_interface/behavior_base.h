@@ -128,7 +128,7 @@ namespace helm
             m_helm_frequency = f;
         }
 
-        virtual auto activate() -> void final
+        virtual void activate() final
         {
             if(!m_activated) {
                 activated();
@@ -136,7 +136,7 @@ namespace helm
             m_activated = true;
         }
 
-        virtual auto disable() -> void final
+        virtual void disable() final
         {
             if(m_activated) {
                 disabled();

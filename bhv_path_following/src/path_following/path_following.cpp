@@ -250,6 +250,8 @@ void PathFollowing::f_next_line_segment() {
 
 void PathFollowing::activated() {
 
+    std::cout << "path following (" << m_name << ") activated!" << std::endl;
+
     geometry_msgs::Point32 p;
 
     p.x = static_cast<float>(m_process_values.position.x);

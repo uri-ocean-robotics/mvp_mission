@@ -11,3 +11,4 @@ acceptance_radius: 2.0
 update_topic: update_waypoints
 append_topic: append_waypoints
 world_frame: world_ned
+surge_velocity: 0.5
