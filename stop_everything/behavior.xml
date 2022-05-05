@@ -1,5 +1,0 @@
-<library path="lib/libstop_everything">
-  <class type="helm::StopEverything" base_class_type="helm::BehaviorBase">
-    <description>A behavior that stops everything.</description>
-  </class>
-</library>

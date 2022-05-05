@@ -13,21 +13,22 @@
             </parameters>
         </behavior>
 
+        <behavior name="bhv03" plugin="helm::DepthTracking">
+            <state name="survey" priority="2"/>
+        </behavior>
+
         <behavior name="eval00" plugin="helm::MotionEvaluation">
             <state name="evaluation" priority="1"/>
         </behavior>
 
-        <behavior name="recovery_bhv" plugin="helm::PathFollowing">
+        <behavior name="bhv01" plugin="helm::PathFollowing">
             <state name="recover" priority="0"/>
-        </behavior>
-
-        <behavior name="bhv01" plugin="helm::StopEverything">
-            <state name="stop" priority="inf"/>
         </behavior>
 
         <behavior name="bhv02" plugin="helm::PeriodicSurface">
             <state name="surface" priority="1"/>
         </behavior>
+
 
     </behavior-configuration>
 

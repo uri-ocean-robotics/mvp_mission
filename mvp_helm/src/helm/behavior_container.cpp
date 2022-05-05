@@ -6,7 +6,6 @@
 namespace helm
 {
 
-
     BehaviorContainer::BehaviorContainer(behavior_component_t opts) {
         m_opts = std::move(opts);
 
@@ -15,7 +14,6 @@ namespace helm
                 "behavior_interface", "helm::BehaviorBase"
             )
         );
-
     }
 
     void BehaviorContainer::initialize() {
@@ -32,7 +30,12 @@ namespace helm
 
         m_behavior->set_name(m_opts.name);
 
-        m_behavior->initialize();
+        try {
+            m_behavior->initialize();
+        } catch ( BehaviorException &e) {
+            ROS_ERROR_STREAM("Can not initialize behavior"
+                "(" << m_opts.name << "): " << e.what());
+        }
 
     }
 

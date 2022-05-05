@@ -31,7 +31,6 @@ void MotionEvaluation::initialize() {
         )
     );
 
-
     m_surge_phase = 0;
     m_pitch_rate_phase = 0;
     m_yaw_rate_phase = 0;

@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>path_following</name>
+  <name>bhv_depth_tracking</name>
   <version>0.0.0</version>
-  <description>The path_following package</description>
+  <description>The bhv_depth_tracking package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="emircem@uri.edu">Emir Cem Gezer</maintainer>
+  <maintainer email="cem@todo.todo">cem</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/trajectory_following</url> -->
+  <!-- <url type="website">http://wiki.ros.org/bhv_depth_tracking</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -49,14 +49,16 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>geometry_msgs</depend>
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
-  <depend>pluginlib</depend>
-  <depend>behavior_interface</depend>
-  <depend>tf2_ros</depend>
-  <depend>tf2_eigen</depend>
-  <depend>visualization_msgs</depend>
+  <build_depend>behavior_interface</build_depend>
+  <build_depend>mvp_helm</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_export_depend>behavior_interface</build_export_depend>
+  <build_export_depend>mvp_helm</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <exec_depend>behavior_interface</exec_depend>
+  <exec_depend>mvp_helm</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

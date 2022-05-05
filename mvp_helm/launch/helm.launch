@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <launch>
 
+    <arg name="config_file" default="$(find mvp_helm)/configuration/helm.xml"/>
+    <!--arg name="config_file" default="$(find mvp_helm)/configuration/one_file.xml"/-->
+
     <node pkg="mvp_helm" type="helm" name="helm" output="screen">
         <param
             name="configuration"
-            command="$(find xacro)/xacro '$(find mvp_helm)/configuration/helm.xml'"/>
+            command="$(find xacro)/xacro $(arg config_file)"/>
     </node>
 
 </launch>

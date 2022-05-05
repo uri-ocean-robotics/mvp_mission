@@ -1,0 +1,5 @@
+<library path="lib/libdepth_tracking">
+  <class type="helm::DepthTracking" base_class_type="helm::BehaviorBase">
+    <description>A depth tracking behavior.</description>
+  </class>
+</library>

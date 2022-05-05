@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   pluginlib
   genmsg
-  mvp_control
+  # mvp_control
 )
 
 

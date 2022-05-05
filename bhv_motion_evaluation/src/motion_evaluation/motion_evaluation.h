@@ -45,10 +45,6 @@ namespace helm {
 
         double m_pitch_rate_phase;
 
-        void activated() override {};
-
-        void disabled() override {};
-
     public:
 
         MotionEvaluation();

@@ -21,6 +21,7 @@
             <transition to="survey"/>
             <transition to="kill"/>
         </state>
+
         <state name="kill" mode="idle">
             <transition to="start"/>
         </state>

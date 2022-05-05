@@ -92,8 +92,8 @@ void PathFollowing::initialize() {
     m_full_trajectory_publisher = m_pnh->advertise<visualization_msgs::Marker>(
         "path", 0);
 
-    m_trajectory_segment_publisher = m_pnh->advertise<visualization_msgs::Marker>(
-        "segment", 0);
+    m_trajectory_segment_publisher =
+        m_pnh->advertise<visualization_msgs::Marker>("segment", 0);
 
 
     m_transform_listener.reset(new
@@ -139,6 +139,30 @@ void PathFollowing::f_parse_param_waypoints() {
     if(l.getType() != XmlRpc::XmlRpcValue::TypeArray) {
         ROS_ERROR("waypoints are not in type array format.");
         return;
+    }
+
+    bool local_frame = false;
+    for(uint32_t i = 0 ; i < l.size() ; i++) {
+        for(const auto& key : {"x", "y", "z"}) {
+            if(!l[i][key].getType() == XmlRpc::XmlRpcValue::TypeInvalid) {
+                local_frame = true;
+                break;
+            }
+        }
+    }
+
+    bool gps_frame = false;
+    for(uint32_t i = 0 ; i < l.size() ; i++) {
+        for(const auto& key : {"lat", "long"}) {
+            if(!l[i][key].getType() == XmlRpc::XmlRpcValue::TypeInvalid) {
+                gps_frame = true;
+                break;
+            }
+        }
+    }
+
+    if(local_frame && gps_frame) {
+        throw std::runtime_error("mixed waypoint types!");
     }
 
     for(uint32_t i = 0; i < l.size() ; i++) {
@@ -259,16 +283,13 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
 
     f_visualize_segment();
 
-    geometry_msgs::PolygonStamped poly;
     // todo: i don't like the placement of this
-
+    geometry_msgs::PolygonStamped poly;
     f_transform_waypoints(
         m_process_values.header.frame_id,
         m_waypoints,
         &poly
     );
-
-    std::cout << poly << std::endl;
 
     double x = m_process_values.position.x;
     double y = m_process_values.position.y;
