@@ -1,14 +1,9 @@
 waypoints:
-  - {x: 0, y: 0}
+  - {x: 20, y: 0}
   - {x: -20, y: 0}
-  - {x: -20, y: 20}
-  - {x: 0, y: 20}
-  - {x: 0, y: 0}
-  - {x: -20, y: 0}
-  - {x: -20, y: 20}
-  - {x: 0, y: 20}
-  - {x: 0, y: 0}
-
+  - {x: -20, y: 10}
+  - {x: 20, y: 10}
+  - {x: 20, y: 0}
 
 acceptance_radius: 4.0
 update_topic: update_waypoints
