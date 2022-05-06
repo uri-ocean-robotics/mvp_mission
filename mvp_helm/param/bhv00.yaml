@@ -1,14 +1,18 @@
 waypoints:
-  - {x: 1, y: -5}
-  - {x: 1, y: 5}
-  - {x: 4, y: 7}
-  - {x: 9, y: 7}
-  - {x: 6, y: -5}
-  - {x: -4, y: -3}
-  - {x: 3, y: -2}
+  - {x: 0, y: 0}
+  - {x: -20, y: 0}
+  - {x: -20, y: 20}
+  - {x: 0, y: 20}
+  - {x: 0, y: 0}
+  - {x: -20, y: 0}
+  - {x: -20, y: 20}
+  - {x: 0, y: 20}
+  - {x: 0, y: 0}
 
-acceptance_radius: 2.0
+
+acceptance_radius: 4.0
 update_topic: update_waypoints
 append_topic: append_waypoints
 world_frame: world_ned
-surge_velocity: 0.5
+surge_velocity: 1.0
+lookahead_distance: 4.0

@@ -1,2 +1,3 @@
 p_gain: 2.0
-d_gain: 1.0
+d_gain: 2.0
+max_pitch: 0.392699082
