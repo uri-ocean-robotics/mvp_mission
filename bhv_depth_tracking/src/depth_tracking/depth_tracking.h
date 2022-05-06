@@ -34,6 +34,8 @@ namespace helm {
 
         double m_max_pitch;
 
+        double m_fwd_distance;
+
     public:
 
         /**

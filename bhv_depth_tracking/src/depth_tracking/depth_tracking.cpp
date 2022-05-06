@@ -11,6 +11,7 @@ void DepthTracking::initialize() {
 
     m_dofs = decltype(m_dofs){
         ctrl::DOF::PITCH,
+        ctrl::DOF::Z
     };
 
     m_sub = m_nh->subscribe(
@@ -23,6 +24,8 @@ void DepthTracking::initialize() {
     m_nh->param("d_gain", m_d_gain, 0.0);
 
     m_nh->param("max_pitch", m_max_pitch, M_PI_2);
+
+    m_nh->param("fwd_distance", m_fwd_distance, 3.0);
 }
 
 void DepthTracking::f_cb_sub(const std_msgs::Float64::ConstPtr &msg) {
@@ -41,6 +44,26 @@ DepthTracking::~DepthTracking() {
 
 bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
 
+    auto error = m_process_values.position.z - m_requested_depth;
+
+    double pitch;
+
+    pitch = atan(error / m_fwd_distance);
+
+    if(m_process_values.velocity.x != 0)  {
+
+        pitch += atan(
+            m_process_values.velocity.z / m_process_values.velocity.x);
+    }
+
+     if(fabs(pitch) > m_max_pitch) {
+        set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;
+    } else {
+        set_point->orientation.y = pitch;
+    }
+
+
+/*
     auto error = m_requested_depth - m_process_values.position.z;
 
     auto pitch = - (m_p_gain * error + m_d_gain * (-m_process_values.velocity.z));
@@ -50,6 +73,10 @@ bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
     } else {
         set_point->orientation.y = pitch;
     }
+
+    set_point->position.z = m_requested_depth;
+    set_point->orientation.y = 0;
+*/
 
     return true;
 }
