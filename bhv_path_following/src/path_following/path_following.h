@@ -92,6 +92,11 @@ namespace helm {
         double m_surge_velocity;
 
         /**
+         * @brief experimental side slip gain
+         */
+        double m_beta_gain;
+
+        /**
          * @brief Overshoot timer
          * This variable will hold the time it passed since the overshoot.
          */
