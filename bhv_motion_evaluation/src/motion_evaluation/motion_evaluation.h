@@ -4,7 +4,7 @@
 #include "ros/ros.h"
 #include "mvp_control/ControlProcess.h"
 #include "geometry_msgs/PolygonStamped.h"
-#include "motion_evaluation/FreqMagConfig.h"
+#include "bhv_motion_evaluation/FreqMagConfig.h"
 #include "mutex"
 #include "dynamic_reconfigure/server.h"
 
@@ -29,14 +29,14 @@ namespace helm {
          */
         mvp_control::ControlProcess m_cmd;
 
-        motion_evaluation::FreqMagConfig m_config;
+        bhv_motion_evaluation::FreqMagConfig m_config;
 
         std::recursive_mutex m_config_mutex;
 
-        dynamic_reconfigure::Server<motion_evaluation::FreqMagConfig>
+        dynamic_reconfigure::Server<bhv_motion_evaluation::FreqMagConfig>
             m_dynconf_server;
 
-        void f_dynconf_freqmag_cb(motion_evaluation::FreqMagConfig& conf,
+        void f_dynconf_freqmag_cb(bhv_motion_evaluation::FreqMagConfig& conf,
                                   uint32_t level);
 
         double m_surge_phase;

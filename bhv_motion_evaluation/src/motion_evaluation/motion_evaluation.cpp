@@ -38,7 +38,7 @@ void MotionEvaluation::initialize() {
 }
 
 void MotionEvaluation::f_dynconf_freqmag_cb(
-    motion_evaluation::FreqMagConfig &conf, uint32_t level)
+    bhv_motion_evaluation::FreqMagConfig &conf, uint32_t level)
 {
     std::scoped_lock lock(m_config_mutex);
 

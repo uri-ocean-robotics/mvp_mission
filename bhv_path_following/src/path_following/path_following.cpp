@@ -335,9 +335,13 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
 
     }
 
+
+    double beta = 0;
     // Calculate side slip angle
-    double beta =
-        atan2(m_process_values.velocity.y, m_process_values.velocity.x);
+    if(m_process_values.velocity.x != 0) {
+        beta =
+            atan(m_process_values.velocity.y / m_process_values.velocity.x);
+    }
 
     // set an arbitrary velocity
     m_cmd.velocity.x = m_surge_velocity;
