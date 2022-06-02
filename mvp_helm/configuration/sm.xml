@@ -5,6 +5,7 @@
 
         <state initial="true" name="start" mode="flight">
             <transition to="survey"/>
+            <transition to="evaluation"/>
             <transition to="kill"/>
         </state>
 
@@ -16,6 +17,11 @@
 
         <state name="surface" mode="flight">
             <transition to="survey"/>
+            <transition to="stop"/>
+            <transition to="kill"/>
+        </state>
+
+        <state name="evaluation" mode="teleop">
             <transition to="stop"/>
             <transition to="kill"/>
         </state>

@@ -20,6 +20,13 @@
             </parameters>
         </behavior>
 
+        <behavior name="bhv02" plugin="helm::MotionEvaluation">
+            <state name="evaluation" priority="1"/>
+            <parameters type="ros">
+                <rosparam command="load" file="$(find mvp_helm)/param/bhv02.yaml"/>
+            </parameters>
+        </behavior>
+
     </behavior-configuration>
 
 </xacro>
