@@ -287,8 +287,6 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
 
     f_visualize_segment();
 
-    std::cout << "POLYGON!\n" << m_transformed_waypoints << std::endl;
-
     double x = m_process_values.position.x;
 
     double y = m_process_values.position.y;
