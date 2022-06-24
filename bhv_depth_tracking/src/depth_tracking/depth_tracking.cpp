@@ -44,6 +44,9 @@ DepthTracking::~DepthTracking() {
 
 bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
 
+    /**
+     * @note I didn't want to change the sign afterwards.
+     */
     auto error = m_process_values.position.z - m_requested_depth;
 
     double pitch;
@@ -61,22 +64,6 @@ bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
     } else {
         set_point->orientation.y = pitch;
     }
-
-
-/*
-    auto error = m_requested_depth - m_process_values.position.z;
-
-    auto pitch = - (m_p_gain * error + m_d_gain * (-m_process_values.velocity.z));
-
-    if(fabs(pitch) > m_max_pitch) {
-        set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;
-    } else {
-        set_point->orientation.y = pitch;
-    }
-
-    set_point->position.z = m_requested_depth;
-    set_point->orientation.y = 0;
-*/
 
     return true;
 }

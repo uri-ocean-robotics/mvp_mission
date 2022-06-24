@@ -27,6 +27,13 @@
             </parameters>
         </behavior>
 
+        <behavior name="bhv03" plugin="helm::PeriodicSurface">
+            <state name="survey" priority="2"/>
+            <parameters type="ros">
+                <rosparam command="load" file="$(find mvp_helm)/param/bhv03.yaml"/>
+            </parameters>
+        </behavior>
+
     </behavior-configuration>
 
 </xacro>
