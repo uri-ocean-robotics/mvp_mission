@@ -5,7 +5,8 @@
 #include "thread"
 #include "functional"
 #include "cmath"
-
+#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 using namespace helm;
 
@@ -51,9 +52,9 @@ void PathFollowing::initialize() {
         "append_waypoints");
 
     m_pnh->param<std::string>(
-        "world_frame",
-        m_world_frame,
-        "world");
+        "frame_id",
+        m_frame_id,
+        "frame_id");
 
     m_pnh->param<double>("acceptance_radius", m_acceptance_radius, 1.0);
 
@@ -115,20 +116,17 @@ void PathFollowing::f_waypoint_cb(
         return;
     }
 
-    geometry_msgs::PolygonStamped a;
-    f_transform_waypoints(*m, &a);
-
     if(append) {
 
         // append
-        for(const auto& i : a.polygon.points) {
+        for(const auto& i : m->polygon.points) {
             m_waypoints.polygon.points.emplace_back(i);
         }
 
     } else {
 
         // replace
-        m_waypoints = a;
+        m_waypoints = *m;
 
         m_line_index = 0;
     }
@@ -186,15 +184,7 @@ void PathFollowing::f_parse_param_waypoints() {
         m_waypoints.polygon.points.emplace_back(gp);
     }
 
-    m_waypoints.header.frame_id = m_world_frame;
-
-}
-
-void
-PathFollowing::f_transform_waypoints(const geometry_msgs::PolygonStamped &in,
-                                     geometry_msgs::PolygonStamped *out) {
-
-    f_transform_waypoints(m_world_frame ,in, out);
+    m_waypoints.header.frame_id = m_frame_id;
 
 }
 
@@ -208,22 +198,21 @@ PathFollowing::f_transform_waypoints(
     geometry_msgs::PolygonStamped tm;
 
     tm.header.stamp = ros::Time::now();
-    tm.header.frame_id = m_world_frame;
+    tm.header.frame_id = target_frame;
 
     try {
-        for (const auto &pt: in.polygon.points) {
 
-            auto w_pt = m_transform_buffer.lookupTransform(
-                target_frame,
-                in.header.frame_id,
-                ros::Time::now(),
-                ros::Duration(1.0)
-            );
+        for (const auto &pt: in.polygon.points) {
+            geometry_msgs::PointStamped ps;
+            ps.header.frame_id = in.header.frame_id;
+            ps.point.x = pt.x;
+            ps.point.y = pt.y;
+
+            auto t = m_transform_buffer.transform(ps, target_frame, ros::Duration(1.0));
 
             geometry_msgs::Point32 p;
-            p.x = static_cast<float>(w_pt.transform.translation.x);
-            p.y = static_cast<float>(w_pt.transform.translation.y);
-            p.z = static_cast<float>(w_pt.transform.translation.z);
+            p.x = static_cast<float>(t.point.x);
+            p.y = static_cast<float>(t.point.y);
 
             tm.polygon.points.emplace_back(p);
         }
@@ -235,11 +224,10 @@ PathFollowing::f_transform_waypoints(
 }
 
 void PathFollowing::f_next_line_segment() {
+    auto length = m_transformed_waypoints.polygon.points.size();
 
-    auto length = m_waypoints.polygon.points.size();
-
-    m_wpt_first = m_waypoints.polygon.points[m_line_index % length];
-    m_wpt_second = m_waypoints.polygon.points[(m_line_index + 1) % length];
+    m_wpt_first = m_transformed_waypoints.polygon.points[m_line_index % length];
+    m_wpt_second = m_transformed_waypoints.polygon.points[(m_line_index + 1) % length];
 
     m_line_index++;
 
@@ -254,16 +242,26 @@ void PathFollowing::activated() {
 
     std::cout << "path following (" << m_name << ") activated!" << std::endl;
 
+    // Transform all the points into controller's frame
+    geometry_msgs::PolygonStamped poly;
+    f_transform_waypoints(
+        m_process_values.header.frame_id,
+        m_waypoints,
+        &m_transformed_waypoints
+    );
+
+    // Push robots position as the first point
     geometry_msgs::Point32 p;
-
     p.x = static_cast<float>(m_process_values.position.x);
-
     p.y = static_cast<float>(m_process_values.position.y);
-
     m_wpt_first = p;
-    m_wpt_second = m_waypoints.polygon.points[
-        m_line_index % m_waypoints.polygon.points.size()
+
+
+    // Select second waypoint to be the next point in the way point list
+    m_wpt_second = m_transformed_waypoints.polygon.points[
+        m_line_index % m_transformed_waypoints.polygon.points.size()
     ];
+
 
 }
 
@@ -289,17 +287,11 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
 
     f_visualize_segment();
 
-    // todo: i don't like the placement of this
-    geometry_msgs::PolygonStamped poly;
-    f_transform_waypoints(
-        m_process_values.header.frame_id,
-        m_waypoints,
-        &poly
-    );
+    std::cout << "POLYGON!\n" << m_transformed_waypoints << std::endl;
 
     double x = m_process_values.position.x;
-    double y = m_process_values.position.y;
 
+    double y = m_process_values.position.y;
 
     double Yp = std::atan2(
         m_wpt_second.y - m_wpt_first.y,

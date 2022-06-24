@@ -10,7 +10,7 @@ waypoints:
 acceptance_radius: 3.0
 update_topic: update_waypoints
 append_topic: append_waypoints
-world_frame: world_ned
+frame_id: world_ned
 surge_velocity: 0.70
 lookahead_distance: 3.0
 beta_gain: 0.0

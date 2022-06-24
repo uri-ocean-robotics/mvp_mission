@@ -62,10 +62,12 @@ namespace helm {
          */
         geometry_msgs::PolygonStamped m_waypoints;
 
+        geometry_msgs::PolygonStamped m_transformed_waypoints;
+
         /**
-         * @brief World frame name
+         * @brief Frame id of the points name
          */
-        std::string m_world_frame;
+        std::string m_frame_id;
         /**
          * @brief Index of the lines
          */
@@ -141,15 +143,6 @@ namespace helm {
          * @brief Parses waypoints from ROS parameter server
          */
         void f_parse_param_waypoints();
-
-        /**
-         * @brief Transform waypoints to world frame
-         *
-         * @param in Waypoints in their original frame
-         * @param out Waypoints in #PathFollowing::m_world_frame
-         */
-        void f_transform_waypoints(const geometry_msgs::PolygonStamped &in,
-                                   geometry_msgs::PolygonStamped *out);
 
         /**
          * @brief Transform waypoints to #target_frame

@@ -5,14 +5,14 @@ using namespace helm;
 
 void PathFollowing::f_visualize_path(bool clear) {
     visualization_msgs::Marker marker;
-    marker.header = m_waypoints.header;
+    marker.header = m_transformed_waypoints.header;
     marker.header.stamp = ros::Time::now();
     marker.type = visualization_msgs::Marker::LINE_STRIP;
     if(clear) {
         marker.action = visualization_msgs::Marker::DELETEALL;
     } else {
         marker.action = visualization_msgs::Marker::MODIFY;
-        for (const auto &i: m_waypoints.polygon.points) {
+        for (const auto &i: m_transformed_waypoints.polygon.points) {
             geometry_msgs::Point p;
             p.x = i.x;
             p.y = i.y;
@@ -46,7 +46,7 @@ void PathFollowing::f_visualize_path(bool clear) {
 
 void PathFollowing::f_visualize_segment(bool clear) {
     visualization_msgs::Marker marker;
-    marker.header = m_waypoints.header;
+    marker.header = m_transformed_waypoints.header;
     marker.header.stamp = ros::Time::now();
     marker.type = visualization_msgs::Marker::LINE_STRIP;
 

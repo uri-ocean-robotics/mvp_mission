@@ -56,6 +56,7 @@
   <depend>behavior_interface</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_eigen</depend>
+  <depend>tf2_geometry_msgs</depend>
   <depend>visualization_msgs</depend>
 
   <!-- The export tag contains other, unspecified, tags -->

@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   pluginlib
   tf2_ros
+  tf2_eigen
+  tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -109,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 # INCLUDE_DIRS include
   LIBRARIES path_following
-  CATKIN_DEPENDS geometry_msgs roscpp std_msgs tf2_ros visualization_msgs
+  CATKIN_DEPENDS geometry_msgs roscpp std_msgs tf2_ros tf2_eigen tf2_geometry_msgs visualization_msgs
 #  DEPENDS system_lib
 )
 
