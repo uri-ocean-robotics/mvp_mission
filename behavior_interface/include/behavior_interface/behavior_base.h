@@ -155,8 +155,8 @@ namespace helm
         /**
          * @brief
          * @param set_point
-         * @return true Success
-         * @return false Failure
+         * @return true if Behavior wants helm to use its result
+         * @return false if Behavior doesn't want helm to use its result
          */
         virtual bool request_set_point(
             mvp_control::ControlProcess* set_point) = 0;
