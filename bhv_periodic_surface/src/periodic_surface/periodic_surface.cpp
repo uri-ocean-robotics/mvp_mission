@@ -98,11 +98,6 @@ bool PeriodicSurface::request_set_point(mvp_control::ControlProcess *set_point)
 
     double pitch = atan(m_process_values.position.z / m_fwd_distance);
 
-    if(m_process_values.velocity.x != 0)  {
-        pitch += atan(
-            m_process_values.velocity.z / m_process_values.velocity.x);
-    }
-
     if(fabs(pitch) > m_max_pitch) {
         set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;
     } else {

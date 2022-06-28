@@ -22,19 +22,25 @@ namespace helm {
         /**
          * @brief requested depth
          */
-        double m_requested_depth{};
+        double m_requested_depth;
 
+        /**
+         * @brief Trivial subscriber object
+         */
         ros::Subscriber m_sub;
 
+        /**
+         * @brief Trvial subscriber callback
+         *
+         * @param msg
+         */
         void f_cb_sub(const std_msgs::Float64::ConstPtr& msg);
-
-        double m_p_gain;
-
-        double m_d_gain;
 
         double m_max_pitch;
 
         double m_fwd_distance;
+
+        bool m_use_heave_velocity;
 
     public:
 

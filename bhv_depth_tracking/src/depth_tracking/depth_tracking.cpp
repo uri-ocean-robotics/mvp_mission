@@ -9,6 +9,7 @@ void DepthTracking::initialize() {
         new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
     );
 
+    //! @par Declare the dofs to be controlled
     m_dofs = decltype(m_dofs){
         ctrl::DOF::PITCH,
         ctrl::DOF::Z
@@ -17,15 +18,14 @@ void DepthTracking::initialize() {
     m_sub = m_nh->subscribe(
         "desired_depth", 100, &DepthTracking::f_cb_sub, this);
 
-    m_nh->param("initialize_depth",m_requested_depth, 0.0);
-
-    m_nh->param("p_gain", m_p_gain, 1.0);
-
-    m_nh->param("d_gain", m_d_gain, 0.0);
+    m_nh->param("desired_depth",m_requested_depth, 0.0);
 
     m_nh->param("max_pitch", m_max_pitch, M_PI_2);
 
-    m_nh->param("fwd_distance", m_fwd_distance, 3.0);
+    m_nh->param("forward_distance", m_fwd_distance, 3.0);
+
+    m_nh->param("use_heave_velocity", m_use_heave_velocity, false);
+
 }
 
 void DepthTracking::f_cb_sub(const std_msgs::Float64::ConstPtr &msg) {
@@ -44,26 +44,34 @@ DepthTracking::~DepthTracking() {
 
 bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
 
-    /**
-     * @note I didn't want to change the sign afterwards.
-     */
+    //! @note Set Pitch angle.
+
+    //! @note I didn't want to change the sign afterwards.
     auto error = m_process_values.position.z - m_requested_depth;
 
     double pitch;
 
     pitch = atan(error / m_fwd_distance);
 
-    if(m_process_values.velocity.x != 0)  {
-
-        pitch += atan(
-            m_process_values.velocity.z / m_process_values.velocity.x);
+    if(m_use_heave_velocity) {
+        if(m_process_values.velocity.x != 0)  {
+            pitch += atan(
+                m_process_values.velocity.z / m_process_values.velocity.x);
+        }
     }
 
      if(fabs(pitch) > m_max_pitch) {
-        set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;
-    } else {
-        set_point->orientation.y = pitch;
+        if(pitch >= 0) {
+            pitch = m_max_pitch;
+        } else {
+            pitch = -m_max_pitch;
+        }
     }
+    set_point->orientation.y = pitch;
+
+    //! @note Set depth directly so low-level controller deals with it.
+
+    set_point->position.z = m_requested_depth;
 
     return true;
 }
