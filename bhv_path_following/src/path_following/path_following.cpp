@@ -143,33 +143,18 @@ void PathFollowing::f_parse_param_waypoints() {
         return;
     }
 
-    bool local_frame = false;
     for(uint32_t i = 0 ; i < l.size() ; i++) {
-        for(const auto& key : {"x", "y", "z"}) {
+        for(const auto& key : {"x", "y"}) {
             if(!l[i][key].getType() == XmlRpc::XmlRpcValue::TypeInvalid) {
-                local_frame = true;
                 break;
             }
         }
     }
 
-    bool gps_frame = false;
-    for(uint32_t i = 0 ; i < l.size() ; i++) {
-        for(const auto& key : {"lat", "long"}) {
-            if(!l[i][key].getType() == XmlRpc::XmlRpcValue::TypeInvalid) {
-                gps_frame = true;
-                break;
-            }
-        }
-    }
-
-    if(local_frame && gps_frame) {
-        throw std::runtime_error("mixed waypoint types!");
-    }
 
     for(uint32_t i = 0; i < l.size() ; i++) {
         std::map<std::string, double> mp;
-        for(const auto& key : {"x", "y", "z"}) {
+        for(const auto& key : {"x", "y"}) {
             if (l[i][key].getType() == XmlRpc::XmlRpcValue::TypeDouble) {
                 mp[key] = static_cast<double>(l[i][key]);
             } else if (l[i][key].getType() == XmlRpc::XmlRpcValue::TypeInt) {
@@ -179,7 +164,6 @@ void PathFollowing::f_parse_param_waypoints() {
         geometry_msgs::Point32 gp;
         gp.x = static_cast<float>(mp["x"]);
         gp.y = static_cast<float>(mp["y"]);
-        gp.z = static_cast<float>(mp["z"]);
 
         m_waypoints.polygon.points.emplace_back(gp);
     }
@@ -355,6 +339,9 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
      */
     *set_point = m_cmd;
 
+    /*
+     * Use the result from the behavior
+     */
     return true;
 }
 
