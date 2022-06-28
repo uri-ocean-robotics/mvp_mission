@@ -16,14 +16,16 @@ namespace helm {
 
         BhvState m_bhv_state;
 
-
         /**
          * @brief
          * @todo To be implemented
          */
         void initialize() override;
 
-        ros::NodeHandlePtr m_nh;
+        /**
+         * @brief Trivial node handler
+         */
+        ros::NodeHandlePtr m_pnh;
 
         /**
          * @brief Forward distance of the surfacing behaviour
@@ -31,20 +33,48 @@ namespace helm {
          */
         double m_fwd_distance;
 
+        /**
+         * @brief maximum pitch that the behavior will command. in radians
+         */
         double m_max_pitch;
+
+        /**
+         * @brief Surfacing period. in seconds
+         *
+         * A surfacing period ends when the vehicle is surfaced and it begins
+         * when the #PeriodicSurface::m_surface_duration ends.
+         */
         double m_surface_period;
+
+        /**
+         * @brief Surfacing duration, in seconds
+         *
+         * Dictates the duration of the surfacing
+         */
         double m_surface_duration;
 
+        /**
+         * @brief Unix time stamp of the time when behavior is activated again.
+         *
+         * When it activated, it indicates the time when the vehicle starts to
+         * climb up again.
+         */
         ros::Time m_start_time;
-        ros::Time m_surfaced_time;
-        bool m_surfaced;
 
+        /**
+         * @brief Unix time stamp of the time when the vehicle is first surfaced
+         */
+        ros::Time m_surfaced_time;
+
+        /**
+         * @brief Implementation of #BehaviorBase::activated
+         */
         void activated();
 
+        /**
+         * @brief Implementation of #BehaviorBase::disabled
+         */
         void disabled();
-
-
-        bool m_bhv_active;
 
     public:
 

@@ -5,18 +5,19 @@ using namespace helm;
 
 void PeriodicSurface::initialize() {
 
-    m_nh.reset(
-        new ros::NodeHandle(ros::this_node::getNamespace() + "/" + m_name)
+    m_pnh.reset(
+        new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
     );
+
     m_dofs = decltype(m_dofs){
         ctrl::DOF::PITCH,
-        ctrl::DOF::Z
     };
-    m_nh->param("fwd_distance", m_fwd_distance, 3.0);
 
-    m_nh->param("max_pitch", m_max_pitch, M_PI_2);
-    m_nh->param("m_surface_period", m_surface_period, 10.0); //seconds
-    m_nh->param("m_surface_duration", m_surface_duration, 10.0); //seconds
+    m_pnh->param("fwd_distance", m_fwd_distance, 3.0);
+
+    m_pnh->param<double>("max_pitch", m_max_pitch, M_PI_2);
+    m_pnh->param<double>("surface_period", m_surface_period, 10.0); //seconds
+    m_pnh->param<double>("surface_duration", m_surface_duration, 10.0); //seconds
 
     m_activated = false;
 
@@ -71,8 +72,6 @@ bool PeriodicSurface::request_set_point(mvp_control::ControlProcess *set_point)
 
     if(m_bhv_state == BhvState::ENABLED) {
 
-        std::cout << "ENABLED" << std::endl;
-
         if(m_process_values.position.z < 0.5){
             m_bhv_state = BhvState::WAITING;
             m_surfaced_time = ros::Time::now();
@@ -80,45 +79,35 @@ bool PeriodicSurface::request_set_point(mvp_control::ControlProcess *set_point)
 
     } else if (m_bhv_state == BhvState::WAITING) {
 
-        std::cout << "WAITING" << std::endl;
-
         if(ros::Time::now().sec - m_surfaced_time.sec > m_surface_duration) {
             m_bhv_state = BhvState::DISABLED;
             m_start_time = ros::Time::now();
+
+            return false;
         }
 
     } else if (m_bhv_state == BhvState::DISABLED) {
 
-        std::cout << "DISABLED" << std::endl;
-
         if(ros::Time::now().sec - m_start_time.sec > m_surface_period) {
             m_bhv_state = BhvState::ENABLED;
-        }
-
-        return false;
-    }
-
-
-
-
-    if( m_bhv_state == BhvState::ENABLED || m_bhv_state == BhvState::WAITING)
-    {
-        double pitch = atan(m_process_values.position.z / m_fwd_distance);
-
-        if(m_process_values.velocity.x != 0)  {
-
-            pitch += atan(
-                m_process_values.velocity.z / m_process_values.velocity.x);
-        }
-
-        if(fabs(pitch) > m_max_pitch) {
-            set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;
         } else {
-            set_point->orientation.y = pitch;
+            return false;
         }
+
     }
 
+    double pitch = atan(m_process_values.position.z / m_fwd_distance);
 
+    if(m_process_values.velocity.x != 0)  {
+        pitch += atan(
+            m_process_values.velocity.z / m_process_values.velocity.x);
+    }
+
+    if(fabs(pitch) > m_max_pitch) {
+        set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;
+    } else {
+        set_point->orientation.y = pitch;
+    }
 
     return true;
 }
