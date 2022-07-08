@@ -33,6 +33,7 @@ jobs:
         with:
           submodules: recursive
           repository: GSO-soslab/seal_msgs
+          ref: master
 
       - name: Checkout submodules
         run: git submodule update --init --recursive
