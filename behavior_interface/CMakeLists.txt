@@ -10,7 +10,7 @@ add_compile_options(-std=c++14)
 find_package(catkin REQUIRED COMPONENTS
   pluginlib
   roscpp
-  mvp_control
+  seal_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -105,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES behavior_interface
-  CATKIN_DEPENDS pluginlib roscpp mvp_control
+  CATKIN_DEPENDS pluginlib roscpp seal_msgs
 #  DEPENDS system_lib
 )
 

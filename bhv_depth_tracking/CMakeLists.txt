@@ -105,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
   LIBRARIES depth_tracking
-  CATKIN_DEPENDS behavior_interface mvp_helm roscpp
+  CATKIN_DEPENDS behavior_interface roscpp
 #  DEPENDS system_lib
 )
 

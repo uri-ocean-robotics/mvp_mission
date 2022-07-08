@@ -32,8 +32,7 @@
   <depend>std_msgs</depend>
   <depend>pluginlib</depend>
   <depend>behavior_interface</depend>
-  <depend>mvp_control</depend>
-  <depend>genmsg</depend>
+  <depend>seal_msgs</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

@@ -12,12 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   pluginlib
-  genmsg
-  # mvp_control
+  seal_msgs
 )
-
-
-include(FetchContent)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -53,21 +49,17 @@ include(FetchContent)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-    HelmState.msg
-    HelmStates.msg
+# add_message_files(
+#   FILES
+
 #   Message1.msg
 #   Message2.msg
-)
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-    ChangeState.srv
-    GetState.srv
-    GetStates.srv
-)
+# add_service_files(
+#   FILES
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -77,10 +69,10 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-    std_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#     std_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -114,7 +106,7 @@ generate_messages(
 catkin_package(
   # INCLUDE_DIRS include
   # LIBRARIES
-  CATKIN_DEPENDS roscpp std_msgs behavior_interface mvp_control genmsg
+  CATKIN_DEPENDS roscpp std_msgs behavior_interface seal_msgs
   # DEPENDS system_lib
 )
 

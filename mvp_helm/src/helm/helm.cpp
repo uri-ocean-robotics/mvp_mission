@@ -8,8 +8,7 @@
 /*******************************************************************************
  * ROS
  */
-#include "mvp_control/GetControlModes.h"
-#include "mvp_control/dictionary.h"
+#include "seal_msgs/GetControlModes.h"
 
 /*******************************************************************************
  * Helm
@@ -86,14 +85,14 @@ void Helm::initialize() {
      *
      */
     m_sub_controller_process_values = m_nh->subscribe(
-        ctrl::TOPIC_CONTROL_PROCESS_VALUE,
+        "controller/process/value",
         100,
         &Helm::f_cb_controller_process,
         this
     );
 
-    m_pub_controller_set_point = m_nh->advertise<mvp_control::ControlProcess>(
-        ctrl::TOPIC_CONTROL_PROCESS_SET_POINT,
+    m_pub_controller_set_point = m_nh->advertise<seal_msgs::ControlProcess>(
+        "controller/process/set_point",
         100
     );
 
@@ -167,7 +166,7 @@ void Helm::f_initialize_behaviors() {
 void Helm::f_get_controller_modes() {
 
     auto client = m_nh->serviceClient
-        <mvp_control::GetControlModes>(ctrl::SERVICE_GET_CONTROL_MODES);
+        <seal_msgs::GetControlModes>("controller/get_modes");
 
     while(!client.waitForExistence(ros::Duration(5))) {
         ROS_WARN_STREAM(
@@ -175,8 +174,10 @@ void Helm::f_get_controller_modes() {
         );
     }
 
-    mvp_control::GetControlModes srv;
+    seal_msgs::GetControlModes srv;
+
     client.call(srv);
+
     m_controller_modes.modes = srv.response.modes;
 
 }
@@ -210,7 +211,7 @@ void Helm::f_configure_helm(helm_configuration_t conf) {
 }
 
 void Helm::f_cb_controller_process(
-    const mvp_control::ControlProcess::ConstPtr& msg) {
+    const seal_msgs::ControlProcess::ConstPtr& msg) {
     m_controller_process_values = msg;
 }
 
@@ -227,7 +228,7 @@ void Helm::f_iterate() {
     auto active_mode = std::find_if(
         m_controller_modes.modes.begin(),
         m_controller_modes.modes.end(),
-        [active_state](const mvp_control::ControlMode& mode){
+        [active_state](const seal_msgs::ControlMode& mode){
             return mode.name == active_state.mode;
         }
     );
@@ -239,20 +240,20 @@ void Helm::f_iterate() {
         return;
     }
     // Type cast the vector
-    std::vector<ctrl::DOF::IDX> dofs;
+    std::vector<int> dofs;
     std::for_each(
         active_mode->dofs.begin(),
         active_mode->dofs.end(),
         [&](const auto & elem){
-            dofs.emplace_back((ctrl::DOF::IDX)elem);
+            dofs.emplace_back((int)elem);
         }
     );
 
     /**
      * Create holders for priorities and control inputs.
      */
-    std::array<double, ctrl::CONTROLLABLE_DOF_LENGTH> dof_ctrl{};
-    std::array<int, ctrl::CONTROLLABLE_DOF_LENGTH> dof_priority{};
+    std::array<double, 12> dof_ctrl{};
+    std::array<int, 12> dof_priority{};
 
     for(const auto& i : m_behavior_containers) {
 
@@ -282,7 +283,7 @@ void Helm::f_iterate() {
         /**
          * Request control command from the behavior
          */
-        mvp_control::ControlProcess set_point;
+        seal_msgs::ControlProcess set_point;
         if(!i->get_behavior()->request_set_point(&set_point)) {
             // todo: do something about dysfunctional behavior
             continue;
@@ -355,8 +356,8 @@ void Helm::f_helm_loop() {
 
 }
 
-bool Helm::f_cb_change_state(mvp_helm::ChangeState::Request &req,
-                             mvp_helm::ChangeState::Response &resp) {
+bool Helm::f_cb_change_state(seal_msgs::ChangeState::Request &req,
+                             seal_msgs::ChangeState::Response &resp) {
 
     if(f_change_state(req.state)) {
 
@@ -379,8 +380,8 @@ bool Helm::f_cb_change_state(mvp_helm::ChangeState::Request &req,
     return true;
 }
 
-bool Helm::f_cb_get_state(mvp_helm::GetState::Request &req,
-                          mvp_helm::GetState::Response &resp) {
+bool Helm::f_cb_get_state(seal_msgs::GetState::Request &req,
+                          seal_msgs::GetState::Response &resp) {
 
     if(req.name.empty()) {
 
@@ -405,10 +406,10 @@ bool Helm::f_cb_get_state(mvp_helm::GetState::Request &req,
 }
 
 
-bool Helm::f_cb_get_states(mvp_helm::GetStates::Request &req,
-                           mvp_helm::GetStates::Response &resp) {
+bool Helm::f_cb_get_states(seal_msgs::GetStates::Request &req,
+                           seal_msgs::GetStates::Response &resp) {
     for(const auto& i : m_state_machine->get_states()) {
-        mvp_helm::HelmState s;
+        seal_msgs::HelmState s;
         s.mode = i.mode;
         s.name = i.name;
         s.transitions = i.transitions;

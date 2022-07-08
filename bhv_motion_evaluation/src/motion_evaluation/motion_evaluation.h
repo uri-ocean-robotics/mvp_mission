@@ -2,7 +2,7 @@
 
 #include "behavior_interface/behavior_base.h"
 #include "ros/ros.h"
-#include "mvp_control/ControlProcess.h"
+#include "seal_msgs/ControlProcess.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "bhv_motion_evaluation/FreqMagConfig.h"
 #include "mutex"
@@ -27,7 +27,7 @@ namespace helm {
         /**
          * @brief Control Process command message
          */
-        mvp_control::ControlProcess m_cmd;
+        seal_msgs::ControlProcess m_cmd;
 
         bhv_motion_evaluation::FreqMagConfig m_config;
 
@@ -50,7 +50,7 @@ namespace helm {
         MotionEvaluation();
 
 
-        bool request_set_point(mvp_control::ControlProcess *msg) override;
+        bool request_set_point(seal_msgs::ControlProcess *msg) override;
 
     };
 }

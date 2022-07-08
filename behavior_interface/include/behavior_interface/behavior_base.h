@@ -15,9 +15,8 @@
 /*******************************************************************************
  * MVP
  */
-#include "mvp_control/dictionary.h"
-#include "mvp_control/ControlProcess.h"
-
+#include "seal_msgs/ControlProcess.h"
+#include "seal_msgs/ControlMode.h"
 /*******************************************************************************
  * ROS
  */
@@ -40,13 +39,13 @@ namespace helm
          * to control. Helm will be controlling this information during
          * execution.
          */
-        std::vector<ctrl::DOF::IDX> m_dofs;
+        std::vector<int> m_dofs;
 
         /**
          * @brief A vector holds DOFs active at the moment by controller
          *
          */
-        std::vector<ctrl::DOF::IDX> m_active_dofs;
+        std::vector<int> m_active_dofs;
 
         /**
          * @brief Unique name for the behavior.
@@ -57,7 +56,7 @@ namespace helm
         /**
          * @brief Registered state of the of the low level controller
          */
-        mvp_control::ControlProcess m_process_values;
+        seal_msgs::ControlProcess m_process_values;
 
         /**
          * @brief Frequency of the helm
@@ -119,7 +118,7 @@ namespace helm
          * @brief Registers the state of the system to the behavior
          */
         virtual auto register_process_values(
-                const mvp_control::ControlProcess& pv) -> void final
+                const seal_msgs::ControlProcess& pv) -> void final
         {
             m_process_values = pv;
         }
@@ -160,7 +159,7 @@ namespace helm
          * @return false if Behavior doesn't want helm to use its result
          */
         virtual bool request_set_point(
-            mvp_control::ControlProcess* set_point) = 0;
+            seal_msgs::ControlProcess* set_point) = 0;
 
         /**
          * @brief Initializer for behaviors
@@ -172,9 +171,9 @@ namespace helm
         /**
          * @brief retrieve degrees of freedoms controlled by the behavior
          *
-         * @return std::vector<ctrl::DOF::IDX>
+         * @return std::vector<int>
          */
-        virtual void set_active_dofs(const std::vector<ctrl::DOF::IDX>& dofs)
+        virtual void set_active_dofs(const std::vector<int>& dofs)
         {
             m_active_dofs = dofs;
         }

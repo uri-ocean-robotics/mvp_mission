@@ -19,9 +19,9 @@ void MotionEvaluation::initialize() {
     );
 
     BehaviorBase::m_dofs = decltype(m_dofs){
-        ctrl::DOF::SURGE,
-        ctrl::DOF::YAW_RATE,
-        ctrl::DOF::PITCH_RATE
+        seal_msgs::ControlMode::DOF_SURGE,
+        seal_msgs::ControlMode::DOF_YAW_RATE,
+        seal_msgs::ControlMode::DOF_PITCH_RATE
     };
 
     m_dynconf_server.setCallback(
@@ -46,7 +46,7 @@ void MotionEvaluation::f_dynconf_freqmag_cb(
 
 }
 
-bool MotionEvaluation::request_set_point(mvp_control::ControlProcess *set_point)
+bool MotionEvaluation::request_set_point(seal_msgs::ControlProcess *set_point)
 {
     std::scoped_lock lock(m_config_mutex);
 

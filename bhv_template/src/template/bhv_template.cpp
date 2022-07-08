@@ -27,25 +27,11 @@ void BehaviorTemplate::initialize() {
      * @details This member variable dictates the DOFs that can be controllable
      * by the behavior. If this member is not initialized, behavior can only
      * trigger state changes. This vector gets values from enum type of
-     * #Helm::ctrl::DOF::IDX or mvp_controller/ControlMode enums.
-     *
-     * Available enum values are:
-     * - ctrl::DOF::X
-     * - ctrl::DOF::Y
-     * - ctrl::DOF::Z
-     * - ctrl::DOF::ROLL
-     * - ctrl::DOF::PITCH
-     * - ctrl::DOF::YAW
-     * - ctrl::DOF::SURGE
-     * - ctrl::DOF::SWAY
-     * - ctrl::DOF::HEAVE
-     * - ctrl::DOF::ROLL_RATE
-     * - ctrl::DOF::PITCH_RATE
-     * - ctrl::DOF::YAW_RATE
+     * seal_msgs/ControlMode enums.
      *
      */
     BehaviorBase::m_dofs = decltype(m_dofs){
-        ctrl::DOF::SURGE
+        seal_msgs::ControlMode::DOF_SURGE
     };
 
 }
@@ -82,7 +68,7 @@ void BehaviorTemplate::disabled() {
 
 
 bool BehaviorTemplate::request_set_point(
-    mvp_control::ControlProcess *set_point) {
+    seal_msgs::ControlProcess *set_point) {
 
     /**
      * @brief Read the controller values from #BehaviorBase::m_process_values.

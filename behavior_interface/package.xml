@@ -51,7 +51,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>pluginlib</depend>
   <depend>roscpp</depend>
-  <depend>mvp_control</depend>
+  <depend>seal_msgs</depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

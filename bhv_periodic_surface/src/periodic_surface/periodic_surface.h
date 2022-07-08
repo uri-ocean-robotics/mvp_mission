@@ -80,7 +80,7 @@ namespace helm {
 
         PeriodicSurface();
 
-        bool request_set_point(mvp_control::ControlProcess *msg) override;
+        bool request_set_point(seal_msgs::ControlProcess *msg) override;
 
     };
 }

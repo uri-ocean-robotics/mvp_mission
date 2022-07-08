@@ -33,8 +33,8 @@ void PathFollowing::initialize() {
     m_nh.reset(new ros::NodeHandle());
 
     BehaviorBase::m_dofs = decltype(m_dofs){
-        ctrl::DOF::SURGE,
-        ctrl::DOF::YAW,
+        seal_msgs::ControlMode::DOF_SURGE,
+        seal_msgs::ControlMode::DOF_YAW,
     };
 
     std::string update_topic_name;
@@ -252,7 +252,7 @@ void PathFollowing::activated() {
 
 }
 
-bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
+bool PathFollowing::request_set_point(seal_msgs::ControlProcess *set_point) {
 
     if(!m_activated) {
         f_visualize_segment(true);

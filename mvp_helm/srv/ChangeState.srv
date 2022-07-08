@@ -1,4 +1,0 @@
-string state
----
-bool status
-mvp_helm/HelmState state
