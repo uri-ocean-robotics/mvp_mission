@@ -32,7 +32,7 @@ void PathFollowing::initialize() {
 
     m_nh.reset(new ros::NodeHandle());
 
-    m_dofs = decltype(m_dofs){
+    BehaviorBase::m_dofs = decltype(m_dofs){
         ctrl::DOF::SURGE,
         ctrl::DOF::YAW,
     };
@@ -192,7 +192,8 @@ PathFollowing::f_transform_waypoints(
             ps.point.x = pt.x;
             ps.point.y = pt.y;
 
-            auto t = m_transform_buffer.transform(ps, target_frame, ros::Duration(1.0));
+            auto t = m_transform_buffer.transform(
+                ps, target_frame, ros::Duration(1.0));
 
             geometry_msgs::Point32 p;
             p.x = static_cast<float>(t.point.x);
@@ -210,8 +211,10 @@ PathFollowing::f_transform_waypoints(
 void PathFollowing::f_next_line_segment() {
     auto length = m_transformed_waypoints.polygon.points.size();
 
-    m_wpt_first = m_transformed_waypoints.polygon.points[m_line_index % length];
-    m_wpt_second = m_transformed_waypoints.polygon.points[(m_line_index + 1) % length];
+    m_wpt_first =
+        m_transformed_waypoints.polygon.points[m_line_index % length];
+    m_wpt_second =
+        m_transformed_waypoints.polygon.points[(m_line_index + 1) % length];
 
     m_line_index++;
 
@@ -271,9 +274,9 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
 
     f_visualize_segment();
 
-    double x = m_process_values.position.x;
+    double x = BehaviorBase::m_process_values.position.x;
 
-    double y = m_process_values.position.y;
+    double y = BehaviorBase::m_process_values.position.y;
 
     double Yp = std::atan2(
         m_wpt_second.y - m_wpt_first.y,
@@ -314,9 +317,11 @@ bool PathFollowing::request_set_point(mvp_control::ControlProcess *set_point) {
 
     double beta = 0;
     // Calculate side slip angle
-    if(m_process_values.velocity.x != 0) {
+    if(BehaviorBase::m_process_values.velocity.x != 0) {
         beta =
-            atan(m_process_values.velocity.y / m_process_values.velocity.x);
+            atan(
+                BehaviorBase::m_process_values.velocity.y /
+                BehaviorBase::m_process_values.velocity.x);
     }
 
     beta *= m_beta_gain;

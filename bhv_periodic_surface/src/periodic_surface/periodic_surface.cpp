@@ -9,7 +9,7 @@ void PeriodicSurface::initialize() {
         new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
     );
 
-    m_dofs = decltype(m_dofs){
+    BehaviorBase::m_dofs = decltype(m_dofs){
         ctrl::DOF::PITCH,
     };
 
@@ -72,7 +72,7 @@ bool PeriodicSurface::request_set_point(mvp_control::ControlProcess *set_point)
 
     if(m_bhv_state == BhvState::ENABLED) {
 
-        if(m_process_values.position.z < 0.5){
+        if(BehaviorBase::m_process_values.position.z < 0.5){
             m_bhv_state = BhvState::WAITING;
             m_surfaced_time = ros::Time::now();
         }
@@ -96,7 +96,7 @@ bool PeriodicSurface::request_set_point(mvp_control::ControlProcess *set_point)
 
     }
 
-    double pitch = atan(m_process_values.position.z / m_fwd_distance);
+    double pitch = atan(BehaviorBase::m_process_values.position.z / m_fwd_distance);
 
     if(fabs(pitch) > m_max_pitch) {
         set_point->orientation.y = pitch >= 0 ? m_max_pitch : -m_max_pitch;

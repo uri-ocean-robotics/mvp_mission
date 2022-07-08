@@ -1,0 +1,44 @@
+helm_configuration:
+  frequency: 10.0
+
+finite_state_machine:
+  - name: start
+    mode: flight
+    initial: true
+    transitions:
+      - survey
+      - kill
+
+  - name: survey
+    mode: flight
+    transitions:
+      - start
+      - kill
+
+  - name: kill
+    mode: idle
+    transition:
+      - start
+
+behaviors:
+  - name: bhv00
+    plugin: helm::PathFollowing
+    states:
+      - { name: survey, priority: 1 }
+      - { name: surface, priority: 1 }
+
+  - name: bhv01
+    plugin: helm::DepthTracking
+    states:
+      - { name: survey, priority: 1 }
+
+  - name: bhv02
+    plugin: helm::PeriodicSurface
+    states:
+      - {name: survey, priority: 2 }
+
+  - name: template
+    plugin: helm::BehaviorTemplate
+    states:
+      - {name: survey, priority: 0}
+      - {name: kill, priority: 0}

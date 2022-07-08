@@ -40,103 +40,21 @@ namespace helm {
         double frequency;
     };
 
-    /***************************************************************************
-     * XML definitions
-     */
+    CONST_STRING CONF_HELM = "helm_configuration";
+    CONST_STRING CONF_HELM_FREQ = "frequency";
 
-    CONST_STRING CONF_CONFIGURATION = "configuration";
+    CONST_STRING CONF_FSM = "finite_state_machine";
+    CONST_STRING CONF_FSM_NAME = "name";
+    CONST_STRING CONF_FSM_MODE = "mode";
+    CONST_STRING CONF_FSM_INITIAL = "initial";
+    CONST_STRING CONF_FSM_TRANSITIONS = "transitions";
 
-    namespace xml {
+    CONST_STRING CONF_BHV = "behaviors";
+    CONST_STRING CONF_BHV_NAME = "name";
+    CONST_STRING CONF_BHV_PLUGIN = "plugin";
+    CONST_STRING CONF_BHV_STATES = "states";
+    CONST_STRING CONF_BHV_STATES_NAME = "name";
+    CONST_STRING CONF_BHV_STATES_PRIORITY = "priority";
 
-        CONST_STRING TAG = "helm";
-
-        /***********************************************************************
-         * Helm XML tags and attributes
-         */
-        struct generic {
-
-            struct param {
-                CONST_STRING TAG = "param";
-                struct ATTRS {
-                    CONST_STRING NAME = "name";
-                    CONST_STRING VALUE = "value";
-                    CONST_STRING TYPE = "type";
-                };
-            };
-
-        };
-
-
-         struct helmconf {
-             CONST_STRING TAG = "helm-configuration";
-
-             struct param_types {
-                 CONST_STRING FREQUENCY = "frequency";
-             };
-         };
-
-
-        /***********************************************************************
-         * State machine XML tags and attributes
-         */
-        struct smconf {
-            CONST_STRING TAG = "state-machine-configuration";
-
-            struct state {
-                CONST_STRING TAG = "state";
-                struct ATTRS {
-                    CONST_STRING INITIAL = "initial";
-                    CONST_STRING NAME = "name";
-                    CONST_STRING MODE = "mode";
-                };
-
-                struct transition {
-                    CONST_STRING TAG = "transition";
-                    struct ATTRS{
-                        CONST_STRING TO = "to";
-                    };
-                };
-
-            };
-
-        };
-
-        /***********************************************************************
-         * Behavior configuration XML tags and attributes
-         */
-        struct bhvconf {
-            CONST_STRING TAG = "behavior-configuration";
-
-            struct behavior {
-                CONST_STRING TAG = "behavior";
-                struct ATTRS {
-                    CONST_STRING NAME = "name";
-                    CONST_STRING PLUGIN = "plugin";
-                };
-
-                struct state {
-                    CONST_STRING TAG = "state";
-                    struct ATTRS {
-                        CONST_STRING NAME = "name";
-                        CONST_STRING PRIORITY = "priority";
-                    };
-                };
-
-                struct parameters {
-                    CONST_STRING TAG = "parameters";
-                    struct ATTRS {
-                        CONST_STRING TYPE = "type";
-                        struct OPTIONS_TYPE {
-                            CONST_STRING ROS = "ros";
-                        };
-                    };
-                };
-
-            };
-
-
-        };
-
-    }
 
 }

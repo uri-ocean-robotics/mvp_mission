@@ -33,7 +33,6 @@
   <depend>pluginlib</depend>
   <depend>behavior_interface</depend>
   <depend>mvp_control</depend>
-  <depend>tinyxml2</depend>
   <depend>genmsg</depend>
 
   <!-- The export tag contains other, unspecified, tags -->

@@ -10,7 +10,7 @@ void DepthTracking::initialize() {
     );
 
     //! @par Declare the dofs to be controlled
-    m_dofs = decltype(m_dofs){
+    BehaviorBase::m_dofs = decltype(m_dofs){
         ctrl::DOF::PITCH,
         ctrl::DOF::Z
     };
@@ -47,14 +47,14 @@ bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
     //! @note Set Pitch angle.
 
     //! @note I didn't want to change the sign afterwards.
-    auto error = m_process_values.position.z - m_requested_depth;
+    auto error = BehaviorBase::m_process_values.position.z - m_requested_depth;
 
     double pitch;
 
     pitch = atan(error / m_fwd_distance);
 
     if(m_use_heave_velocity) {
-        if(m_process_values.velocity.x != 0)  {
+        if(BehaviorBase::m_process_values.velocity.x != 0)  {
             pitch += atan(
                 m_process_values.velocity.z / m_process_values.velocity.x);
         }
@@ -70,7 +70,6 @@ bool DepthTracking::request_set_point(mvp_control::ControlProcess *set_point) {
     set_point->orientation.y = pitch;
 
     //! @note Set depth directly so low-level controller deals with it.
-
     set_point->position.z = m_requested_depth;
 
     return true;

@@ -18,7 +18,7 @@ void MotionEvaluation::initialize() {
         new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
     );
 
-    m_dofs = decltype(m_dofs){
+    BehaviorBase::m_dofs = decltype(m_dofs){
         ctrl::DOF::SURGE,
         ctrl::DOF::YAW_RATE,
         ctrl::DOF::PITCH_RATE
@@ -53,7 +53,7 @@ bool MotionEvaluation::request_set_point(mvp_control::ControlProcess *set_point)
     /*
      * Decide the action needs to be taken
      */
-    m_cmd.header.frame_id = m_process_values.header.frame_id;
+    m_cmd.header.frame_id = BehaviorBase::m_process_values.header.frame_id;
 
     if(m_config.surge_frequency != 0) {
         m_surge_phase += M_PI / (m_helm_frequency / m_config.surge_frequency);

@@ -69,12 +69,12 @@ namespace helm {
         /**
          * @brief Implementation of #BehaviorBase::activated
          */
-        void activated();
+        void activated() override;
 
         /**
          * @brief Implementation of #BehaviorBase::disabled
          */
-        void disabled();
+        void disabled() override;
 
     public:
 

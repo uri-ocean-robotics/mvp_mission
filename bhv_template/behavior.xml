@@ -1,0 +1,5 @@
+<library path="lib/libbhv_template">
+  <class type="helm::BehaviorTemplate" base_class_type="helm::BehaviorBase">
+    <description>A behavior template.</description>
+  </class>
+</library>

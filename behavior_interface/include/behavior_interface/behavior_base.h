@@ -41,6 +41,7 @@ namespace helm
          * execution.
          */
         std::vector<ctrl::DOF::IDX> m_dofs;
+
         /**
          * @brief A vector holds DOFs active at the moment by controller
          *
