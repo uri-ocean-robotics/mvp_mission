@@ -1,0 +1,5 @@
+<library path="lib/libbhv_sawtooth_wave">
+  <class type="helm::SawtoothWave" base_class_type="helm::BehaviorBase">
+    <description>A behavior that makes a sawtooth.</description>
+  </class>
+</library>

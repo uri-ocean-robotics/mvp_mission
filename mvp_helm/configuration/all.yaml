@@ -8,6 +8,7 @@ finite_state_machine:
     transitions:
       - survey
       - kill
+      - sawtooth
 
   - name: survey
     mode: flight
@@ -19,6 +20,12 @@ finite_state_machine:
     mode: idle
     transition:
       - start
+
+  - name: sawtooth
+    mode: flight
+    transitions:
+      - start
+      - kill
 
 behaviors:
   - name: bhv00
@@ -42,3 +49,8 @@ behaviors:
     states:
       - {name: survey, priority: 0}
       - {name: kill, priority: 0}
+
+  - name: bhv03
+    plugin: helm::SawtoothWave
+    states:
+      - {name: sawtooth, priority: 1}
