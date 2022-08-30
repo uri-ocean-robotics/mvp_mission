@@ -22,9 +22,6 @@ finite_state_machine:
     transition:
       - start
 
-  - name: sawtooth
-    mode: flight
-
   - name: teleop
     mode: teleop
     transitions:
@@ -38,15 +35,15 @@ behaviors:
       - { name: survey, priority: 1 }
       - { name: surface, priority: 1 }
 
-  # - name: bhv01
-  #   plugin: helm::DepthTracking
-  #   states:
-  #     - { name: survey, priority: 1 }
+  - name: bhv01
+    plugin: helm::DepthTracking
+    states:
+      - { name: survey, priority: 1 }
 
-  # - name: bhv02
-  #   plugin: helm::PeriodicSurface
-  #   states:
-  #     - {name: survey, priority: 2 }
+  - name: bhv02
+    plugin: helm::PeriodicSurface
+    states:
+      - {name: survey, priority: 2 }
 
   - name: bhv03
     plugin: helm::Teleoperation
@@ -54,20 +51,3 @@ behaviors:
       - {name: survey, priority: 2 }
       - {name: teleop, priority: 1 }
 
-  - name: bhv03
-    plugin: helm::Teleoperation
-    states:
-      - {name: survey, priority: 2 }
-      - {name: teleop, priority: 1 }
-      - {name: teleop, priority: 1 }
-
-  - name: template
-    plugin: helm::BehaviorTemplate
-    states:
-      - {name: survey, priority: 0}
-      - {name: kill, priority: 0}
-
-  - name: bhv03
-    plugin: helm::SawtoothWave
-    states:
-      - {name: sawtooth, priority: 1}
