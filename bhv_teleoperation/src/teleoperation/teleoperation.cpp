@@ -189,7 +189,7 @@ bool Teleoperation::request_set_point(
     // Set body frame velocity
     set_point->velocity.x = surge_rate;
     set_point->angular_rate.y = pitch_rate;
-    set_point->angular_rate.z = - yaw_rate;
+    set_point->angular_rate.z =  yaw_rate;
 
     // Set global frame orientation angles
     set_point->orientation.y =  m_recorded_picth + pitch_angle;

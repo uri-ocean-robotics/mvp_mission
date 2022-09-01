@@ -31,5 +31,7 @@
         <rosparam ns="bhv00" command="load" file="$(find mvp_helm)/param/bhv00.yaml"/>
         <rosparam ns="bhv01" command="load" file="$(find mvp_helm)/param/bhv01.yaml"/>
         <rosparam ns="bhv02" command="load" file="$(find mvp_helm)/param/bhv02.yaml"/>
+        <rosparam ns="bhv03" command="load" file="$(find mvp_helm)/param/bhv03.yaml"/>
+
     </node>
 </launch>

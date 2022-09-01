@@ -9,6 +9,7 @@ finite_state_machine:
       - survey
       - kill
       - sawtooth
+      - teleop
 
   - name: survey
     mode: flight
@@ -21,8 +22,8 @@ finite_state_machine:
     transition:
       - start
 
-  - name: sawtooth
-    mode: flight
+  - name: teleop
+    mode: teleop
     transitions:
       - start
       - kill
@@ -44,13 +45,9 @@ behaviors:
     states:
       - {name: survey, priority: 2 }
 
-  - name: template
-    plugin: helm::BehaviorTemplate
-    states:
-      - {name: survey, priority: 0}
-      - {name: kill, priority: 0}
-
   - name: bhv03
-    plugin: helm::SawtoothWave
+    plugin: helm::Teleoperation
     states:
-      - {name: sawtooth, priority: 1}
+      - {name: survey, priority: 2 }
+      - {name: teleop, priority: 1 }
+
