@@ -8,7 +8,7 @@
 /*******************************************************************************
  * ROS
  */
-#include "seal_msgs/GetControlModes.h"
+#include "mvp_msgs/GetControlModes.h"
 
 /*******************************************************************************
  * Helm
@@ -91,7 +91,7 @@ void Helm::initialize() {
         this
     );
 
-    m_pub_controller_set_point = m_nh->advertise<seal_msgs::ControlProcess>(
+    m_pub_controller_set_point = m_nh->advertise<mvp_msgs::ControlProcess>(
         "controller/process/set_point",
         100
     );
@@ -166,7 +166,7 @@ void Helm::f_initialize_behaviors() {
 void Helm::f_get_controller_modes() {
 
     auto client = m_nh->serviceClient
-        <seal_msgs::GetControlModes>("controller/get_modes");
+        <mvp_msgs::GetControlModes>("controller/get_modes");
 
     while(!client.waitForExistence(ros::Duration(5))) {
         ROS_WARN_STREAM(
@@ -174,7 +174,7 @@ void Helm::f_get_controller_modes() {
         );
     }
 
-    seal_msgs::GetControlModes srv;
+    mvp_msgs::GetControlModes srv;
 
     client.call(srv);
 
@@ -211,7 +211,7 @@ void Helm::f_configure_helm(helm_configuration_t conf) {
 }
 
 void Helm::f_cb_controller_process(
-    const seal_msgs::ControlProcess::ConstPtr& msg) {
+    const mvp_msgs::ControlProcess::ConstPtr& msg) {
     m_controller_process_values = msg;
 }
 
@@ -228,7 +228,7 @@ void Helm::f_iterate() {
     auto active_mode = std::find_if(
         m_controller_modes.modes.begin(),
         m_controller_modes.modes.end(),
-        [active_state](const seal_msgs::ControlMode& mode){
+        [active_state](const mvp_msgs::ControlMode& mode){
             return mode.name == active_state.mode;
         }
     );
@@ -283,7 +283,7 @@ void Helm::f_iterate() {
         /**
          * Request control command from the behavior
          */
-        seal_msgs::ControlProcess set_point;
+        mvp_msgs::ControlProcess set_point;
         if(!i->get_behavior()->request_set_point(&set_point)) {
             // todo: do something about dysfunctional behavior
             continue;
@@ -356,8 +356,8 @@ void Helm::f_helm_loop() {
 
 }
 
-bool Helm::f_cb_change_state(seal_msgs::ChangeState::Request &req,
-                             seal_msgs::ChangeState::Response &resp) {
+bool Helm::f_cb_change_state(mvp_msgs::ChangeState::Request &req,
+                             mvp_msgs::ChangeState::Response &resp) {
 
     if(f_change_state(req.state)) {
 
@@ -380,8 +380,8 @@ bool Helm::f_cb_change_state(seal_msgs::ChangeState::Request &req,
     return true;
 }
 
-bool Helm::f_cb_get_state(seal_msgs::GetState::Request &req,
-                          seal_msgs::GetState::Response &resp) {
+bool Helm::f_cb_get_state(mvp_msgs::GetState::Request &req,
+                          mvp_msgs::GetState::Response &resp) {
 
     if(req.name.empty()) {
 
@@ -406,10 +406,10 @@ bool Helm::f_cb_get_state(seal_msgs::GetState::Request &req,
 }
 
 
-bool Helm::f_cb_get_states(seal_msgs::GetStates::Request &req,
-                           seal_msgs::GetStates::Response &resp) {
+bool Helm::f_cb_get_states(mvp_msgs::GetStates::Request &req,
+                           mvp_msgs::GetStates::Response &resp) {
     for(const auto& i : m_state_machine->get_states()) {
-        seal_msgs::HelmState s;
+        mvp_msgs::HelmState s;
         s.mode = i.mode;
         s.name = i.name;
         s.transitions = i.transitions;

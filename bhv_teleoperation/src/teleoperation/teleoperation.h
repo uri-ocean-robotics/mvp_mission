@@ -7,7 +7,7 @@
 #include "sensor_msgs/Joy.h"
 
 #include "behavior_interface/behavior_base.h"
-#include "seal_msgs/ControlProcess.h"
+#include "mvp_msgs/ControlProcess.h"
 
 namespace helm {
 
@@ -165,7 +165,7 @@ namespace helm {
          * @return true if you want helm to use the result.
          * @return false if you don't want helm to use the result.
          */
-        bool request_set_point(seal_msgs::ControlProcess *msg) override;
+        bool request_set_point(mvp_msgs::ControlProcess *msg) override;
 
     };
 }

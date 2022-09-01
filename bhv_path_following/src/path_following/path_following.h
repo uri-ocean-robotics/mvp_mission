@@ -2,7 +2,7 @@
 
 #include "behavior_interface/behavior_base.h"
 #include "ros/ros.h"
-#include "seal_msgs/ControlProcess.h"
+#include "mvp_msgs/ControlProcess.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/Marker.h"
@@ -35,7 +35,7 @@ namespace helm {
         /**
          * @brief Control Process command message
          */
-        seal_msgs::ControlProcess m_cmd;
+        mvp_msgs::ControlProcess m_cmd;
 
         /**
          * @brief Trivial update waypoint subscriber
@@ -212,7 +212,7 @@ namespace helm {
          * @param msg
          * @return
          */
-        bool request_set_point(seal_msgs::ControlProcess *msg) override;
+        bool request_set_point(mvp_msgs::ControlProcess *msg) override;
 
 
     };

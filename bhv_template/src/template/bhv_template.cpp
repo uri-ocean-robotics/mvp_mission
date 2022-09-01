@@ -27,11 +27,11 @@ void BehaviorTemplate::initialize() {
      * @details This member variable dictates the DOFs that can be controllable
      * by the behavior. If this member is not initialized, behavior can only
      * trigger state changes. This vector gets values from enum type of
-     * seal_msgs/ControlMode enums.
+     * mvp_msgs/ControlMode enums.
      *
      */
     BehaviorBase::m_dofs = decltype(m_dofs){
-        seal_msgs::ControlMode::DOF_SURGE
+        mvp_msgs::ControlMode::DOF_SURGE
     };
 
 }
@@ -68,7 +68,7 @@ void BehaviorTemplate::disabled() {
 
 
 bool BehaviorTemplate::request_set_point(
-    seal_msgs::ControlProcess *set_point) {
+    mvp_msgs::ControlProcess *set_point) {
 
     /**
      * @brief Read the controller values from #BehaviorBase::m_process_values.

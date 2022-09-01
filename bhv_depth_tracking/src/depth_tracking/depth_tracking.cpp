@@ -11,8 +11,8 @@ void DepthTracking::initialize() {
 
     //! @par Declare the dofs to be controlled
     BehaviorBase::m_dofs = decltype(m_dofs){
-        seal_msgs::ControlMode::DOF_Z,
-        seal_msgs::ControlMode::DOF_PITCH
+        mvp_msgs::ControlMode::DOF_Z,
+        mvp_msgs::ControlMode::DOF_PITCH
     };
 
     m_sub = m_nh->subscribe(
@@ -42,7 +42,7 @@ DepthTracking::~DepthTracking() {
     m_sub.shutdown();
 }
 
-bool DepthTracking::request_set_point(seal_msgs::ControlProcess *set_point) {
+bool DepthTracking::request_set_point(mvp_msgs::ControlProcess *set_point) {
 
     //! @note Set Pitch angle.
 

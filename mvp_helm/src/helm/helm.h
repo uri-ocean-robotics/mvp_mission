@@ -12,13 +12,13 @@
 #include "ros/ros.h"
 #include "pluginlib/class_loader.h"
 
-#include "seal_msgs/ControlModes.h"
-#include "seal_msgs/ControlProcess.h"
-#include "seal_msgs/GetControlModes.h"
+#include "mvp_msgs/ControlModes.h"
+#include "mvp_msgs/ControlProcess.h"
+#include "mvp_msgs/GetControlModes.h"
 
-#include "seal_msgs/GetState.h"
-#include "seal_msgs/GetStates.h"
-#include "seal_msgs/ChangeState.h"
+#include "mvp_msgs/GetState.h"
+#include "mvp_msgs/GetStates.h"
+#include "mvp_msgs/ChangeState.h"
 /*******************************************************************************
  * Helm
  */
@@ -42,14 +42,14 @@ namespace helm {
          * This variable holds the state of the low level controller such as
          * position & orientation.
          */
-        seal_msgs::ControlProcess::ConstPtr m_controller_process_values;
+        mvp_msgs::ControlProcess::ConstPtr m_controller_process_values;
 
         /**
          * @brief Controller modes message object
          * Controller modes will be listened from low level controller and
          * stored in this variable
          */
-        seal_msgs::ControlModes m_controller_modes;
+        mvp_msgs::ControlModes m_controller_modes;
 
         /**
          * @brief Container for behaviors
@@ -128,7 +128,7 @@ namespace helm {
          * @param msg
          */
         void f_cb_controller_process(
-            const seal_msgs::ControlProcess::ConstPtr& msg);
+            const mvp_msgs::ControlProcess::ConstPtr& msg);
 
         ros::ServiceServer m_change_state_srv;
 
@@ -137,16 +137,16 @@ namespace helm {
         ros::ServiceServer m_get_state_srv;
 
         bool f_cb_change_state(
-            seal_msgs::ChangeState::Request& req,
-            seal_msgs::ChangeState::Response& resp);
+            mvp_msgs::ChangeState::Request& req,
+            mvp_msgs::ChangeState::Response& resp);
 
         bool f_cb_get_state(
-            seal_msgs::GetState::Request& req,
-            seal_msgs::GetState::Response& resp);
+            mvp_msgs::GetState::Request& req,
+            mvp_msgs::GetState::Response& resp);
 
         bool f_cb_get_states(
-            seal_msgs::GetStates::Request& req,
-            seal_msgs::GetStates::Response& resp);
+            mvp_msgs::GetStates::Request& req,
+            mvp_msgs::GetStates::Response& resp);
 
         bool f_change_state(std::string name);
 

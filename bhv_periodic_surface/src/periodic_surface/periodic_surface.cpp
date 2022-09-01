@@ -10,7 +10,8 @@ void PeriodicSurface::initialize() {
     );
 
     BehaviorBase::m_dofs = decltype(m_dofs){
-        seal_msgs::ControlMode::DOF_PITCH,
+        mvp_msgs::ControlMode::DOF_PITCH,
+        mvp_msgs::ControlMode::DOF_Z
     };
 
     m_pnh->param("fwd_distance", m_fwd_distance, 3.0);
@@ -61,7 +62,7 @@ void PeriodicSurface::disabled() {
  * @return true
  * @return false
  */
-bool PeriodicSurface::request_set_point(seal_msgs::ControlProcess *set_point)
+bool PeriodicSurface::request_set_point(mvp_msgs::ControlProcess *set_point)
 {
 
     if(!m_activated) {
@@ -103,6 +104,8 @@ bool PeriodicSurface::request_set_point(seal_msgs::ControlProcess *set_point)
     } else {
         set_point->orientation.y = pitch;
     }
+
+    set_point->position.z = 0;
 
     return true;
 }

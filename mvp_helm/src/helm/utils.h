@@ -1,7 +1,7 @@
 #pragma once
 
 #include "array"
-#include "seal_msgs/ControlProcess.h"
+#include "mvp_msgs/ControlProcess.h"
 
 namespace helm {
 
@@ -14,24 +14,24 @@ namespace helm {
          * @return std::array<double, 12>
          */
         std::array<double, 12> control_process_to_array(
-            const seal_msgs::ControlProcess& msg)
+            const mvp_msgs::ControlProcess& msg)
         {
             std::array<double, 12> a {};
-            a[seal_msgs::ControlMode::DOF_X] = msg.position.x;
-            a[seal_msgs::ControlMode::DOF_Y] = msg.position.y;
-            a[seal_msgs::ControlMode::DOF_Z] = msg.position.z;
+            a[mvp_msgs::ControlMode::DOF_X] = msg.position.x;
+            a[mvp_msgs::ControlMode::DOF_Y] = msg.position.y;
+            a[mvp_msgs::ControlMode::DOF_Z] = msg.position.z;
 
-            a[seal_msgs::ControlMode::DOF_ROLL] = msg.orientation.x;
-            a[seal_msgs::ControlMode::DOF_PITCH] = msg.orientation.y;
-            a[seal_msgs::ControlMode::DOF_YAW] = msg.orientation.z;
+            a[mvp_msgs::ControlMode::DOF_ROLL] = msg.orientation.x;
+            a[mvp_msgs::ControlMode::DOF_PITCH] = msg.orientation.y;
+            a[mvp_msgs::ControlMode::DOF_YAW] = msg.orientation.z;
 
-            a[seal_msgs::ControlMode::DOF_SURGE] = msg.velocity.x;
-            a[seal_msgs::ControlMode::DOF_SWAY] = msg.velocity.y;
-            a[seal_msgs::ControlMode::DOF_HEAVE] = msg.velocity.z;
+            a[mvp_msgs::ControlMode::DOF_SURGE] = msg.velocity.x;
+            a[mvp_msgs::ControlMode::DOF_SWAY] = msg.velocity.y;
+            a[mvp_msgs::ControlMode::DOF_HEAVE] = msg.velocity.z;
 
-            a[seal_msgs::ControlMode::DOF_ROLL_RATE] = msg.angular_rate.x;
-            a[seal_msgs::ControlMode::DOF_PITCH_RATE] = msg.angular_rate.y;
-            a[seal_msgs::ControlMode::DOF_YAW_RATE] = msg.angular_rate.z;
+            a[mvp_msgs::ControlMode::DOF_ROLL_RATE] = msg.angular_rate.x;
+            a[mvp_msgs::ControlMode::DOF_PITCH_RATE] = msg.angular_rate.y;
+            a[mvp_msgs::ControlMode::DOF_YAW_RATE] = msg.angular_rate.z;
 
             return  a;
         }
@@ -41,27 +41,27 @@ namespace helm {
          * @todo Write the documentation
          *
          * @param a
-         * @return seal_msgs::ControlProcess
+         * @return mvp_msgs::ControlProcess
          */
-        seal_msgs::ControlProcess array_to_control_process_msg(
+        mvp_msgs::ControlProcess array_to_control_process_msg(
             const std::array<double, 12>& a)
         {
-            seal_msgs::ControlProcess msg;
-            msg.position.x = a[seal_msgs::ControlMode::DOF_X];
-            msg.position.y = a[seal_msgs::ControlMode::DOF_Y];
-            msg.position.z = a[seal_msgs::ControlMode::DOF_Z];
+            mvp_msgs::ControlProcess msg;
+            msg.position.x = a[mvp_msgs::ControlMode::DOF_X];
+            msg.position.y = a[mvp_msgs::ControlMode::DOF_Y];
+            msg.position.z = a[mvp_msgs::ControlMode::DOF_Z];
 
-            msg.orientation.x = a[seal_msgs::ControlMode::DOF_ROLL];
-            msg.orientation.y = a[seal_msgs::ControlMode::DOF_PITCH];
-            msg.orientation.z = a[seal_msgs::ControlMode::DOF_YAW];
+            msg.orientation.x = a[mvp_msgs::ControlMode::DOF_ROLL];
+            msg.orientation.y = a[mvp_msgs::ControlMode::DOF_PITCH];
+            msg.orientation.z = a[mvp_msgs::ControlMode::DOF_YAW];
 
-            msg.velocity.x = a[seal_msgs::ControlMode::DOF_SURGE];
-            msg.velocity.y = a[seal_msgs::ControlMode::DOF_SWAY];
-            msg.velocity.z = a[seal_msgs::ControlMode::DOF_HEAVE];
+            msg.velocity.x = a[mvp_msgs::ControlMode::DOF_SURGE];
+            msg.velocity.y = a[mvp_msgs::ControlMode::DOF_SWAY];
+            msg.velocity.z = a[mvp_msgs::ControlMode::DOF_HEAVE];
 
-            msg.angular_rate.x = a[seal_msgs::ControlMode::DOF_ROLL_RATE];
-            msg.angular_rate.y = a[seal_msgs::ControlMode::DOF_PITCH_RATE];
-            msg.angular_rate.z = a[seal_msgs::ControlMode::DOF_YAW_RATE];
+            msg.angular_rate.x = a[mvp_msgs::ControlMode::DOF_ROLL_RATE];
+            msg.angular_rate.y = a[mvp_msgs::ControlMode::DOF_PITCH_RATE];
+            msg.angular_rate.z = a[mvp_msgs::ControlMode::DOF_YAW_RATE];
             return msg;
         }
     }

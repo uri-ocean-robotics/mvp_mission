@@ -15,8 +15,8 @@
 /*******************************************************************************
  * MVP
  */
-#include "seal_msgs/ControlProcess.h"
-#include "seal_msgs/ControlMode.h"
+#include "mvp_msgs/ControlProcess.h"
+#include "mvp_msgs/ControlMode.h"
 /*******************************************************************************
  * ROS
  */
@@ -56,7 +56,7 @@ namespace helm
         /**
          * @brief Registered state of the of the low level controller
          */
-        seal_msgs::ControlProcess m_process_values;
+        mvp_msgs::ControlProcess m_process_values;
 
         /**
          * @brief Frequency of the helm
@@ -118,7 +118,7 @@ namespace helm
          * @brief Registers the state of the system to the behavior
          */
         virtual auto register_process_values(
-                const seal_msgs::ControlProcess& pv) -> void final
+                const mvp_msgs::ControlProcess& pv) -> void final
         {
             m_process_values = pv;
         }
@@ -159,7 +159,7 @@ namespace helm
          * @return false if Behavior doesn't want helm to use its result
          */
         virtual bool request_set_point(
-            seal_msgs::ControlProcess* set_point) = 0;
+            mvp_msgs::ControlProcess* set_point) = 0;
 
         /**
          * @brief Initializer for behaviors

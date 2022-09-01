@@ -22,9 +22,9 @@ void SawtoothWave::initialize() {
     m_pnh->param("pitch", m_pitch, 0.39269908169872414);
 
     BehaviorBase::m_dofs = decltype(m_dofs){
-        seal_msgs::ControlMode::DOF_SURGE,
-        seal_msgs::ControlMode::DOF_PITCH,
-        seal_msgs::ControlMode::DOF_YAW
+        mvp_msgs::ControlMode::DOF_SURGE,
+        mvp_msgs::ControlMode::DOF_PITCH,
+        mvp_msgs::ControlMode::DOF_YAW
     };
 
     m_bhv_state = BHV_STATE::IDLE;
@@ -54,7 +54,7 @@ void SawtoothWave::disabled() {
 
 
 bool SawtoothWave::request_set_point(
-    seal_msgs::ControlProcess *set_point) {
+    mvp_msgs::ControlProcess *set_point) {
 
     BehaviorBase::m_process_values.velocity.x;
 

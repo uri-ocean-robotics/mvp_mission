@@ -55,19 +55,19 @@ void Teleoperation::initialize() {
      * @details This member variable dictates the DOFs that can be controllable
      * by the behavior. If this member is not initialized, behavior can only
      * trigger state changes. This vector gets values from enum type of
-     * seal_msgs/ControlMode enums.
+     * mvp_msgs/ControlMode enums.
      *
      */
     BehaviorBase::m_dofs = decltype(m_dofs){
         // for flight mode
-        seal_msgs::ControlMode::DOF_SURGE,
-        seal_msgs::ControlMode::DOF_PITCH,
-        seal_msgs::ControlMode::DOF_YAW,
+        mvp_msgs::ControlMode::DOF_SURGE,
+        mvp_msgs::ControlMode::DOF_PITCH,
+        mvp_msgs::ControlMode::DOF_YAW,
 
         // for another control mode
-        seal_msgs::ControlMode::DOF_SURGE,
-        seal_msgs::ControlMode::DOF_PITCH_RATE,
-        seal_msgs::ControlMode::DOF_YAW_RATE,
+        mvp_msgs::ControlMode::DOF_SURGE,
+        mvp_msgs::ControlMode::DOF_PITCH_RATE,
+        mvp_msgs::ControlMode::DOF_YAW_RATE,
     };
 }
 
@@ -147,7 +147,7 @@ void Teleoperation::disabled() {
 //! NOTE: for the pitch and yaw, we can't direct assign the joystick value as desired_value,
 //!       because pitch and yaw are in the global frame, but surge is ok. it's in the body frame.
 bool Teleoperation::request_set_point(
-    seal_msgs::ControlProcess *set_point) {
+    mvp_msgs::ControlProcess *set_point) {
 
     if( !m_use_joy ) {
         return false;

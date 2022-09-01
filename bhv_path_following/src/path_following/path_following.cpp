@@ -33,8 +33,8 @@ void PathFollowing::initialize() {
     m_nh.reset(new ros::NodeHandle());
 
     BehaviorBase::m_dofs = decltype(m_dofs){
-        seal_msgs::ControlMode::DOF_SURGE,
-        seal_msgs::ControlMode::DOF_YAW,
+        mvp_msgs::ControlMode::DOF_SURGE,
+        mvp_msgs::ControlMode::DOF_YAW,
     };
 
     std::string update_topic_name;
@@ -56,18 +56,26 @@ void PathFollowing::initialize() {
         m_frame_id,
         "frame_id");
 
+
+    // Meters
     m_pnh->param<double>("acceptance_radius", m_acceptance_radius, 1.0);
 
+    // Meters
     m_pnh->param<double>("lookahead_distance", m_lookahead_distance, 2.0);
 
+    // Seconds
     m_pnh->param<double>("overshoot_timeout", m_overshoot_timeout, 30);
 
-    m_pnh->param<double>("surge_velocity", m_surge_velocity, 0.5); // m/s
+    // Meter/Seconds
+    m_pnh->param<double>("surge_velocity", m_surge_velocity, 0.5);
 
+    // Arbitrary constant
     m_pnh->param<double>("beta_gain", m_beta_gain, 1.0);
 
+    // String: A state to be requested after a successful execution
     m_pnh->param<std::string>("state_done", m_state_done, "");
 
+    // String: A state to be requested after a failed execution
     m_pnh->param<std::string>("state_fail", m_state_fail, "");
 
     f_parse_param_waypoints();
@@ -252,14 +260,17 @@ void PathFollowing::activated() {
 
 }
 
-bool PathFollowing::request_set_point(seal_msgs::ControlProcess *set_point) {
+bool PathFollowing::request_set_point(mvp_msgs::ControlProcess *set_point) {
 
+
+    // Clear the path segment and the path if the behavior is not active
     if(!m_activated) {
         f_visualize_segment(true);
         f_visualize_path(true);
         return false;
     }
 
+    // Warn the user if there is less than 2 points in the waypoint list
     if(m_waypoints.polygon.points.size() < 2) {
         ROS_ERROR_STREAM_THROTTLE(30,
             "behavior (" << m_name << "): there has to be more "
@@ -267,25 +278,27 @@ bool PathFollowing::request_set_point(seal_msgs::ControlProcess *set_point) {
         return false;
     }
 
-    /*
-     * Decide the action needs to be taken
-     */
+    // Visualize the path and the segment
     f_visualize_path();
-
     f_visualize_segment();
 
+    // Acquire vehicle position from the controller process
     double x = BehaviorBase::m_process_values.position.x;
-
     double y = BehaviorBase::m_process_values.position.y;
 
-    double Yp = std::atan2(
-        m_wpt_second.y - m_wpt_first.y,
-        m_wpt_second.x - m_wpt_first.x);
+    // Compute horizontal path-tangential angle
+    double gamma_p = std::atan2(m_wpt_second.y - m_wpt_first.y,
+                                m_wpt_second.x - m_wpt_first.x);
 
-    double Xke = (x - m_wpt_second.x) * cos(Yp) + (y - m_wpt_second.y) * sin(Yp);
-    double Xe = (x - m_wpt_first.x) * cos(Yp) + (y - m_wpt_first.y) * sin(Yp);
-    double Ye = -(x - m_wpt_first.x) * sin(Yp) + (y - m_wpt_first.y) * cos(Yp);
+    // Compute along track errors
+    double Xe = (x - m_wpt_first.x) * cos(gamma_p) +
+        (y - m_wpt_first.y) * sin(gamma_p);
+    double Ye = -(x - m_wpt_first.x) * sin(gamma_p) +
+        (y - m_wpt_first.y) * cos(gamma_p);
+    double Xke = (x - m_wpt_second.x) * cos(gamma_p) +
+        (y - m_wpt_second.y) * sin(gamma_p);
 
+    // Check of overshoot
     double lookahead = m_lookahead_distance;
     if(Xke > 0 ) {
         // overshoot detected
@@ -295,7 +308,7 @@ bool PathFollowing::request_set_point(seal_msgs::ControlProcess *set_point) {
         lookahead = -lookahead;
 
         // we are at the opposite side now
-        Yp = Yp + M_PI;
+        gamma_p = gamma_p + M_PI;
 
         // record the time
         auto t = ros::Time::now();
@@ -315,12 +328,12 @@ bool PathFollowing::request_set_point(seal_msgs::ControlProcess *set_point) {
     }
 
 
-    double beta = 0;
     // Calculate side slip angle
+    double beta = 0;
     if(BehaviorBase::m_process_values.velocity.x != 0) {
         beta =
-            atan(
-                BehaviorBase::m_process_values.velocity.y /
+            atan2(
+                BehaviorBase::m_process_values.velocity.y,
                 BehaviorBase::m_process_values.velocity.x);
     }
 
@@ -330,7 +343,7 @@ bool PathFollowing::request_set_point(seal_msgs::ControlProcess *set_point) {
     m_cmd.velocity.x = m_surge_velocity;
 
     // set the heading for line of sight
-    m_cmd.orientation.z = Yp + atan( - Ye / lookahead) - beta;
+    m_cmd.orientation.z = gamma_p + atan( - Ye / lookahead) - beta;
 
     // check the acceptance radius
     auto dist = std::sqrt(Xke * Xke + Ye*Ye);

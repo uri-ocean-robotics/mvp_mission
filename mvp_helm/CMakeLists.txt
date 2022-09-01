@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   pluginlib
-  seal_msgs
+  mvp_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   # INCLUDE_DIRS include
   # LIBRARIES
-  CATKIN_DEPENDS roscpp std_msgs behavior_interface seal_msgs
+  CATKIN_DEPENDS roscpp std_msgs behavior_interface mvp_msgs
   # DEPENDS system_lib
 )
 
