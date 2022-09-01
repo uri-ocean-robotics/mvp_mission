@@ -1,9 +1,33 @@
+/*
+    This file is part of MVP-Mission program.
+
+    MVP-Mission is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    MVP-Mission is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with MVP-Mission.  If not, see <https://www.gnu.org/licenses/>.
+
+    Author: Lin Zhao
+    Email: linzhao@uri.edu
+    Year: 2022
+
+    Copyright (C) 2022 Smart Ocean Systems Laboratory
+*/
+
+
 #include "teleoperation.h"
 #include "pluginlib/class_list_macros.h"
 
 using namespace helm;
 
-Teleoperation::Teleoperation() 
+Teleoperation::Teleoperation()
   : m_use_joy(false), m_last_yaw (false), m_last_pitch(false) {
     std::cout << "A message from the teleoperation" << std::endl;
 }
@@ -162,7 +186,7 @@ bool Teleoperation::request_set_point(
     double yaw_rate = m_max_yaw_rate * m_joy_yaw_rate.load(std::memory_order_relaxed);
     double yaw_angle = yaw_rate * (1.0 / BehaviorBase::m_helm_frequency);
 
-    // Set body frame velocity 
+    // Set body frame velocity
     set_point->velocity.x = surge_rate;
     set_point->angular_rate.y = pitch_rate;
     set_point->angular_rate.z = - yaw_rate;
