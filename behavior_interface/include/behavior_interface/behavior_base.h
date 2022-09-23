@@ -69,6 +69,9 @@ namespace helm
         /**
          * @brief Unique name for the behavior.
          * This name will later be used as namespace for ros node handler.
+         *
+         * @todo A behavior may or may not use a parameter from ROS. However,
+         *       this name is still a necessity.
          */
         std::string m_name;
 
@@ -83,7 +86,7 @@ namespace helm
         double m_helm_frequency;
 
         /**
-         *
+         * @brief a member variable to hold activity state of the behavior
          */
         bool m_activated = false;
 
@@ -100,8 +103,11 @@ namespace helm
         virtual void disabled() {};
 
         /**
-         * @brief
+         * @brief Behaviors calls this function to request a state change from
+         *        MVP-Helm.
          *
+         * This function is set during the runtime to map one of the functions
+         * from MVP-Helm.
          */
         std::function<bool(const std::string&)> f_change_state;
 
@@ -141,11 +147,23 @@ namespace helm
             m_process_values = pv;
         }
 
+        /**
+         * @brief This function is called by the MVP-Helm to inform the behavior
+         *        its frequency. This is useful for behaviors that are time
+         *        depended.
+         *
+         * @todo Consider hiding it from the derived classes. No one has to know
+         *       about this method.
+         */
         virtual auto set_helm_frequency(const double& f) -> void final
         {
             m_helm_frequency = f;
         }
 
+        /**
+         * @brief This function is called by the MVP-Helm everytime if a
+         *        behavior is active in the given state.
+         */
         virtual void activate() final
         {
             if(!m_activated) {
@@ -154,6 +172,10 @@ namespace helm
             m_activated = true;
         }
 
+        /**
+         * @brief This function is called by the MVP-Helm everytime if a
+         *        behavior is *not* active in the given state.
+         */
         virtual void disable() final
         {
             if(m_activated) {
@@ -162,6 +184,13 @@ namespace helm
             m_activated = false;
         }
 
+        /**
+         * @brief This funciton is for MVP-Helm to map its own function to the
+         *        behavior. When a behavior calls this function, it directly
+         *        calls the MVP-Helm function.
+         * @todo Consider hiding from the derived class. No one needs to know
+         *       about this method.
+         */
         virtual auto set_state_change_function(
             decltype(f_change_state) f) -> void final
         {
@@ -187,6 +216,7 @@ namespace helm
         /**
          * @brief retrieve degrees of freedoms controlled by the behavior
          *
+         * @todo Rename this function. Creates ambiguity.
          * @return std::vector<int>
          */
         virtual void set_active_dofs(const std::vector<int>& dofs)
