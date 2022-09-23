@@ -66,19 +66,12 @@ void PathFollowing::initialize() {
     std::string append_topic_name;
 
     m_pnh->param<std::string>(
-        "update_topic",
-        update_topic_name,
-        "update_waypoints");
+        "update_topic", update_topic_name, "update_waypoints");
 
     m_pnh->param<std::string>(
-        "update_topic",
-        append_topic_name,
-        "append_waypoints");
+        "append_topic", append_topic_name, "append_waypoints");
 
-    m_pnh->param<std::string>(
-        "frame_id",
-        m_frame_id,
-        "frame_id");
+    m_pnh->param<std::string>("frame_id", m_frame_id, "frame_id");
 
 
     // Meters

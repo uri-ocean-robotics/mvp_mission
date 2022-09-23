@@ -40,10 +40,6 @@
  */
 #include "mvp_msgs/ControlProcess.h"
 #include "mvp_msgs/ControlMode.h"
-/*******************************************************************************
- * ROS
- */
-#include "ros/ros.h"
 
 namespace helm
 {
@@ -85,7 +81,6 @@ namespace helm
          * @brief Frequency of the helm
          */
         double m_helm_frequency;
-
 
         /**
          *
@@ -181,15 +176,13 @@ namespace helm
          * @return true if Behavior wants helm to use its result
          * @return false if Behavior doesn't want helm to use its result
          */
-        virtual bool request_set_point(
-            mvp_msgs::ControlProcess* set_point) = 0;
+        virtual bool request_set_point(mvp_msgs::ControlProcess* set_point) = 0;
 
         /**
          * @brief Initializer for behaviors
          *
          */
         virtual void initialize() = 0;
-
 
         /**
          * @brief retrieve degrees of freedoms controlled by the behavior
