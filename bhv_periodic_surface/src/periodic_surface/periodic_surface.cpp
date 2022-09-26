@@ -38,7 +38,7 @@ void PeriodicSurface::initialize() {
         mvp_msgs::ControlMode::DOF_Z
     };
 
-    m_pnh->param("fwd_distance", m_fwd_distance, 3.0);
+    m_pnh->param("forward_distance", m_fwd_distance, 3.0);
 
     m_pnh->param<double>("max_pitch", m_max_pitch, M_PI_2);
     m_pnh->param<double>("surface_period", m_surface_period, 10.0); //seconds

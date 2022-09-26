@@ -1,0 +1,5 @@
+<library path="lib/libbhv_gps_wpt">
+  <class type="helm::GpsWaypoint" base_class_type="helm::BehaviorBase">
+    <description>A behavior template.</description>
+  </class>
+</library>

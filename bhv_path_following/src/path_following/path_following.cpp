@@ -154,6 +154,8 @@ void PathFollowing::f_waypoint_cb(
         m_waypoints = *m;
 
         m_line_index = 0;
+
+        resume_or_start();
     }
 }
 
@@ -170,7 +172,7 @@ void PathFollowing::f_parse_param_waypoints() {
 
     for(uint32_t i = 0 ; i < l.size() ; i++) {
         for(const auto& key : {"x", "y"}) {
-            if(!l[i][key].getType() == XmlRpc::XmlRpcValue::TypeInvalid) {
+            if(l[i][key].getType() != XmlRpc::XmlRpcValue::TypeInvalid) {
                 break;
             }
         }
@@ -213,7 +215,14 @@ PathFollowing::f_transform_waypoints(
 
         for (const auto &pt: in.polygon.points) {
             geometry_msgs::PointStamped ps;
-            ps.header.frame_id = in.header.frame_id;
+
+            if(in.header.frame_id[0] == '/') {
+                ps.header.frame_id =
+                    in.header.frame_id.substr(1, in.header.frame_id.length());
+            } else {
+                ps.header.frame_id = in.header.frame_id;
+            }
+
             ps.point.x = pt.x;
             ps.point.y = pt.y;
 
@@ -254,6 +263,13 @@ void PathFollowing::activated() {
 
     std::cout << "path following (" << m_name << ") activated!" << std::endl;
 
+    if(!m_waypoints.polygon.points.empty()) {
+        resume_or_start();
+    }
+
+}
+
+void PathFollowing::resume_or_start() {
     // Transform all the points into controller's frame
     geometry_msgs::PolygonStamped poly;
     f_transform_waypoints(
@@ -289,9 +305,6 @@ bool PathFollowing::request_set_point(mvp_msgs::ControlProcess *set_point) {
 
     // Warn the user if there is less than 2 points in the waypoint list
     if(m_waypoints.polygon.points.size() < 2) {
-        ROS_ERROR_STREAM_THROTTLE(30,
-            "behavior (" << m_name << "): there has to be more "
-            "than 2 waypoints");
         return false;
     }
 

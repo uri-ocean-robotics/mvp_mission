@@ -80,8 +80,6 @@ void SawtoothWave::disabled() {
 bool SawtoothWave::request_set_point(
     mvp_msgs::ControlProcess *set_point) {
 
-    BehaviorBase::m_process_values.velocity.x;
-
     set_point->orientation.z = m_heading;
 
     set_point->velocity.x = m_surge_velocity;

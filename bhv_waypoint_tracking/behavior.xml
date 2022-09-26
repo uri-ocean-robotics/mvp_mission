@@ -1,0 +1,5 @@
+<library path="lib/libbhv_waypoint_tracking">
+  <class type="helm::WaypointTracking" base_class_type="helm::BehaviorBase">
+    <description>A waypoint tracking behavior.</description>
+  </class>
+</library>

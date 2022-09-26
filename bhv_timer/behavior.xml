@@ -1,0 +1,5 @@
+<library path="lib/libbhv_timer">
+  <class type="helm::Timer" base_class_type="helm::BehaviorBase">
+    <description>A timer behavior.</description>
+  </class>
+</library>

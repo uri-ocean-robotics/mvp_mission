@@ -1,0 +1,5 @@
+<library path="lib/libbhv_hold_position">
+  <class type="helm::HoldPosition" base_class_type="helm::BehaviorBase">
+    <description>A hold position behavior.</description>
+  </class>
+</library>
