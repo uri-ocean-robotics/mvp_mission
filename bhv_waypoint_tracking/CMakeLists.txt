@@ -12,6 +12,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   pluginlib
   geometry_msgs
+  tf2_ros
+  tf2_eigen
+  tf2_geometry_msgs
+  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
   LIBRARIES bhv_waypoint_tracking
-  CATKIN_DEPENDS behavior_interface mvp_helm roscpp pluginlib geometry_msgs
+  CATKIN_DEPENDS behavior_interface mvp_helm roscpp pluginlib geometry_msgs tf2_ros tf2_eigen tf2_geometry_msgs visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -123,7 +127,8 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  src/waypoint_tracking/bhv_waypoint_tracking.cpp
+  src/waypoint_tracking/waypoint_tracking.cpp
+  src/waypoint_tracking/waypoint_tracking_misc.cpp
 )
 
 ## Add cmake target dependencies of the library

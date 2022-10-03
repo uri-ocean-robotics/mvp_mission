@@ -22,7 +22,7 @@
 */
 
 
-#include "bhv_waypoint_tracking.h"
+#include "waypoint_tracking.h"
 #include "pluginlib/class_list_macros.h"
 #include "geometry_msgs/PointStamped.h"
 
@@ -31,6 +31,8 @@ using namespace helm;
 WaypointTracking::WaypointTracking() : BehaviorBase() {
 
     m_wpt_index = 0;
+
+    std::cout << "A message from the waypoint tracking" << std::endl;
 
 }
 
@@ -78,6 +80,9 @@ void WaypointTracking::initialize() {
     m_pnh->param<std::string>("state_done", m_state_done, "");
 
     f_parse_param_waypoints();
+
+    m_waypoint_viz_pub = m_pnh->advertise<visualization_msgs::Marker>(
+        "waypoints", 0);
 
     m_update_waypoint_sub = m_pnh->subscribe<geometry_msgs::PolygonStamped>(
         update_topic_name,
@@ -200,12 +205,39 @@ WaypointTracking::f_transform_waypoints(
     }
 }
 
+void WaypointTracking::activated() {
+
+    std::cout << "path following (" << m_name << ") activated!" << std::endl;
+
+    if(!m_waypoints.polygon.points.empty()) {
+        resume_or_start();
+    }
+
+}
+
+void WaypointTracking::resume_or_start() {
+    // Transform all the points into controller's frame
+    geometry_msgs::PolygonStamped poly;
+    f_transform_waypoints(
+        m_process_values.header.frame_id,
+        m_waypoints,
+        &m_transformed_waypoints
+    );
+
+}
+
 bool WaypointTracking::request_set_point(mvp_msgs::ControlProcess *set_point) {
+
+    if(m_transformed_waypoints.polygon.points.empty()) {
+        return false;
+    }
+
+    f_visualize_waypoints();
 
     auto wpt = m_transformed_waypoints.polygon.points[m_wpt_index];
 
-    auto dist_x = m_process_values.position.x - wpt.x;
-    auto dist_y = m_process_values.position.y - wpt.y;
+    auto dist_x = wpt.x - m_process_values.position.x;
+    auto dist_y = wpt.y - m_process_values.position.y;
 
     auto dist = sqrt(dist_y * dist_y + dist_x * dist_x);
 

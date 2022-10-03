@@ -29,6 +29,7 @@
 #include "std_msgs/Float64.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "tf2_ros/transform_listener.h"
+#include "visualization_msgs/Marker.h"
 
 
 namespace helm {
@@ -64,6 +65,8 @@ namespace helm {
          * @brief Trivial append waypoint subscriber
          */
         ros::Subscriber m_append_waypoint_sub;
+
+        ros::Publisher m_waypoint_viz_pub;
 
         /**
          * @brief Waypoints to be traversed
@@ -139,6 +142,11 @@ namespace helm {
          */
         ~WaypointTracking() override;
 
+        void resume_or_start();
+
+        void activated() override;
+
+        void f_visualize_waypoints(bool clear = false);
     public:
 
         /**
