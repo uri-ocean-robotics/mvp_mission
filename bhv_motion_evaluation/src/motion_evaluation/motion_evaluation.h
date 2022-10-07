@@ -69,6 +69,12 @@ namespace helm {
 
         double m_pitch_rate_phase;
 
+        double m_yaw_phase;
+
+        double m_pitch_phase;
+
+        bool m_square_wave;
+
     public:
 
         MotionEvaluation();

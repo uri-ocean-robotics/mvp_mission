@@ -44,7 +44,9 @@ void MotionEvaluation::initialize() {
     BehaviorBase::m_dofs = decltype(m_dofs){
         mvp_msgs::ControlMode::DOF_SURGE,
         mvp_msgs::ControlMode::DOF_YAW_RATE,
-        mvp_msgs::ControlMode::DOF_PITCH_RATE
+        mvp_msgs::ControlMode::DOF_PITCH_RATE,
+        mvp_msgs::ControlMode::DOF_YAW,
+        mvp_msgs::ControlMode::DOF_PITCH
     };
 
     m_dynconf_server.setCallback(
@@ -54,9 +56,13 @@ void MotionEvaluation::initialize() {
         )
     );
 
+    m_pnh->param<bool>("square_wave", m_square_wave, false);
+
     m_surge_phase = 0;
     m_pitch_rate_phase = 0;
     m_yaw_rate_phase = 0;
+    m_yaw_phase = 0;
+    m_pitch_phase = 0;
 
 }
 
@@ -80,26 +86,68 @@ bool MotionEvaluation::request_set_point(mvp_msgs::ControlProcess *set_point)
 
     if(m_config.surge_frequency != 0) {
         m_surge_phase += M_PI / (m_helm_frequency / m_config.surge_frequency);
-        m_cmd.velocity.x = sin(m_surge_phase) * m_config.surge_magnitude;
+
+        double w = sin(m_surge_phase);
+        if(m_square_wave) {
+            w = (w > 0 ? 1 : -1);
+        }
+
+        m_cmd.velocity.x = w * m_config.surge_magnitude;
     } else {
         m_cmd.velocity.x = m_config.surge_magnitude;
     }
 
     if(m_config.yaw_rate_frequency != 0) {
         m_yaw_rate_phase += M_PI / (m_helm_frequency / m_config.yaw_rate_frequency);
-        m_cmd.angular_rate.z = sin(m_yaw_rate_phase) * m_config.yaw_rate_magnitude;
+
+        double w = sin(m_yaw_rate_phase);
+        if(m_square_wave) {
+            w = (w > 0 ? 1 : -1);
+        }
+
+        m_cmd.angular_rate.z = w * m_config.yaw_rate_magnitude;
     } else {
         m_cmd.angular_rate.z = m_config.yaw_rate_magnitude;
     }
 
     if(m_config.pitch_rate_frequency != 0) {
         m_pitch_rate_phase += M_PI / (m_helm_frequency / m_config.pitch_rate_frequency);
-        m_cmd.angular_rate.y = sin(m_pitch_rate_phase) * m_config.pitch_rate_magnitude;
+
+        double w = sin(m_pitch_rate_phase);
+        if(m_square_wave) {
+            w = (w > 0 ? 1 : -1);
+        }
+
+        m_cmd.angular_rate.y = w * m_config.pitch_rate_magnitude;
     } else {
         m_cmd.angular_rate.y = m_config.pitch_rate_magnitude;
     }
 
+    if(m_config.yaw_frequency != 0) {
+        m_yaw_phase += M_PI / (m_helm_frequency / m_config.yaw_frequency);
 
+        double w = sin(m_yaw_phase);
+        if(m_square_wave) {
+            w = (w > 0 ? 1 : -1);
+        }
+
+        m_cmd.orientation.z = w * m_config.yaw_magnitude;
+    } else {
+        m_cmd.orientation.z = m_config.yaw_magnitude;
+    }
+
+    if(m_config.pitch_frequency != 0) {
+        m_pitch_phase += M_PI / (m_helm_frequency / m_config.pitch_frequency);
+
+        double w = sin(m_pitch_phase);
+        if(m_square_wave) {
+            w = (w > 0 ? 1 : -1);
+        }
+
+        m_cmd.orientation.y = w * m_config.pitch_magnitude;
+    } else {
+        m_cmd.orientation.y = m_config.pitch_magnitude;
+    }
     /*
      * Command it to the helm
      */
