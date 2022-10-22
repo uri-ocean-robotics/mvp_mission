@@ -35,7 +35,7 @@ jobs:
         with:
           submodules: recursive
           repository: uri-ocean-robotics/mvp_msgs
-          ref: master
+          ref: noetic-devel 
 
       - name: Checkout submodules
         run: git submodule update --init --recursive
