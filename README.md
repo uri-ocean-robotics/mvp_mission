@@ -6,12 +6,12 @@ This repository contains MVP-Helm program and several useful behaviors.
 
 Pull the `mvp_msgs` repository if you don't have it already
 ```bash
-git clone https://github.com/GSO-soslab/mvp_mission
+git clone --single-branch --branch noetic-devel https://github.com/uri-ocean-robotics/mvp_msgs
 ```
 
 Pull the repository
 ```bash
-git clone https://github.com/GSO-soslab/mvp_mission
+git clone --sigle-branch --branch noetic-devel https://github.com/uri-ocean-robotics/mvp_mission
 ```
 
 Install dependencies
