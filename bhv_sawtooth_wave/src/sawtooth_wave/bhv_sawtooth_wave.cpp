@@ -30,8 +30,7 @@ using namespace helm;
 void SawtoothWave::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" +
-            BehaviorBase::m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     m_pnh->param("min_depth", m_min_depth, 0.0); // meters

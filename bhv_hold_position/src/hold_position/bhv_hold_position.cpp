@@ -29,8 +29,7 @@ using namespace helm;
 void HoldPosition::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" +
-            BehaviorBase::m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     BehaviorBase::m_dofs = decltype(m_dofs){

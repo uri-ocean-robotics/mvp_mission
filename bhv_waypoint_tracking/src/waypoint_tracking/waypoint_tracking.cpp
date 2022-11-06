@@ -47,7 +47,7 @@ WaypointTracking::~WaypointTracking() {
 void WaypointTracking::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     m_nh.reset(new ros::NodeHandle());
@@ -207,7 +207,7 @@ WaypointTracking::f_transform_waypoints(
 
 void WaypointTracking::activated() {
 
-    std::cout << "path following (" << m_name << ") activated!" << std::endl;
+    std::cout << "path following (" << get_name() << ") activated!" << std::endl;
 
     if(!m_waypoints.polygon.points.empty()) {
         resume_or_start();
@@ -245,7 +245,7 @@ bool WaypointTracking::request_set_point(mvp_msgs::ControlProcess *set_point) {
         m_wpt_index++;
 
         if(m_transformed_waypoints.polygon.points.size() == m_wpt_index) {
-            f_change_state(m_state_done);
+            change_state(m_state_done);
             m_wpt_index = 0;
         }
 

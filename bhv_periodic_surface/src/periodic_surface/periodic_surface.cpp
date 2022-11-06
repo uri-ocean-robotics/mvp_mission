@@ -30,7 +30,7 @@ using namespace helm;
 void PeriodicSurface::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     BehaviorBase::m_dofs = decltype(m_dofs){

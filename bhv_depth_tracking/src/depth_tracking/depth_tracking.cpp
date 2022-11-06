@@ -30,7 +30,7 @@ using namespace helm;
 void DepthTracking::initialize() {
 
     m_nh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     //! @par Declare the dofs to be controlled
@@ -49,6 +49,10 @@ void DepthTracking::initialize() {
     m_nh->param("forward_distance", m_fwd_distance, 3.0);
 
     m_nh->param("use_heave_velocity", m_use_heave_velocity, false);
+
+}
+
+auto DepthTracking::configure_dofs() -> decltype(m_dofs) {
 
 }
 

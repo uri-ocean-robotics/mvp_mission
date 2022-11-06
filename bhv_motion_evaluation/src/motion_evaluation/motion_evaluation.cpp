@@ -38,7 +38,7 @@ MotionEvaluation::MotionEvaluation() : BehaviorBase() {
 void MotionEvaluation::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     BehaviorBase::m_dofs = decltype(m_dofs){
@@ -85,7 +85,7 @@ bool MotionEvaluation::request_set_point(mvp_msgs::ControlProcess *set_point)
     m_cmd.header.frame_id = BehaviorBase::m_process_values.header.frame_id;
 
     if(m_config.surge_frequency != 0) {
-        m_surge_phase += M_PI / (m_helm_frequency / m_config.surge_frequency);
+        m_surge_phase += M_PI / (get_helm_frequency() / m_config.surge_frequency);
 
         double w = sin(m_surge_phase);
         if(m_square_wave) {
@@ -98,7 +98,7 @@ bool MotionEvaluation::request_set_point(mvp_msgs::ControlProcess *set_point)
     }
 
     if(m_config.yaw_rate_frequency != 0) {
-        m_yaw_rate_phase += M_PI / (m_helm_frequency / m_config.yaw_rate_frequency);
+        m_yaw_rate_phase += M_PI / (get_helm_frequency() / m_config.yaw_rate_frequency);
 
         double w = sin(m_yaw_rate_phase);
         if(m_square_wave) {
@@ -111,7 +111,7 @@ bool MotionEvaluation::request_set_point(mvp_msgs::ControlProcess *set_point)
     }
 
     if(m_config.pitch_rate_frequency != 0) {
-        m_pitch_rate_phase += M_PI / (m_helm_frequency / m_config.pitch_rate_frequency);
+        m_pitch_rate_phase += M_PI / (get_helm_frequency() / m_config.pitch_rate_frequency);
 
         double w = sin(m_pitch_rate_phase);
         if(m_square_wave) {
@@ -124,7 +124,7 @@ bool MotionEvaluation::request_set_point(mvp_msgs::ControlProcess *set_point)
     }
 
     if(m_config.yaw_frequency != 0) {
-        m_yaw_phase += M_PI / (m_helm_frequency / m_config.yaw_frequency);
+        m_yaw_phase += M_PI / (get_helm_frequency() / m_config.yaw_frequency);
 
         double w = sin(m_yaw_phase);
         if(m_square_wave) {
@@ -137,7 +137,7 @@ bool MotionEvaluation::request_set_point(mvp_msgs::ControlProcess *set_point)
     }
 
     if(m_config.pitch_frequency != 0) {
-        m_pitch_phase += M_PI / (m_helm_frequency / m_config.pitch_frequency);
+        m_pitch_phase += M_PI / (get_helm_frequency() / m_config.pitch_frequency);
 
         double w = sin(m_pitch_phase);
         if(m_square_wave) {

@@ -51,7 +51,7 @@ PathFollowing::~PathFollowing() {
 void PathFollowing::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" + m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     m_nh.reset(new ros::NodeHandle());
@@ -253,7 +253,7 @@ void PathFollowing::f_next_line_segment() {
     m_line_index++;
 
     if(m_line_index == length) {
-        f_change_state(m_state_done);
+        change_state(m_state_done);
         m_line_index = 0;
     }
 
@@ -261,7 +261,7 @@ void PathFollowing::f_next_line_segment() {
 
 void PathFollowing::activated() {
 
-    std::cout << "path following (" << m_name << ") activated!" << std::endl;
+    std::cout << "path following (" << get_name() << ") activated!" << std::endl;
 
     if(!m_waypoints.polygon.points.empty()) {
         resume_or_start();
@@ -351,7 +351,7 @@ bool PathFollowing::request_set_point(mvp_msgs::ControlProcess *set_point) {
         // check if overshoot timer passed the timeout.
         if((t - m_overshoot_timer).toSec() > m_overshoot_timeout) {
             ROS_ERROR_THROTTLE(10, "Overshoot abort!");
-            f_change_state(m_state_fail);
+            change_state(m_state_fail);
             return false;
         }
 

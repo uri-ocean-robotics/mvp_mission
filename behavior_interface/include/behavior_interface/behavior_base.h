@@ -43,8 +43,78 @@
 
 namespace helm
 {
+    class Helm;
 
     class BehaviorBase {
+    private:
+
+        friend class Helm;
+
+        friend class BehaviorContainer;
+
+        /**
+         * @brief Unique name for the behavior.
+         * This name will later be used as namespace for ros node handler.
+         *
+         * @todo A behavior may or may not use a parameter from ROS. However,
+         *       this name is still a necessity.
+         */
+        std::string m_name;
+
+        /**
+         * @brief Frequency of the helm
+         */
+        double m_helm_frequency;
+
+        /**
+         * @brief A string holds the active state name
+         */
+        std::string m_active_state;
+
+        /**
+         * @brief A vector holds DOFs active at the moment by controller
+         *
+         */
+        std::vector<int> m_active_dofs;
+
+        /**
+         * @brief Behaviors calls this function to request a state change from
+         *        MVP-Helm.
+         *
+         * This function is set during the runtime to map one of the functions
+         * from MVP-Helm.
+         */
+        std::function<bool(const std::string&)> f_change_state;
+
+        void f_set_active_state(const std::string& state) {
+            m_active_state = state;
+            state_changed(state);
+        }
+
+        /**
+         * @brief This function is called by the MVP-Helm everytime if a
+         *        behavior is active in the given state.
+         */
+        void f_activate()
+        {
+            if(!m_activated) {
+                activated();
+            }
+            m_activated = true;
+        }
+
+        /**
+         * @brief This function is called by the MVP-Helm everytime if a
+         *        behavior is *not* active in the given state.
+         */
+        void f_disable()
+        {
+            if(m_activated) {
+                disabled();
+            }
+            m_activated = false;
+        }
+
     protected:
         /**
          * @brief Construct a new Behavior Base object
@@ -61,29 +131,9 @@ namespace helm
         std::vector<int> m_dofs;
 
         /**
-         * @brief A vector holds DOFs active at the moment by controller
-         *
-         */
-        std::vector<int> m_active_dofs;
-
-        /**
-         * @brief Unique name for the behavior.
-         * This name will later be used as namespace for ros node handler.
-         *
-         * @todo A behavior may or may not use a parameter from ROS. However,
-         *       this name is still a necessity.
-         */
-        std::string m_name;
-
-        /**
          * @brief Registered state of the of the low level controller
          */
         mvp_msgs::ControlProcess m_process_values;
-
-        /**
-         * @brief Frequency of the helm
-         */
-        double m_helm_frequency;
 
         /**
          * @brief a member variable to hold activity state of the behavior
@@ -103,13 +153,19 @@ namespace helm
         virtual void disabled() {};
 
         /**
-         * @brief Behaviors calls this function to request a state change from
-         *        MVP-Helm.
+         * @brief
          *
-         * This function is set during the runtime to map one of the functions
-         * from MVP-Helm.
-         */
-        std::function<bool(const std::string&)> f_change_state;
+         * @param state_name
+        */
+        virtual void state_changed(const std::string& state_name) {}
+
+        virtual auto change_state(const std::string& state) -> bool final {
+            return f_change_state(state);
+        }
+
+        virtual double get_helm_frequency() final { return m_helm_frequency; }
+
+        virtual auto configure_dofs() -> decltype(m_dofs) {return decltype(m_dofs)();};
 
     public:
 
@@ -128,74 +184,7 @@ namespace helm
             return m_dofs;
         }
 
-        /**
-         * @brief Set the name of the behavior
-         *
-         * @param name
-         */
-        virtual void set_name(const std::string name) final
-        {
-            m_name = name;
-        }
-
-        /**
-         * @brief Registers the state of the system to the behavior
-         */
-        virtual auto register_process_values(
-                const mvp_msgs::ControlProcess& pv) -> void final
-        {
-            m_process_values = pv;
-        }
-
-        /**
-         * @brief This function is called by the MVP-Helm to inform the behavior
-         *        its frequency. This is useful for behaviors that are time
-         *        depended.
-         *
-         * @todo Consider hiding it from the derived classes. No one has to know
-         *       about this method.
-         */
-        virtual auto set_helm_frequency(const double& f) -> void final
-        {
-            m_helm_frequency = f;
-        }
-
-        /**
-         * @brief This function is called by the MVP-Helm everytime if a
-         *        behavior is active in the given state.
-         */
-        virtual void activate() final
-        {
-            if(!m_activated) {
-                activated();
-            }
-            m_activated = true;
-        }
-
-        /**
-         * @brief This function is called by the MVP-Helm everytime if a
-         *        behavior is *not* active in the given state.
-         */
-        virtual void disable() final
-        {
-            if(m_activated) {
-                disabled();
-            }
-            m_activated = false;
-        }
-
-        /**
-         * @brief This funciton is for MVP-Helm to map its own function to the
-         *        behavior. When a behavior calls this function, it directly
-         *        calls the MVP-Helm function.
-         * @todo Consider hiding from the derived class. No one needs to know
-         *       about this method.
-         */
-        virtual auto set_state_change_function(
-            decltype(f_change_state) f) -> void final
-        {
-            f_change_state = std::move(f);
-        }
+        virtual auto get_name() -> std::string final { return m_name; }
 
         virtual ~BehaviorBase() = default;
 
@@ -212,17 +201,6 @@ namespace helm
          *
          */
         virtual void initialize() = 0;
-
-        /**
-         * @brief retrieve degrees of freedoms controlled by the behavior
-         *
-         * @todo Rename this function. Creates ambiguity.
-         * @return std::vector<int>
-         */
-        virtual void set_active_dofs(const std::vector<int>& dofs)
-        {
-            m_active_dofs = dofs;
-        }
 
     };
 

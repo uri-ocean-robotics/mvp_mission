@@ -30,8 +30,7 @@ using namespace helm;
 void Timer::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" +
-            BehaviorBase::m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     if(!m_pnh->hasParam("duration")) {
@@ -55,13 +54,12 @@ void Timer::activated() {
 
 }
 
-bool Timer::request_set_point(
-    mvp_msgs::ControlProcess *set_point) {
+bool Timer::request_set_point(mvp_msgs::ControlProcess *set_point) {
 
     if(m_duration != 0.0 && !m_transition_to.empty()) {
 
         if((ros::Time::now() - m_t).toSec() > m_duration) {
-            f_change_state(m_transition_to);
+            change_state(m_transition_to);
         }
     }
 

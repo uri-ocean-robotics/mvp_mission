@@ -31,6 +31,7 @@
  * ROS
  */
 #include "mvp_msgs/GetControlModes.h"
+#include "ros/callback_queue.h"
 
 /*******************************************************************************
  * Helm
@@ -176,11 +177,10 @@ void Helm::f_initialize_behaviors() {
 
         i->initialize();
 
-        i->get_behavior()->set_state_change_function(
-            std::bind(&Helm::f_change_state, this, std::placeholders::_1)
-        );
+        i->get_behavior()->f_change_state =
+            std::bind(&Helm::f_change_state, this, std::placeholders::_1);
 
-        i->get_behavior()->set_helm_frequency(m_helm_freq);
+        i->get_behavior()->m_helm_frequency = m_helm_freq;
     }
 
 }
@@ -194,6 +194,10 @@ void Helm::f_get_controller_modes() {
         ROS_WARN_STREAM(
             "Waiting for service: " << client.getService()
         );
+
+        if(ros::isShuttingDown()) {
+            return;
+        }
     }
 
     mvp_msgs::GetControlModes srv;
@@ -282,28 +286,28 @@ void Helm::f_iterate() {
         /**
          * Inform the behavior about the active DOFs
          */
-        i->get_behavior()->set_active_dofs(dofs);
+        i->get_behavior()->m_active_dofs = dofs;
 
         /**
          * Update the system state inside behavior
          */
 
-        i->get_behavior()->register_process_values(
-            *m_controller_process_values);
+        i->get_behavior()->m_process_values = *m_controller_process_values;
 
         /*
          * Check if behavior should be active in active state
          */
         bool pass = false;
         if(!i->get_opts().states.count(active_state.name)) {
-            i->get_behavior()->disable();
+            i->get_behavior()->f_disable();
             pass = true;
         } else {
-            i->get_behavior()->activate();
+            i->get_behavior()->f_activate();
         }
 
         /**
          * Request control command from the behavior
+         * TODO: request set point must be multithreaded with timeout
          */
         mvp_msgs::ControlProcess set_point;
         if(!i->get_behavior()->request_set_point(&set_point)) {
@@ -371,7 +375,7 @@ void Helm::f_iterate() {
 void Helm::f_helm_loop() {
 
     ros::Rate r(m_helm_freq);
-    while(ros::ok()) {
+    while(ros::ok() && !ros::isShuttingDown()) {
         f_iterate();
         r.sleep();
     }
@@ -442,6 +446,6 @@ bool Helm::f_cb_get_states(mvp_msgs::GetStates::Request &req,
     return true;
 }
 
-bool Helm::f_change_state(std::string name) {
+bool Helm::f_change_state(const std::string& name) {
     return m_state_machine->translate_to(name);
 }

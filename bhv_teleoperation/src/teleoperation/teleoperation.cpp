@@ -53,8 +53,7 @@ void Teleoperation::initialize() {
      * base class member variables.
      */
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" +
-            BehaviorBase::m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     m_nh.reset(new ros::NodeHandle(""));
@@ -181,10 +180,10 @@ bool Teleoperation::request_set_point(
     double surge_rate = m_max_surge * m_joy_surge.load(std::memory_order_relaxed);
     // get pitch input
     double pitch_rate = m_max_pitch_rate * m_joy_pitch_rate.load(std::memory_order_relaxed);
-    double pitch_angle = pitch_rate * (1.0 / BehaviorBase::m_helm_frequency);
+    double pitch_angle = pitch_rate * (1.0 / get_helm_frequency());
     // get yaw input
     double yaw_rate = m_max_yaw_rate * m_joy_yaw_rate.load(std::memory_order_relaxed);
-    double yaw_angle = yaw_rate * (1.0 / BehaviorBase::m_helm_frequency);
+    double yaw_angle = yaw_rate * (1.0 / get_helm_frequency());
 
     // Set body frame velocity
     set_point->velocity.x = surge_rate;

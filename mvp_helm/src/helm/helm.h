@@ -56,6 +56,8 @@ namespace helm {
     class Helm : public HelmObj {
     private:
 
+        friend class BehaviorBase;
+
         /**
          * @brief Helm frequency in hertz
          */
@@ -172,7 +174,7 @@ namespace helm {
             mvp_msgs::GetStates::Request& req,
             mvp_msgs::GetStates::Response& resp);
 
-        bool f_change_state(std::string name);
+        bool f_change_state(const std::string& name);
 
     public:
 

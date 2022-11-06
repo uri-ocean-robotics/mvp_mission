@@ -66,6 +66,8 @@ namespace helm {
 
         bool m_use_heave_velocity;
 
+        virtual auto configure_dofs() -> decltype(m_dofs) final;
+
     public:
 
         /**

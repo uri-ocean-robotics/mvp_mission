@@ -41,8 +41,7 @@ void BehaviorTemplate::initialize() {
      * base class member variables.
      */
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" +
-            BehaviorBase::m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     /**

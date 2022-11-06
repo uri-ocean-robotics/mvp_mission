@@ -52,7 +52,7 @@ namespace helm
             m_class_loader->createUnmanagedInstance(m_opts.plugin)
         );
 
-        m_behavior->set_name(m_opts.name);
+        m_behavior->m_name = m_opts.name;
 
         try {
             m_behavior->initialize();
