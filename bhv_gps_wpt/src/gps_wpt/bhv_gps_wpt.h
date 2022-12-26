@@ -53,6 +53,8 @@ namespace helm {
 
         std::string m_target_topic;
 
+        std::string m_fromll_service;
+
         ros::Publisher m_poly_pub;
 
         std::string m_target_frame_id;

@@ -41,6 +41,8 @@ void GpsWaypoint::initialize() {
 
     m_pnh->param<std::string>("target_frame_id", m_target_frame_id, "odom");
 
+    m_pnh->param<std::string>("fromll_service", m_fromll_service, "fromll");
+
     BehaviorBase::m_dofs = decltype(m_dofs){};
 
     m_poly_pub = m_pnh->advertise<geometry_msgs::PolygonStamped>(
@@ -64,8 +66,9 @@ void GpsWaypoint::activated() {
      */
 
     std::cout << "The behavior (" << get_name() << ") is calculating GPS transforms" << std::endl;
-    if(!ros::service::exists("/fromLL", false)) {
+    if(!ros::service::exists(m_fromll_service, false)) {
         change_state(m_state_fail);
+        std::cout << "The behavior (" << get_name() << ") can't call the service: " << m_fromll_service << std::endl;
     }
 
     geometry_msgs::PolygonStamped poly;
@@ -78,7 +81,7 @@ void GpsWaypoint::activated() {
         ser.request.ll_point.altitude = 0;
 
         // call the service
-        if(!ros::service::call("/fromLL", ser)) {
+        if(!ros::service::call(m_fromll_service, ser)) {
             std::cout << "The behavior (" << get_name() << ") failed to compute GPS transforms" << std::endl;
 
             // change the state if failed
