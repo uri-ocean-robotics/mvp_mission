@@ -49,7 +49,7 @@ void DepthTracking::initialize() {
     m_nh->param("forward_distance", m_fwd_distance, 3.0);
 
     m_nh->param("use_heave_velocity", m_use_heave_velocity, false);
-
+    m_nh->param("pitch_enabled", m_pitch_enabled, false);
 }
 
 void DepthTracking::f_cb_sub(const std_msgs::Float64::ConstPtr &msg) {
@@ -91,8 +91,11 @@ bool DepthTracking::request_set_point(mvp_msgs::ControlProcess *set_point) {
             pitch = -m_max_pitch;
         }
     }
+    set_point->orientation.y = 0;
+    //only control pitch if enabled. otherwise the desired pitch will be 0
+    if(m_pitch_enabled){
     set_point->orientation.y = pitch;
-
+    }
     //! @note Set depth directly so low-level controller deals with it.
     set_point->position.z = m_requested_depth;
 
