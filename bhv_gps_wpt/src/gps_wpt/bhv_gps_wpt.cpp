@@ -32,8 +32,7 @@ using namespace helm;
 void GpsWaypoint::initialize() {
 
     m_pnh.reset(
-        new ros::NodeHandle(ros::this_node::getName() + "/" +
-            BehaviorBase::m_name)
+        new ros::NodeHandle(ros::this_node::getName() + "/" + get_name())
     );
 
     m_pnh->param<std::string>("state_fail", m_state_fail, "");
@@ -41,6 +40,8 @@ void GpsWaypoint::initialize() {
     m_pnh->param<std::string>("target_topic", m_target_topic, "");
 
     m_pnh->param<std::string>("target_frame_id", m_target_frame_id, "odom");
+
+    m_pnh->param<std::string>("fromll_service", m_fromll_service, "fromll");
 
     BehaviorBase::m_dofs = decltype(m_dofs){};
 
@@ -64,9 +65,10 @@ void GpsWaypoint::activated() {
      * appropriately.
      */
 
-    std::cout << "The behavior (" << m_name << ") is calculating GPS transforms" << std::endl;
-    if(!ros::service::exists("/fromLL", false)) {
-        f_change_state(m_state_fail);
+    std::cout << "The behavior (" << get_name() << ") is calculating GPS transforms" << std::endl;
+    if(!ros::service::exists(m_fromll_service, false)) {
+        change_state(m_state_fail);
+        std::cout << "The behavior (" << get_name() << ") can't call the service: " << m_fromll_service << std::endl;
     }
 
     geometry_msgs::PolygonStamped poly;
@@ -79,11 +81,11 @@ void GpsWaypoint::activated() {
         ser.request.ll_point.altitude = 0;
 
         // call the service
-        if(!ros::service::call("/fromLL", ser)) {
-            std::cout << "The behavior (" << m_name << ") failed to compute GPS transforms" << std::endl;
+        if(!ros::service::call(m_fromll_service, ser)) {
+            std::cout << "The behavior (" << get_name() << ") failed to compute GPS transforms" << std::endl;
 
             // change the state if failed
-            f_change_state(m_state_fail);
+            change_state(m_state_fail);
             return;
         }
 
@@ -99,7 +101,7 @@ void GpsWaypoint::activated() {
     poly.header.frame_id = m_target_frame_id;
 
     m_poly_pub.publish(poly);
-    std::cout << "The behavior (" << m_name << ") completed GPS transforms and update " << m_target_topic << std::endl;
+    std::cout << "The behavior (" << get_name() << ") completed GPS transforms and update " << m_target_topic << std::endl;
 
 }
 
