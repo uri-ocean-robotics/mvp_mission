@@ -68,7 +68,7 @@ namespace helm {
          * A surfacing period ends when the vehicle is surfaced and it begins
          * when the #PeriodicSurface::m_surface_duration ends.
          */
-        double m_surface_period;
+        double m_surface_interval;
 
         /**
          * @brief Surfacing duration, in seconds
