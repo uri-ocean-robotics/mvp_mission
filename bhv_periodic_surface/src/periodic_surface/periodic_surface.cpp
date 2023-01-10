@@ -41,7 +41,7 @@ void PeriodicSurface::initialize() {
     m_pnh->param("forward_distance", m_fwd_distance, 3.0);
 
     m_pnh->param<double>("max_pitch", m_max_pitch, M_PI_2);
-    m_pnh->param<double>("surface_period", m_surface_period, 10.0); //seconds
+    m_pnh->param<double>("surface_interval", m_surface_interval, 10.0); //seconds
     m_pnh->param<double>("surface_duration", m_surface_duration, 10.0); //seconds
 
     m_activated = false;
@@ -113,7 +113,7 @@ bool PeriodicSurface::request_set_point(mvp_msgs::ControlProcess *set_point)
 
     } else if (m_bhv_state == BhvState::DISABLED) {
 
-        if(ros::Time::now().sec - m_start_time.sec > m_surface_period) {
+        if(ros::Time::now().sec - m_start_time.sec > m_surface_interval) {
             m_bhv_state = BhvState::ENABLED;
         } else {
             return false;
