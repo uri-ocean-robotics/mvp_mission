@@ -21,13 +21,17 @@ rosdep install --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} -y
 
 Compile using `catkin_make`.
 
+## Citation
 ```
-@inproceedings{mvp_paper,
-    title = {Working towards the development of a generic marine vehicle framework: ROS-MVP},
-    author={Gezer, Emir Cem and Zhou, Mingxi and Zhao, Lin and McConnell, William},
-    journal = {OCEANS 2022, Hampton Road},
-    year ={2022},
-}
+@INPROCEEDINGS{9977346,
+  author={Gezer, Emir Cem and Zhou, Mingxi and Zhao, Lin and McConnell, William},
+  booktitle={OCEANS 2022, Hampton Roads},
+  title={Working toward the development of a generic marine vehicle framework: ROS-MVP},
+  year={2022},
+  volume={},
+  number={},
+  pages={1-5},
+  doi={10.1109/OCEANS47191.2022.9977346}}
 ```
 
 ## Funding
