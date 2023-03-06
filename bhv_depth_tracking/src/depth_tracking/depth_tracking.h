@@ -65,7 +65,7 @@ namespace helm {
         double m_fwd_distance;
 
         bool m_use_heave_velocity;
-
+        bool m_pitch_enabled;
         virtual auto configure_dofs() -> decltype(m_dofs) final;
 
     public:

@@ -81,6 +81,7 @@ void GpsWaypoint::activated() {
         ser.request.ll_point.altitude = 0;
 
         // call the service
+        // ROS_INFO("%s\n", m_fromll_service.c_str());
         if(!ros::service::call(m_fromll_service, ser)) {
             std::cout << "The behavior (" << get_name() << ") failed to compute GPS transforms" << std::endl;
 
@@ -99,6 +100,7 @@ void GpsWaypoint::activated() {
     }
 
     poly.header.frame_id = m_target_frame_id;
+    ROS_INFO("%s",m_target_topic.c_str());
 
     m_poly_pub.publish(poly);
     std::cout << "The behavior (" << get_name() << ") completed GPS transforms and update " << m_target_topic << std::endl;
@@ -143,8 +145,8 @@ void GpsWaypoint::f_parse_ll_wpts() {
 
 }
 
-bool GpsWaypoint::request_set_point(
-    mvp_msgs::ControlProcess *set_point) {
+bool GpsWaypoint::request_set_point(mvp_msgs::ControlProcess *set_point) {
+    
 
 
     return false;
