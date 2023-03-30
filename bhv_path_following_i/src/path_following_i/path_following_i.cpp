@@ -305,7 +305,7 @@ bool PathFollowingI::request_set_point(mvp_msgs::ControlProcess *set_point) {
     }
 
     // Warn the user if there is less than 2 points in the waypoint list
-    if(m_waypoints.polygon.points.size() < 2) {
+    if(m_waypoints.polygon.points.size() < 1) {
         return false;
     }
 
