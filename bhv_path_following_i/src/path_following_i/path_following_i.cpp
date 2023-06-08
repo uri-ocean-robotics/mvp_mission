@@ -325,13 +325,44 @@ bool PathFollowingI::request_set_point(mvp_msgs::ControlProcess *set_point) {
     double gamma_p = std::atan2(m_wpt_second.y - m_wpt_first.y,
                                 m_wpt_second.x - m_wpt_first.x);
 
+
     // Compute along track errors
     double Xe =  dx1 * cos(gamma_p) + dy1 * sin(gamma_p);
     double Ye = -dx1 * sin(gamma_p) + dy1 * cos(gamma_p);
 
+    double Xke = (x - m_wpt_second.x) * cos(gamma_p) +
+        (y - m_wpt_second.y) * sin(gamma_p);
+
     // Check of overshoot
     double lookahead = m_lookahead_distance;
-   
+     // Check of overshoot
+    if(Xke > 0 ) {
+        // overshoot detected
+        ROS_WARN_THROTTLE(5, "Overshoot detected!");
+
+        // Look back
+        lookahead = -lookahead;
+
+        // we are at the opposite side now
+        gamma_p = gamma_p + M_PI;
+
+        // record the time
+        auto t = ros::Time::now();
+
+        // if overshoot timer is not set, set it now.
+        if((t - m_overshoot_timer).toSec() == t.toSec()) {
+            m_overshoot_timer = ros::Time::now();
+        }
+
+        // check if overshoot timer passed the timeout.
+        if((t - m_overshoot_timer).toSec() > m_overshoot_timeout) {
+            ROS_ERROR_THROTTLE(10, "Overshoot abort!");
+            change_state(m_state_fail);
+            return false;
+        }
+
+    }
+    
 
     // Calculate integral
     double denumerator;
