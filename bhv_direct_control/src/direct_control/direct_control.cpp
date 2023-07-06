@@ -146,156 +146,135 @@ bool DirectControl::request_set_point(
     mvp_msgs::ControlProcess *set_point) {
 
     // Set position
-    if(m_desired_x != 0.0) {
-        // check the limitation
-        if(m_desired_x > m_max_x) {
-            set_point->position.x = m_max_x;
-        }
-        else if (m_desired_x < -m_max_x) {
-            set_point->position.x = -m_max_x;
-        }
-        else {
-            set_point->position.x = m_desired_x;
-        }
-    }
-    if(m_desired_y != 0.0) {
-        // check the limitation
-        if(m_desired_y > m_max_y) {
-            set_point->position.y = m_max_y;
-        }
-        else if (m_desired_y < -m_max_y) {
-            set_point->position.y = -m_max_y;
-        }
-        else {
-            set_point->position.y = m_desired_y;
-        }
 
+    // check the limitation
+    if(m_desired_x > m_max_x) {
+        set_point->position.x = m_max_x;
     }
-    if(m_desired_z != 0.0) {
-        // check the limitation
-        if(m_desired_z > m_max_z) {
-            set_point->position.z = m_max_z;
-        }
-        else if (m_desired_z < -m_max_z) {
-            set_point->position.z = -m_max_z;
-        }
-        else {
-            set_point->position.z = m_desired_z;
-        }
+    else if (m_desired_x < -m_max_x) {
+        set_point->position.x = -m_max_x;
+    }
+    else {
+        set_point->position.x = m_desired_x;
+    }
+    // check the limitation
+    if(m_desired_y > m_max_y) {
+        set_point->position.y = m_max_y;
+    }
+    else if (m_desired_y < -m_max_y) {
+        set_point->position.y = -m_max_y;
+    }
+    else {
+        set_point->position.y = m_desired_y;
+    }
+    // check the limitation
+    if(m_desired_z > m_max_z) {
+        set_point->position.z = m_max_z;
+    }
+    else if (m_desired_z < -m_max_z) {
+        set_point->position.z = -m_max_z;
+    }
+    else {
+        set_point->position.z = m_desired_z;
     }
 
     // Set orientation
-    if(m_desired_roll != 0.0) {
-        // check the limitation
-        if(m_desired_roll > m_max_roll) {
-            set_point->orientation.x = m_max_roll;
-        }
-        else if(m_desired_roll < -m_max_roll) {
-            set_point->orientation.x = -m_max_roll;
-        }       
-        else {
-            set_point->orientation.x = m_desired_roll;
-        } 
+
+    // check the limitation
+    if(m_desired_roll > m_max_roll) {
+        set_point->orientation.x = m_max_roll;
     }
-    if(m_desired_pitch != 0.0) {
-        // check the limitation
-        if(m_desired_pitch > m_max_pitch) {
-            set_point->orientation.y = m_max_pitch;
-        }
-        else if(m_desired_pitch < -m_max_pitch) {
-            set_point->orientation.y = -m_max_pitch;
-        }       
-        else {
-            set_point->orientation.y = m_desired_pitch;
-        } 
+    else if(m_desired_roll < -m_max_roll) {
+        set_point->orientation.x = -m_max_roll;
+    }       
+    else {
+        set_point->orientation.x = m_desired_roll;
+    } 
+    // check the limitation
+    if(m_desired_pitch > m_max_pitch) {
+        set_point->orientation.y = m_max_pitch;
     }
-    if(m_desired_yaw != 0.0) {
-        // check the limitation
-        if(m_desired_yaw > m_max_yaw) {
-            set_point->orientation.z = m_max_yaw;
-        }
-        else if(m_desired_yaw < -m_max_yaw) {
-            set_point->orientation.z = -m_max_yaw;
-        }       
-        else {
-            set_point->orientation.z = m_desired_yaw;
-        } 
+    else if(m_desired_pitch < -m_max_pitch) {
+        set_point->orientation.y = -m_max_pitch;
+    }       
+    else {
+        set_point->orientation.y = m_desired_pitch;
+    } 
+    // check the limitation
+    if(m_desired_yaw > m_max_yaw) {
+        set_point->orientation.z = m_max_yaw;
     }
+    else if(m_desired_yaw < -m_max_yaw) {
+        set_point->orientation.z = -m_max_yaw;
+    }       
+    else {
+        set_point->orientation.z = m_desired_yaw;
+    } 
 
     // Set velocity
-    if(m_desired_surge != 0.0) {
-        // check the limitation
-        if(m_desired_surge > m_max_surge) {
-            set_point->velocity.x = m_max_surge;
-        }
-        else if(m_desired_surge < -m_max_surge) {
-            set_point->velocity.x = -m_max_surge;
-        }
-        else {
-            set_point->velocity.x = m_desired_surge;
-        }
+
+    // check the limitation
+    if(m_desired_surge > m_max_surge) {
+        set_point->velocity.x = m_max_surge;
     }
-    if(m_desired_sway != 0.0) {
-        // check the limitation
-        if(m_desired_sway > m_max_sway) {
-            set_point->velocity.y = m_max_sway;
-        }
-        else if(m_desired_sway < -m_max_sway) {
-            set_point->velocity.y = -m_max_sway;
-        }
-        else {
-            set_point->velocity.y = m_desired_sway;
-        }
+    else if(m_desired_surge < -m_max_surge) {
+        set_point->velocity.x = -m_max_surge;
     }
-    if(m_desired_heave != 0.0) {
-        // check the limitation
-        if(m_desired_heave > m_max_heave) {
-            set_point->velocity.z = m_max_heave;
-        }
-        else if(m_desired_heave < -m_max_heave) {
-            set_point->velocity.z = -m_max_heave;
-        }
-        else {
-            set_point->velocity.z = m_desired_heave;
-        }      
+    else {
+        set_point->velocity.x = m_desired_surge;
     }
+    // check the limitation
+    if(m_desired_sway > m_max_sway) {
+        set_point->velocity.y = m_max_sway;
+    }
+    else if(m_desired_sway < -m_max_sway) {
+        set_point->velocity.y = -m_max_sway;
+    }
+    else {
+        set_point->velocity.y = m_desired_sway;
+    }
+    // check the limitation
+    if(m_desired_heave > m_max_heave) {
+        set_point->velocity.z = m_max_heave;
+    }
+    else if(m_desired_heave < -m_max_heave) {
+        set_point->velocity.z = -m_max_heave;
+    }
+    else {
+        set_point->velocity.z = m_desired_heave;
+    }      
 
     // Set angular velocity
-    if(m_desired_roll_rate != 0.0) {
-        // check the limitation
-        if(m_desired_roll_rate > m_max_roll_rate) {
-            set_point->angular_rate.x = m_max_roll_rate;
-        }
-        else if(m_desired_roll_rate < -m_max_roll_rate) {
-            set_point->angular_rate.x = -m_max_roll_rate;
-        }
-        else {
-            set_point->angular_rate.x = m_desired_roll_rate;
-        }
+
+    // check the limitation
+    if(m_desired_roll_rate > m_max_roll_rate) {
+        set_point->angular_rate.x = m_max_roll_rate;
     }
-    if(m_desired_pitch_rate != 0.0) {
-        // check the limitation
-        if(m_desired_pitch_rate > m_max_pitch_rate) {
-            set_point->angular_rate.y = m_max_pitch_rate;
-        }
-        else if(m_desired_pitch_rate < -m_max_pitch_rate) {
-            set_point->angular_rate.y = -m_max_pitch_rate;
-        }
-        else {
-            set_point->angular_rate.y = m_desired_pitch_rate;
-        }
+    else if(m_desired_roll_rate < -m_max_roll_rate) {
+        set_point->angular_rate.x = -m_max_roll_rate;
     }
-    if(m_desired_yaw_rate != 0.0) {
-        // check the limitation
-        if(m_desired_yaw_rate > m_max_yaw_rate) {
-            set_point->angular_rate.z = m_max_yaw_rate;
-        }
-        else if(m_desired_yaw_rate < -m_max_yaw_rate) {
-            set_point->angular_rate.z = -m_max_yaw_rate;
-        }
-        else {
-            set_point->angular_rate.z = m_desired_yaw_rate;
-        }
+    else {
+        set_point->angular_rate.x = m_desired_roll_rate;
+    }
+    // check the limitation
+    if(m_desired_pitch_rate > m_max_pitch_rate) {
+        set_point->angular_rate.y = m_max_pitch_rate;
+    }
+    else if(m_desired_pitch_rate < -m_max_pitch_rate) {
+        set_point->angular_rate.y = -m_max_pitch_rate;
+    }
+    else {
+        set_point->angular_rate.y = m_desired_pitch_rate;
+    }
+    // check the limitation
+    if(m_desired_yaw_rate > m_max_yaw_rate) {
+        set_point->angular_rate.z = m_max_yaw_rate;
+    }
+    else if(m_desired_yaw_rate < -m_max_yaw_rate) {
+        set_point->angular_rate.z = -m_max_yaw_rate;
+    }
+    else {
+        set_point->angular_rate.z = m_desired_yaw_rate;
     }
 
     return true;
