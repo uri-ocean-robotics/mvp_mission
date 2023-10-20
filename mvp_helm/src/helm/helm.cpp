@@ -235,10 +235,15 @@ void Helm::f_generate_sm_states(const sm_state_t& state) {
 }
 
 void Helm::f_configure_helm(helm_configuration_t conf) {
-
+    // load the parameters
     m_helm_freq = conf.frequency;
     m_global_link_id = conf.global_link;
     m_local_link_id = conf.local_link;
+
+    // setup actaul frame
+    auto ns = ros::this_node::getNamespace();
+    m_global_frame = ns.erase(0,1) + "/" + m_global_link_id;
+    m_local_frame = ns.erase(0,1) + "/" + m_local_link_id;
 }
 
 void Helm::f_cb_controller_process(
@@ -371,9 +376,10 @@ void Helm::f_iterate() {
      */
     auto msg = utils::array_to_control_process_msg(dof_ctrl);
 
+    // makeup the message
     msg.control_mode = active_state.mode;
     msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = m_global_link_id;
+    msg.header.frame_id = m_global_frame;
     m_pub_controller_set_point.publish(msg);
 
 }

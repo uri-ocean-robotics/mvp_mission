@@ -74,6 +74,16 @@ namespace helm {
         std::string m_global_link_id;
 
         /**
+         * @brief Global frame_id
+         */     
+        std::string m_global_frame;
+
+        /**
+         * @brief Local frame_id
+         */     
+        std::string m_local_frame;
+
+        /**
          * @brief Controller state
          * This variable holds the state of the low level controller such as
          * position & orientation.
