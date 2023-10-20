@@ -71,7 +71,9 @@ void Parser::f_parse_helm_configuration() {
 
     m_op_helmconf_component(
         {
-            .frequency = static_cast<double>(helm_config[CONF_HELM_FREQ])
+            .frequency = static_cast<double>(helm_config[CONF_HELM_FREQ]),
+            .global_link = static_cast<std::string>(helm_config[CONF_HELM_GLOBAL]),
+            .local_link = static_cast<std::string>(helm_config[CONF_HELM_LOCAL])
         }
     );
 }

@@ -62,10 +62,14 @@ namespace helm {
 
     struct helm_configuration_t{
         double frequency;
+        std::string global_link;
+        std::string local_link;
     };
 
     CONST_STRING CONF_HELM = "helm_configuration";
     CONST_STRING CONF_HELM_FREQ = "frequency";
+    CONST_STRING CONF_HELM_GLOBAL = "global_link";
+    CONST_STRING CONF_HELM_LOCAL = "local_link";
 
     CONST_STRING CONF_FSM = "finite_state_machine";
     CONST_STRING CONF_FSM_NAME = "name";

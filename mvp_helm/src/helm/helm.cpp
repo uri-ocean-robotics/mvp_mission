@@ -181,6 +181,10 @@ void Helm::f_initialize_behaviors() {
             std::bind(&Helm::f_change_state, this, std::placeholders::_1);
 
         i->get_behavior()->m_helm_frequency = m_helm_freq;
+
+        i->get_behavior()->m_local_link = m_local_link_id;
+
+        i->get_behavior()->m_global_link = m_global_link_id;
     }
 
 }
@@ -233,7 +237,8 @@ void Helm::f_generate_sm_states(const sm_state_t& state) {
 void Helm::f_configure_helm(helm_configuration_t conf) {
 
     m_helm_freq = conf.frequency;
-
+    m_global_link_id = conf.global_link;
+    m_local_link_id = conf.local_link;
 }
 
 void Helm::f_cb_controller_process(
@@ -368,6 +373,7 @@ void Helm::f_iterate() {
 
     msg.control_mode = active_state.mode;
     msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = m_global_link_id;
     m_pub_controller_set_point.publish(msg);
 
 }

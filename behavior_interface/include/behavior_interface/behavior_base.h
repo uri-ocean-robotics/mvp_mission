@@ -67,6 +67,16 @@ namespace helm
         double m_helm_frequency;
 
         /**
+         * @brief Global link of helm
+         */
+        std::string m_global_link;
+
+        /**
+         * @brief Local link of helm
+         */
+        std::string m_local_link;
+
+        /**
          * @brief A string holds the active state name
          */
         std::string m_active_state;
@@ -164,6 +174,10 @@ namespace helm
         }
 
         virtual double get_helm_frequency() final { return m_helm_frequency; }
+
+        virtual std::string get_helm_global_link() final { return m_global_link; }
+
+        virtual std::string get_helm_local_link() final { return m_local_link; }
 
         virtual auto configure_dofs() -> decltype(m_dofs) {return decltype(m_dofs)();};
 

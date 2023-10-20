@@ -1,5 +1,7 @@
 helm_configuration:
   frequency: 10.0
+  global_link: world_ned
+  local_link: cg_link
 
 finite_state_machine:
   - name: start

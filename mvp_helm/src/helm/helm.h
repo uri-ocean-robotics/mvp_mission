@@ -64,6 +64,16 @@ namespace helm {
         double m_helm_freq;
 
         /**
+         * @brief Local link id (i.e., cg_link)
+         */        
+        std::string m_local_link_id;
+
+        /**
+         * @brief Global link id (i.e., world_ned)
+         */           
+        std::string m_global_link_id;
+
+        /**
          * @brief Controller state
          * This variable holds the state of the low level controller such as
          * position & orientation.
