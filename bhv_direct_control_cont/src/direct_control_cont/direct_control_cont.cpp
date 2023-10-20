@@ -52,6 +52,14 @@ void DirectControlCont::initialize() {
 
     m_nh.reset(new ros::NodeHandle(""));
 
+    m_transform_listener.reset(new
+        tf2_ros::TransformListener(m_transform_buffer)
+    );
+    
+    // Set frame id
+    m_pnh->param<std::string>("global_link", global_link, "world_ned");
+    m_pnh->param<std::string>("local_link", local_link, "cg_link");
+
     // ROS related: load parameters, setup sub/pub
     m_pnh->param<double>("max_x", m_max_x, 5.0);
     m_pnh->param<double>("max_y", m_max_y, 5.0);
@@ -121,21 +129,70 @@ void DirectControlCont::initialize() {
 
 void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstPtr& new_values){
 
-    m_desired_x = new_values->position.x;    
-    m_desired_y = new_values->position.y;    
-    m_desired_z = new_values->position.z;    
+    // Saturation
+    // Set Position
+    m_desired_x = std::min(std::max(new_values->position.x, -m_max_x), m_max_x);
+    m_desired_y = std::min(std::max(new_values->position.y, -m_max_y), m_max_y);
+    m_desired_z = std::min(std::max(new_values->position.z, -m_max_z), m_max_z);
 
-    m_desired_roll = new_values->orientation.x;
-    m_desired_pitch = new_values->orientation.y;
-    m_desired_yaw = new_values->orientation.z;
+    // Set orientation
+    m_desired_roll = std::min(std::max(new_values->orientation.x, -m_max_roll), m_max_roll);
+    m_desired_pitch = std::min(std::max(new_values->orientation.y, -m_max_pitch), m_max_pitch);
+    m_desired_yaw = std::min(std::max(new_values->orientation.z, -m_max_yaw), m_max_yaw);
 
-    m_desired_surge = new_values->velocity.x;
-    m_desired_sway = new_values->velocity.y;
-    m_desired_heave = new_values->velocity.z; 
+    // Set velocity
+    m_desired_surge = std::min(std::max(new_values->velocity.x, -m_max_surge), m_max_surge);
+    m_desired_sway = std::min(std::max(new_values->velocity.y, -m_max_sway), m_max_sway);
+    m_desired_heave = std::min(std::max(new_values->velocity.z, -m_max_heave), m_max_heave);
 
-    m_desired_roll_rate = new_values->angular_rate.x;
-    m_desired_pitch_rate = new_values->angular_rate.y;
-    m_desired_yaw_rate = new_values->angular_rate.z;
+    // Set angular velocity
+    m_desired_roll_rate = std::min(std::max(new_values->angular_rate.x, -m_max_roll_rate), m_max_roll_rate);
+    m_desired_pitch_rate = std::min(std::max(new_values->angular_rate.y, -m_max_pitch_rate), m_max_pitch_rate);
+    m_desired_yaw_rate = std::min(std::max(new_values->angular_rate.z, -m_max_yaw_rate), m_max_yaw_rate);
+
+
+    Eigen::Vector3d p_world, rpy_world;
+    try {
+        // Transform the position from user defined global link to mvp_control global link
+        auto tf_world_setpoint = m_transform_buffer.lookupTransform(
+            get_helm_global_link(),
+            global_link,
+            ros::Time::now(),
+            ros::Duration(10.0)
+        );
+
+        auto tf_eigen = tf2::transformToEigen(tf_world_setpoint);
+
+        p_world = tf_eigen.rotation() * 
+                                  Eigen::Vector3d(m_desired_x, m_desired_y, m_desired_z)
+                                  + tf_eigen.translation();
+        rpy_world = tf_eigen.rotation() * 
+                                    Eigen::Vector3d(m_desired_roll, m_desired_pitch, m_desired_yaw);
+
+        //assume the set point uvw and pqr are in the m_cg_link_id
+
+    } catch(tf2::TransformException &e) {
+        ROS_WARN_STREAM_THROTTLE(10, std::string("Can't ???: ") + e.what());
+        return;
+    }
+
+    m_desired_x = p_world.x();    
+    m_desired_y = p_world.y();    
+    m_desired_z = p_world.z();    
+
+    m_desired_roll = rpy_world.x();
+    m_desired_pitch = rpy_world.y();
+    m_desired_yaw = rpy_world.z();
+
+    // Assume uvw, pqr in cg_link
+    local_link = "cg_link";
+    m_desired_surge = m_desired_surge;
+    m_desired_sway = m_desired_sway;
+    m_desired_heave = m_desired_heave; 
+
+    m_desired_roll_rate = m_desired_roll_rate;
+    m_desired_pitch_rate = m_desired_pitch_rate;
+    m_desired_yaw_rate = m_desired_yaw_rate;
 
 }
 
@@ -168,139 +225,26 @@ void DirectControlCont::disabled() {
 
 bool DirectControlCont::request_set_point(
     mvp_msgs::ControlProcess *set_point) {
-
-    // Set position
-    // set_point->header.frame_id = desired_frame;
-
-    // check the limitation
-    if(m_desired_x > m_max_x) {
-        set_point->position.x = m_max_x;
-    }
-    else if (m_desired_x < -m_max_x) {
-        set_point->position.x = -m_max_x;
-    }
-    else {
-        set_point->position.x = m_desired_x;
-    }
-    // check the limitation
-    if(m_desired_y > m_max_y) {
-        set_point->position.y = m_max_y;
-    }
-    else if (m_desired_y < -m_max_y) {
-        set_point->position.y = -m_max_y;
-    }
-    else {
-        set_point->position.y = m_desired_y;
-    }
-    // check the limitation
-    if(m_desired_z > m_max_z) {
-        set_point->position.z = m_max_z;
-    }
-    else if (m_desired_z < -m_max_z) {
-        set_point->position.z = -m_max_z;
-    }
-    else {
-        set_point->position.z = m_desired_z;
-    }
+    
+    // Set Position
+    set_point->position.x = m_desired_x;
+    set_point->position.y = m_desired_y;
+    set_point->position.z = m_desired_z;
 
     // Set orientation
-
-    // check the limitation
-    if(m_desired_roll > m_max_roll) {
-        set_point->orientation.x = m_max_roll;
-    }
-    else if(m_desired_roll < -m_max_roll) {
-        set_point->orientation.x = -m_max_roll;
-    }       
-    else {
-        set_point->orientation.x = m_desired_roll;
-    } 
-    // check the limitation
-    if(m_desired_pitch > m_max_pitch) {
-        set_point->orientation.y = m_max_pitch;
-    }
-    else if(m_desired_pitch < -m_max_pitch) {
-        set_point->orientation.y = -m_max_pitch;
-    }       
-    else {
-        set_point->orientation.y = m_desired_pitch;
-    } 
-    // check the limitation
-    if(m_desired_yaw > m_max_yaw) {
-        set_point->orientation.z = m_max_yaw;
-    }
-    else if(m_desired_yaw < -m_max_yaw) {
-        set_point->orientation.z = -m_max_yaw;
-    }       
-    else {
-        set_point->orientation.z = m_desired_yaw;
-    } 
+    set_point->orientation.x = m_desired_roll;
+    set_point->orientation.y = m_desired_pitch;
+    set_point->orientation.z = m_desired_yaw;
 
     // Set velocity
-
-    // check the limitation
-    if(m_desired_surge > m_max_surge) {
-        set_point->velocity.x = m_max_surge;
-    }
-    else if(m_desired_surge < -m_max_surge) {
-        set_point->velocity.x = -m_max_surge;
-    }
-    else {
-        set_point->velocity.x = m_desired_surge;
-    }
-    // check the limitation
-    if(m_desired_sway > m_max_sway) {
-        set_point->velocity.y = m_max_sway;
-    }
-    else if(m_desired_sway < -m_max_sway) {
-        set_point->velocity.y = -m_max_sway;
-    }
-    else {
-        set_point->velocity.y = m_desired_sway;
-    }
-    // check the limitation
-    if(m_desired_heave > m_max_heave) {
-        set_point->velocity.z = m_max_heave;
-    }
-    else if(m_desired_heave < -m_max_heave) {
-        set_point->velocity.z = -m_max_heave;
-    }
-    else {
-        set_point->velocity.z = m_desired_heave;
-    }      
-
+    set_point->velocity.x = m_desired_surge;
+    set_point->velocity.y = m_desired_sway;
+    set_point->velocity.z = m_desired_heave;
+   
     // Set angular velocity
-
-    // check the limitation
-    if(m_desired_roll_rate > m_max_roll_rate) {
-        set_point->angular_rate.x = m_max_roll_rate;
-    }
-    else if(m_desired_roll_rate < -m_max_roll_rate) {
-        set_point->angular_rate.x = -m_max_roll_rate;
-    }
-    else {
-        set_point->angular_rate.x = m_desired_roll_rate;
-    }
-    // check the limitation
-    if(m_desired_pitch_rate > m_max_pitch_rate) {
-        set_point->angular_rate.y = m_max_pitch_rate;
-    }
-    else if(m_desired_pitch_rate < -m_max_pitch_rate) {
-        set_point->angular_rate.y = -m_max_pitch_rate;
-    }
-    else {
-        set_point->angular_rate.y = m_desired_pitch_rate;
-    }
-    // check the limitation
-    if(m_desired_yaw_rate > m_max_yaw_rate) {
-        set_point->angular_rate.z = m_max_yaw_rate;
-    }
-    else if(m_desired_yaw_rate < -m_max_yaw_rate) {
-        set_point->angular_rate.z = -m_max_yaw_rate;
-    }
-    else {
-        set_point->angular_rate.z = m_desired_yaw_rate;
-    }
+    set_point->angular_rate.x = m_desired_roll_rate;
+    set_point->angular_rate.y = m_desired_pitch_rate;
+    set_point->angular_rate.z = m_desired_yaw_rate;
 
     return true;
 }

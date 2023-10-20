@@ -30,6 +30,10 @@
 #include "behavior_interface/behavior_base.h"
 #include "mvp_msgs/ControlProcess.h"
 
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_ros/transform_listener.h"
+
 
 namespace helm {
 
@@ -84,6 +88,16 @@ namespace helm {
          * @brief mvp message
          */
         void continuous_update(const mvp_msgs::ControlProcess::ConstPtr& new_values);
+
+        /**
+         * @brief global link id
+        */
+        std::string global_link;
+
+        /**
+         * @brief local link id
+        */
+        std::string local_link;
 
         /**
          * @brief Max value for x
@@ -204,6 +218,14 @@ namespace helm {
          * @brief Desired value for yaw rate
         */
         double m_desired_yaw_rate;
+
+        //! @brief Transform buffer for TF2
+        tf2_ros::Buffer m_transform_buffer;
+        
+        /**
+         * @brief Transform listener for TF2
+         */
+        std::shared_ptr<tf2_ros::TransformListener> m_transform_listener;
 
 
     public:
