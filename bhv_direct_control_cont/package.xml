@@ -57,6 +57,8 @@
   <depend>behavior_interface</depend>
   <depend>pluginlib</depend>
   <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_eigen</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
