@@ -182,9 +182,9 @@ void Helm::f_initialize_behaviors() {
 
         i->get_behavior()->m_helm_frequency = m_helm_freq;
 
-        i->get_behavior()->m_local_link = m_local_link_id;
+        i->get_behavior()->m_local_link = m_local_frame;
 
-        i->get_behavior()->m_global_link = m_global_link_id;
+        i->get_behavior()->m_global_link = m_global_frame;
     }
 
 }
