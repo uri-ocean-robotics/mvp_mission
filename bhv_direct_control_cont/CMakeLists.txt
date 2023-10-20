@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   sensor_msgs
   tf2_ros
+  tf2_eigen
 )
 find_package(Eigen3 REQUIRED)
 add_definitions(${EIGEN_DEFINITIONS})

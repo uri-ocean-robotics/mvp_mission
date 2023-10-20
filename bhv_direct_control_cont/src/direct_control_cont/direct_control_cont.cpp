@@ -155,7 +155,7 @@ void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstP
     try {
         // Transform the position from user defined global link to mvp_control global link
         auto tf_world_setpoint = m_transform_buffer.lookupTransform(
-            global_link,
+            get_helm_global_link(),
             global_link,
             ros::Time::now(),
             ros::Duration(10.0)
