@@ -166,13 +166,14 @@ void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstP
         p_world = tf_eigen.rotation() * 
                                   Eigen::Vector3d(m_desired_x, m_desired_y, m_desired_z)
                                   + tf_eigen.translation();
-        //process
+       
+        //transform euler angles between two fixed frames
        //step 1. compute the rotation matrix from the local_link to the global_link based on the given roll pitch yaw. R*
        //step 2 compute the rotation matrix from the global_link to get_helm_global_link using tf.  R
        //step 3 compute the rotation matrix the local_link with desired roll pitch yaw to the get helm_global. R = R*R*
        //step 4 compute the roll pitch yaw from R.
-        
-
+        //euler angle is world frame to body frame
+        // so we found helm_global to bhv_global then multiply the RPY rotation matrix from bhv_global to body frame.
         auto tf_1 = m_transform_buffer.lookupTransform(
             global_link,
             get_helm_global_link(),
@@ -188,6 +189,7 @@ void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstP
 
         Eigen::Matrix3d R_helm_global =  tf_1_eigen.rotation() *R;
 
+        // Calculate pitch (rotation about Z-axis)
         rpy_world.y() = asin(-R_helm_global(2, 0));
 
         // Calculate yaw (rotation about Z-axis)
@@ -215,15 +217,83 @@ void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstP
     m_desired_pitch = rpy_world.y();
     m_desired_yaw = rpy_world.z();
 
-    // Assume uvw, pqr in cg_link
-    local_link = "cg_link";
-    m_desired_surge = m_desired_surge;
-    m_desired_sway = m_desired_sway;
-    m_desired_heave = m_desired_heave; 
+    // convert local velocity from local_link to helm_local link
+    Eigen::Vector3d vel_world, ang_vel_world;
+    vel_world.x()=m_desired_surge;
+    vel_world.y()=m_desired_sway;
+    vel_world.z()=m_desired_heave;
+    ang_vel_world.x() = m_desired_roll_rate;
+    ang_vel_world.y() = m_desired_pitch_rate;
+    ang_vel_world.z() = m_desired_yaw_rate;
+    try {
+        // Transform the position from user defined global link to mvp_control global link
+        auto tf_vel = m_transform_buffer.lookupTransform(
+            get_helm_local_link(),
+            local_link,
+            ros::Time::now(),
+            ros::Duration(10.0)
+        );
+        // printf("%s\r\n", get_helm_local_link().c_str());
+        auto tf_vel_eigen = tf2::transformToEigen(tf_vel);
 
-    m_desired_roll_rate = m_desired_roll_rate;
-    m_desired_pitch_rate = m_desired_pitch_rate;
-    m_desired_yaw_rate = m_desired_yaw_rate;
+        vel_world = tf_vel_eigen.rotation() * Eigen::Vector3d(m_desired_surge, m_desired_sway, m_desired_heave);
+       
+        //transform pqr
+         tf2::Quaternion quat;
+        quat.setW(tf_vel.transform.rotation.w);
+        quat.setX(tf_vel.transform.rotation.x);
+        quat.setY(tf_vel.transform.rotation.y);
+        quat.setZ(tf_vel.transform.rotation.z);
+
+        Eigen::Vector3d orientation;
+        tf2::Matrix3x3(quat).getRPY(
+            orientation.x(),
+            orientation.y(),
+            orientation.z()
+        );
+
+        Eigen::Matrix3d transform = Eigen::Matrix3d::Zero();
+
+        // 85 < pitch < 95, -95 < pitch < -85 
+        if( (orientation.y() >  1.483529839 && orientation.y() <  1.658062761) ||
+            (orientation.y() > -1.658062761 && orientation.y()< -1.483529839) ) {
+            transform(0,0) = 1.0;
+            transform(0,1) = 0.0;
+            transform(0,2) = 0.0;
+            transform(1,0) = 0.0;
+            transform(1,1) = cos(orientation.x());
+            transform(1,2) = -sin(orientation.x());
+            transform(2,0) = 0.0;
+            transform(2,1) = 0.0;
+            transform(2,2) = 0.0;
+        }
+        else {
+            transform(0,0) = 1.0;
+            transform(0,1) = sin(orientation.x()) * tan(orientation.y());
+            transform(0,2) = cos(orientation.x()) * tan(orientation.y());
+            transform(1,0) = 0.0;
+            transform(1,1) = cos(orientation.x());
+            transform(1,2) = -sin(orientation.x());
+            transform(2,0) = 0.0;
+            transform(2,1) = sin(orientation.x()) / cos(orientation.y());
+            transform(2,2) = cos(orientation.x()) / cos(orientation.y());
+        }  
+        
+        ang_vel_world = transform * ang_vel_world;
+
+    } catch(tf2::TransformException &e) {
+        ROS_WARN_STREAM_THROTTLE(10, std::string("Can't ???: ") + e.what());
+        return;
+    }
+
+
+    m_desired_surge = vel_world.x();
+    m_desired_sway = vel_world.y();
+    m_desired_heave = vel_world.z(); 
+
+    m_desired_roll_rate = ang_vel_world.x();
+    m_desired_pitch_rate = ang_vel_world.y();
+    m_desired_yaw_rate = ang_vel_world.z();
 
 }
 
