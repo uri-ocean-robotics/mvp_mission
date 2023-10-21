@@ -166,8 +166,39 @@ void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstP
         p_world = tf_eigen.rotation() * 
                                   Eigen::Vector3d(m_desired_x, m_desired_y, m_desired_z)
                                   + tf_eigen.translation();
-        rpy_world = tf_eigen.rotation() * 
-                                    Eigen::Vector3d(m_desired_roll, m_desired_pitch, m_desired_yaw);
+        //process
+       //step 1. compute the rotation matrix from the local_link to the global_link based on the given roll pitch yaw. R*
+       //step 2 compute the rotation matrix from the global_link to get_helm_global_link using tf.  R
+       //step 3 compute the rotation matrix the local_link with desired roll pitch yaw to the get helm_global. R = R*R*
+       //step 4 compute the roll pitch yaw from R.
+        
+
+        auto tf_1 = m_transform_buffer.lookupTransform(
+            global_link,
+            get_helm_global_link(),
+            ros::Time::now(),
+            ros::Duration(10.0)
+        );
+        auto tf_1_eigen = tf2::transformToEigen(tf_1);
+        
+        Eigen::Matrix3d R;
+        R = Eigen::AngleAxisd(m_desired_yaw, Eigen::Vector3d::UnitZ()) *
+                            Eigen::AngleAxisd(m_desired_pitch, Eigen::Vector3d::UnitY()) *
+                            Eigen::AngleAxisd(m_desired_roll, Eigen::Vector3d::UnitX());
+
+        Eigen::Matrix3d R_helm_global =  tf_1_eigen.rotation() *R;
+
+        rpy_world.y() = asin(-R_helm_global(2, 0));
+
+        // Calculate yaw (rotation about Z-axis)
+        rpy_world.z() = atan2(R_helm_global(1, 0), R_helm_global(0, 0));
+
+        // Calculate roll (rotation about X-axis)
+        rpy_world.x() = atan2(R_helm_global(2, 1), R_helm_global(2, 2));
+
+        // tf_eigen::tf::getRPY(R_helm_global, rpy_world.x(), rpy_world.y(), rpy_world.z());
+        // rpy_world = tf_eigen.rotation() * 
+        //                             Eigen::Vector3d(m_desired_roll, m_desired_pitch, m_desired_yaw);
 
         //assume the set point uvw and pqr are in the m_cg_link_id
 
