@@ -242,8 +242,9 @@ void Helm::f_configure_helm(helm_configuration_t conf) {
 
     // setup actaul frame
     auto ns = ros::this_node::getNamespace();
-    m_global_frame = ns.erase(0,1) + "/" + m_global_link_id;
-    m_local_frame = ns.erase(0,1) + "/" + m_local_link_id;
+    auto ns_wo_slash = ns.erase(0,1);
+    m_global_frame = ns_wo_slash + "/" + m_global_link_id;
+    m_local_frame = ns_wo_slash + "/" + m_local_link_id;
 }
 
 void Helm::f_cb_controller_process(
