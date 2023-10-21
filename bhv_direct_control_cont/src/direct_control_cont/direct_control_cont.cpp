@@ -174,20 +174,33 @@ void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstP
        //step 4 compute the roll pitch yaw from R.
         //euler angle is world frame to body frame
         // so we found helm_global to bhv_global then multiply the RPY rotation matrix from bhv_global to body frame.
-        auto tf_1 = m_transform_buffer.lookupTransform(
+        //helm_global to bhv_global
+        auto tf_hg_bg = m_transform_buffer.lookupTransform(
             global_link,
             get_helm_global_link(),
             ros::Time::now(),
             ros::Duration(10.0)
         );
-        auto tf_1_eigen = tf2::transformToEigen(tf_1);
+        auto tf_hgbg_eigen = tf2::transformToEigen(tf_hg_bg);
         
+        //bhv_global to bhv_local
         Eigen::Matrix3d R;
         R = Eigen::AngleAxisd(m_desired_yaw, Eigen::Vector3d::UnitZ()) *
                             Eigen::AngleAxisd(m_desired_pitch, Eigen::Vector3d::UnitY()) *
                             Eigen::AngleAxisd(m_desired_roll, Eigen::Vector3d::UnitX());
 
-        Eigen::Matrix3d R_helm_global =  tf_1_eigen.rotation() *R;
+        //bhv_local to helm_local
+
+        auto tf_bl_hl = m_transform_buffer.lookupTransform(
+            get_helm_local_link(),
+            local_link,
+            ros::Time::now(),
+            ros::Duration(10.0)
+        );
+
+        auto tf_blhl_eigen = tf2::transformToEigen(tf_bl_hl);
+
+        Eigen::Matrix3d R_helm_global =  tf_hgbg_eigen.rotation() *R * tf_blhl_eigen.rotation();
 
         // Calculate pitch (rotation about Z-axis)
         rpy_world.y() = asin(-R_helm_global(2, 0));
