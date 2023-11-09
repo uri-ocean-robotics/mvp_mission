@@ -1,0 +1,5 @@
+<library path="lib/libpath_following_3d">
+  <class type="helm::PathFollowing3D" base_class_type="helm::BehaviorBase">
+    <description>A trajectory following behavior at depth</description>
+  </class>
+</library>
