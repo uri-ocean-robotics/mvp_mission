@@ -165,9 +165,9 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoint(
         mvp_msgs::GetWaypoint::Request &req, mvp_msgs::GetWaypoint::Response &resp) {
             
     
-    resp.wpt.x = m_wpt_second.x;
-    resp.wpt.y = m_wpt_second.y;
-    resp.wpt.z = m_wpt_second.z;
+    resp.wpt.wpt.x = m_wpt_second.x;
+    resp.wpt.wpt.y = m_wpt_second.y;
+    resp.wpt.wpt.z = m_wpt_second.z;
 
     // printf("wpt=%f,%f,%f\r\n",m_wpt_second.x, m_wpt_second.y, m_wpt_second.z);
     //we need to call the service to convert to lat and lon
@@ -179,9 +179,9 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoint(
     }
 
     robot_localization::ToLL ser;
-    ser.request.map_point.x = resp.wpt.x;
-    ser.request.map_point.y = resp.wpt.y;
-    ser.request.map_point.z = resp.wpt.z;
+    ser.request.map_point.x = resp.wpt.wpt.x;
+    ser.request.map_point.y = resp.wpt.wpt.y;
+    ser.request.map_point.z = resp.wpt.wpt.z;
 
 
     if(!ros::service::call(m_toll_service, ser)) {
@@ -191,9 +191,9 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoint(
         return false;
     }
 
-    resp.ll_wpt.latitude = ser.response.ll_point.latitude;
-    resp.ll_wpt.longitude = ser.response.ll_point.longitude;
-    resp.ll_wpt.altitude = ser.response.ll_point.altitude;
+    resp.wpt.ll_wpt.latitude = ser.response.ll_point.latitude;
+    resp.wpt.ll_wpt.longitude = ser.response.ll_point.longitude;
+    resp.wpt.ll_wpt.altitude = ser.response.ll_point.altitude;
     // printf("wpt=%f,%f,%f\r\n", resp.wpt.x, resp.wpt.y, resp.wpt.z);
     // printf("wptll=%f,%f,%f\r\n", resp.ll_wpt.latitude, resp.ll_wpt.longitude, resp.ll_wpt.altitude);
     return true;
