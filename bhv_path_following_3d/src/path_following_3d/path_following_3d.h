@@ -26,6 +26,7 @@
 
 #include "behavior_interface/behavior_base.h"
 #include "ros/ros.h"
+#include "mvp_msgs/GetWaypoint.h"
 #include "mvp_msgs/ControlProcess.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "tf2_ros/transform_listener.h"
@@ -92,8 +93,11 @@ namespace helm {
         //TO-DO
         //Add serivce for next waypoint
         //Add service for update waypoint  
+        //! @brief Get next waypoint
+        ros::ServiceServer get_next_waypoint_server;
 
-
+        //! @brief Update waypoints
+        ros::ServiceServer updat_waypoint_server;
 
 
         /**
@@ -131,6 +135,13 @@ namespace helm {
         double m_sigma;
         double m_yint;
         double m_beta_gain;
+
+        /**
+         * @brief for calling nav_sat service
+         */
+
+        std::string m_fromll_service;
+        std::string m_toll_service;
 
         /**
          * @brief Overshoot timer
@@ -171,7 +182,6 @@ namespace helm {
          * @brief Transform listener for TF2
          */
         std::shared_ptr<tf2_ros::TransformListener> m_transform_listener;
-
 
         /**
          * @brief Parses waypoints from ROS parameter server
@@ -235,6 +245,13 @@ namespace helm {
         void disabled() override {}
 
         void resume_or_start();
+
+        /**
+         * @brief This function is for get the next waypoint service
+         */
+        bool f_cb_srv_get_next_waypoint(
+            mvp_msgs::GetWaypoint::Request &req,
+            mvp_msgs::GetWaypoint::Response &resp);
 
     public:
 

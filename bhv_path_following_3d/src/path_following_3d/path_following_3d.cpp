@@ -31,6 +31,7 @@
 #include "cmath"
 #include "tf2_eigen/tf2_eigen.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "robot_localization/ToLL.h"
 
 using namespace helm;
 
@@ -59,6 +60,7 @@ void PathFollowing3D::initialize() {
     BehaviorBase::m_dofs = decltype(m_dofs){
         mvp_msgs::ControlMode::DOF_SURGE,
         mvp_msgs::ControlMode::DOF_YAW,
+        mvp_msgs::ControlMode::DOF_Z
     };
 
     std::string update_topic_name;
@@ -85,6 +87,9 @@ void PathFollowing3D::initialize() {
 
     // Meter/Seconds
     m_pnh->param<double>("surge_velocity", m_surge_velocity, 0.5);
+
+    //robot localization to ll service name
+    m_pnh->param<std::string>("toll_service", m_toll_service, "toLL");
 
     // Arbitrary constant
     m_pnh->param<double>("sigma", m_sigma, 1.0);
@@ -128,11 +133,72 @@ void PathFollowing3D::initialize() {
         m_pnh->advertise<visualization_msgs::Marker>("segment", 0);
 
 
+    /**
+     * Initialize services
+     */
+    get_next_waypoint_server = m_nh->advertiseService
+        <mvp_msgs::GetWaypoint::Request,
+        mvp_msgs::GetWaypoint::Response>
+    (
+        "helm/get_next_waypoint",
+        std::bind(
+            &PathFollowing3D::f_cb_srv_get_next_waypoint,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2
+        )
+    );
+
+
+
+
     m_transform_listener.reset(new
         tf2_ros::TransformListener(m_transform_buffer)
     );
 
 }
+
+
+//Get next waypoint callback
+
+bool PathFollowing3D::f_cb_srv_get_next_waypoint(
+        mvp_msgs::GetWaypoint::Request &req, mvp_msgs::GetWaypoint::Response &resp) {
+            
+    
+    resp.wpt.x = m_wpt_second.x;
+    resp.wpt.y = m_wpt_second.y;
+    resp.wpt.z = m_wpt_second.z;
+
+    // printf("wpt=%f,%f,%f\r\n",m_wpt_second.x, m_wpt_second.y, m_wpt_second.z);
+    //we need to call the service to convert to lat and lon
+    //call the service
+    std::cout << "Converting next wpt into geopoint" << std::endl;
+    if(!ros::service::exists(m_toll_service, false)) {
+        change_state(m_state_fail);
+        std::cout << "The To_LL service is not available from " << m_fromll_service << std::endl;
+    }
+
+    robot_localization::ToLL ser;
+    ser.request.map_point.x = resp.wpt.x;
+    ser.request.map_point.y = resp.wpt.y;
+    ser.request.map_point.z = resp.wpt.z;
+
+
+    if(!ros::service::call(m_toll_service, ser)) {
+        std::cout << "Failed to compute the latitude and longitude for the next waypoint" << std::endl;
+        // change the state if failed
+        change_state(m_state_fail);
+        return false;
+    }
+
+    resp.ll_wpt.latitude = ser.response.ll_point.latitude;
+    resp.ll_wpt.longitude = ser.response.ll_point.longitude;
+    resp.ll_wpt.altitude = ser.response.ll_point.altitude;
+    // printf("wpt=%f,%f,%f\r\n", resp.wpt.x, resp.wpt.y, resp.wpt.z);
+    // printf("wptll=%f,%f,%f\r\n", resp.ll_wpt.latitude, resp.ll_wpt.longitude, resp.ll_wpt.altitude);
+    return true;
+}
+
 
 void PathFollowing3D::f_waypoint_cb(
         const geometry_msgs::PolygonStamped::ConstPtr &m, bool append)
@@ -173,7 +239,7 @@ void PathFollowing3D::f_parse_param_waypoints() {
     }
 
     for(uint32_t i = 0 ; i < l.size() ; i++) {
-        for(const auto& key : {"x", "y"}) {
+        for(const auto& key : {"x", "y", "z"}) {
             if(l[i][key].getType() != XmlRpc::XmlRpcValue::TypeInvalid) {
                 break;
             }
@@ -183,7 +249,7 @@ void PathFollowing3D::f_parse_param_waypoints() {
 
     for(uint32_t i = 0; i < l.size() ; i++) {
         std::map<std::string, double> mp;
-        for(const auto& key : {"x", "y"}) {
+        for(const auto& key : {"x", "y", "z"}) {
             if (l[i][key].getType() == XmlRpc::XmlRpcValue::TypeDouble) {
                 mp[key] = static_cast<double>(l[i][key]);
             } else if (l[i][key].getType() == XmlRpc::XmlRpcValue::TypeInt) {
@@ -193,6 +259,7 @@ void PathFollowing3D::f_parse_param_waypoints() {
         geometry_msgs::Point32 gp;
         gp.x = static_cast<float>(mp["x"]);
         gp.y = static_cast<float>(mp["y"]);
+        gp.z = static_cast<float>(mp["z"]);
 
         m_waypoints.polygon.points.emplace_back(gp);
     }
@@ -226,6 +293,7 @@ void PathFollowing3D::f_transform_waypoints(
 
             ps.point.x = pt.x;
             ps.point.y = pt.y;
+            ps.point.z = pt.z;
 
             auto t = m_transform_buffer.transform(
                 ps, target_frame, ros::Duration(1.0));
@@ -233,6 +301,7 @@ void PathFollowing3D::f_transform_waypoints(
             geometry_msgs::Point32 p;
             p.x = static_cast<float>(t.point.x);
             p.y = static_cast<float>(t.point.y);
+            p.z = static_cast<float>(t.point.z);
 
             tm.polygon.points.emplace_back(p);
         }
@@ -245,9 +314,10 @@ void PathFollowing3D::f_transform_waypoints(
 
 void PathFollowing3D::f_next_line_segment() {
     auto length = m_transformed_waypoints.polygon.points.size();
-
+    //start point
     m_wpt_first =
         m_transformed_waypoints.polygon.points[m_line_index % length];
+    //end point
     m_wpt_second =
         m_transformed_waypoints.polygon.points[(m_line_index + 1) % length];
     m_yint = 0;  //reset the integral?
@@ -283,6 +353,7 @@ void PathFollowing3D::resume_or_start() {
     geometry_msgs::Point32 p;
     p.x = static_cast<float>(m_process_values.position.x);
     p.y = static_cast<float>(m_process_values.position.y);
+    // p.z = static_cast<float>(m_process_values.position.z);
     m_wpt_first = p;
 
 
