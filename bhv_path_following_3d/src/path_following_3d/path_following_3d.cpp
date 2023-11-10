@@ -73,9 +73,9 @@ void PathFollowing3D::initialize() {
     m_pnh->param<std::string>(
         "append_topic", append_topic_name, "append_waypoints");
 
-    m_pnh->param<std::string>("frame_id", m_frame_id, "frame_id");
+    m_pnh->param<std::string>("frame_id", m_frame_id, "world");
 
-
+    m_pnh->param<std::string>("enu_frame", m_enu_frame, "world");
     // Meters
     m_pnh->param<double>("acceptance_radius", m_acceptance_radius, 1.0);
 
@@ -164,6 +164,9 @@ void PathFollowing3D::initialize() {
 bool PathFollowing3D::f_cb_srv_get_next_waypoint(
         mvp_msgs::GetWaypoint::Request &req, mvp_msgs::GetWaypoint::Response &resp) {
             
+    //m_wpt_second is in the mvp_control's frame.
+    resp.wpt.header.stamp = ros::Time::now();
+    resp.wpt.header.frame_id = m_process_values.header.frame_id;
     
     resp.wpt.wpt.x = m_wpt_second.x;
     resp.wpt.wpt.y = m_wpt_second.y;
@@ -173,16 +176,38 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoint(
     //we need to call the service to convert to lat and lon
     //call the service
     std::cout << "Converting next wpt into geopoint" << std::endl;
+
+    //convert the resp.wpt from the waypoint frame id into the ENU (world)
+    Eigen::Vector3d p_world;
+    try {
+    auto tf_wpt_world = m_transform_buffer.lookupTransform(
+        m_enu_frame,
+        resp.wpt.header.frame_id,
+        ros::Time::now(),
+        ros::Duration(1.0)
+    );
+    
+    auto tf_eigen = tf2::transformToEigen(tf_wpt_world);
+
+    p_world = tf_eigen.rotation() * 
+                                Eigen::Vector3d(resp.wpt.wpt.x, resp.wpt.wpt.y, resp.wpt.wpt.z)
+                                + tf_eigen.translation();
+
+    } catch(tf2::TransformException &e) {
+        ROS_WARN_STREAM_THROTTLE(10, std::string("Can't transform the p and rpy to the global!") + e.what());
+        return false;
+    }
+
+    //check he to_LL service
     if(!ros::service::exists(m_toll_service, false)) {
         change_state(m_state_fail);
         std::cout << "The To_LL service is not available from " << m_fromll_service << std::endl;
     }
-
+    //call the service 
     robot_localization::ToLL ser;
-    ser.request.map_point.x = resp.wpt.wpt.x;
-    ser.request.map_point.y = resp.wpt.wpt.y;
-    ser.request.map_point.z = resp.wpt.wpt.z;
-
+    ser.request.map_point.x = p_world.x();
+    ser.request.map_point.y = p_world.y();
+    ser.request.map_point.z = p_world.z();
 
     if(!ros::service::call(m_toll_service, ser)) {
         std::cout << "Failed to compute the latitude and longitude for the next waypoint" << std::endl;
@@ -190,12 +215,11 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoint(
         change_state(m_state_fail);
         return false;
     }
-
+    //map response into our service response.
     resp.wpt.ll_wpt.latitude = ser.response.ll_point.latitude;
     resp.wpt.ll_wpt.longitude = ser.response.ll_point.longitude;
     resp.wpt.ll_wpt.altitude = ser.response.ll_point.altitude;
     // printf("wpt=%f,%f,%f\r\n", resp.wpt.x, resp.wpt.y, resp.wpt.z);
-    // printf("wptll=%f,%f,%f\r\n", resp.ll_wpt.latitude, resp.ll_wpt.longitude, resp.ll_wpt.altitude);
     return true;
 }
 

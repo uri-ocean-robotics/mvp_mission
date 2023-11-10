@@ -104,6 +104,12 @@ namespace helm {
          * @brief Frame id of the points name
          */
         std::string m_frame_id;
+
+        /**
+         * @brief Standard enu frame normally world or odom.
+         */
+
+        std::string  m_enu_frame; 
         /**
          * @brief Index of the lines
          */
