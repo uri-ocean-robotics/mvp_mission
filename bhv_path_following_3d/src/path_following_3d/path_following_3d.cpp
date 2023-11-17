@@ -139,11 +139,11 @@ void PathFollowing3D::initialize() {
     /**
      * Initialize services
      */
-    get_next_waypoint_server = m_nh->advertiseService
+    get_next_waypoint_server = m_pnh->advertiseService
         <mvp_msgs::GetWaypoint::Request,
         mvp_msgs::GetWaypoint::Response>
     (
-        "helm/get_next_waypoint",
+        "get_next_waypoint",
         std::bind(
             &PathFollowing3D::f_cb_srv_get_next_waypoint,
             this,
@@ -153,11 +153,11 @@ void PathFollowing3D::initialize() {
     );
 
     // Load waypoints service
-    load_waypoint_server = m_nh->advertiseService
+    load_waypoint_server = m_pnh->advertiseService
         <mvp_msgs::LoadWaypoint::Request,
         mvp_msgs::LoadWaypoint::Response>
     (
-        "helm/load_waypoint",
+        "load_waypoints",
         std::bind(
             &PathFollowing3D::f_cb_srv_load_waypoint,
             this,
