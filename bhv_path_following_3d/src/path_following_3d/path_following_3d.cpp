@@ -310,6 +310,12 @@ void PathFollowing3D::f_waypoint_cb(
         for(const auto& i : m->polygon.points) {
             m_waypoints.polygon.points.emplace_back(i);
         }
+        f_transform_waypoints(
+        m_process_values.header.frame_id,
+        m_waypoints,
+        &m_transformed_waypoints
+        );
+
 
     } else {
 
