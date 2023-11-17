@@ -136,7 +136,7 @@ add_library(path_following_3d
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 add_dependencies(path_following_3d ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(path_following_3d ${catkin_LIBRARIES})
+target_link_libraries(path_following_3d ${catkin_LIBRARIES} yaml-cpp)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context

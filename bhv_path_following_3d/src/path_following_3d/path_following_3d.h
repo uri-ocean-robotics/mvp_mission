@@ -28,9 +28,11 @@
 #include "ros/ros.h"
 #include "mvp_msgs/GetWaypoint.h"
 #include "mvp_msgs/ControlProcess.h"
+#include "mvp_msgs/LoadWaypoint.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/Marker.h"
+#include "yaml-cpp/yaml.h"
 
 
 namespace helm {
@@ -97,8 +99,12 @@ namespace helm {
         ros::ServiceServer get_next_waypoint_server;
 
         //! @brief Update waypoints
-        ros::ServiceServer updat_waypoint_server;
+        ros::ServiceServer load_waypoint_server;
 
+        /**
+         * @brief file path to the waypoint folder
+        */
+       std::string waypoint_path;
 
         /**
          * @brief Frame id of the points name
@@ -258,6 +264,10 @@ namespace helm {
         bool f_cb_srv_get_next_waypoint(
             mvp_msgs::GetWaypoint::Request &req,
             mvp_msgs::GetWaypoint::Response &resp);
+
+        bool f_cb_srv_load_waypoint(
+            mvp_msgs::LoadWaypoint::Request &req,
+            mvp_msgs::LoadWaypoint::Response &resp);
 
     public:
 

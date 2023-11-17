@@ -96,6 +96,9 @@ void PathFollowing3D::initialize() {
     
     m_pnh->param<double>("beta_gain", m_beta_gain, 0.0);
 
+    //file path to the waypoint folder
+    m_pnh->param<std::string>("waypoint_path", waypoint_path, "~/go_to_list");
+
     // String: A state to be requested after a successful execution
     m_pnh->param<std::string>("state_done", m_state_done, "");
 
@@ -149,8 +152,19 @@ void PathFollowing3D::initialize() {
         )
     );
 
-
-
+    // Load waypoints service
+    load_waypoint_server = m_nh->advertiseService
+        <mvp_msgs::LoadWaypoint::Request,
+        mvp_msgs::LoadWaypoint::Response>
+    (
+        "helm/load_waypoint",
+        std::bind(
+            &PathFollowing3D::f_cb_srv_load_waypoint,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2
+        )
+    );
 
     m_transform_listener.reset(new
         tf2_ros::TransformListener(m_transform_buffer)
@@ -222,6 +236,60 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoint(
     // printf("wpt=%f,%f,%f\r\n", resp.wpt.x, resp.wpt.y, resp.wpt.z);
     return true;
 }
+
+bool PathFollowing3D::f_cb_srv_load_waypoint(mvp_msgs::LoadWaypoint::Request &req, mvp_msgs::LoadWaypoint::Response &resp)
+{
+    geometry_msgs::PolygonStamped temp_waypoints;
+    std::string filename  = waypoint_path + req.file + ".yaml";
+
+    YAML::Node map = YAML::LoadFile(filename);
+
+    bool good_frame = false;
+    bool good_waypoint = false;
+
+    if(map["frame_id"])
+    {
+        std::string ns = ros::this_node::getNamespace();
+        temp_waypoints.header.frame_id = ns + "/" + map["frame_id"].as<std::string>();
+        good_frame = true;
+    }
+
+    if(map["waypoints"])
+    {
+        for(uint32_t i = 0; i < map["waypoints"].size() ; i++) {
+            std::map<std::string, double> mp;
+            for(const auto& key : {"x", "y", "z"})
+            {
+                mp[key] = map["waypoints"][i][key].as<float>();
+            }
+
+            geometry_msgs::Point32 gp;
+            gp.x = static_cast<float>(mp["x"]);
+            gp.y = static_cast<float>(mp["y"]);
+            gp.z = static_cast<float>(mp["z"]);
+
+            temp_waypoints.polygon.points.emplace_back(gp);
+
+            good_waypoint = true;
+
+        }
+    }
+
+    if(good_frame && good_waypoint)
+    {
+        m_waypoints = temp_waypoints;
+        resp.success=true;
+    }
+    else
+    {
+        resp.success=false;
+    }
+
+    
+    return true;
+}
+
+
 
 
 void PathFollowing3D::f_waypoint_cb(
