@@ -556,6 +556,9 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
         m_overshoot_timer.fromSec(0);
     }
 
+    //Set the direct z set point
+    m_cmd.position.z = m_wpt_second.z;
+
     /*
      * Command it to the helm
      */
