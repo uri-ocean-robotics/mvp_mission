@@ -278,6 +278,9 @@ bool PathFollowing3D::f_cb_srv_load_waypoint(mvp_msgs::LoadWaypoint::Request &re
     if(good_frame && good_waypoint)
     {
         m_waypoints = temp_waypoints;
+        m_line_index = 0;
+        resume_or_start();
+
         resp.success=true;
     }
     else
