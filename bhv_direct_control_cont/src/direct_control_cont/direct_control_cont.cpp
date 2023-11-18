@@ -95,7 +95,7 @@ void DirectControlCont::initialize() {
     m_pnh->param<double>("desired_yaw_rate", m_desired_yaw_rate, 0.0);
 
     // Subscriber for new command
-    continuous_command_sub = m_nh->subscribe("continuous_command_topic", 100, &DirectControlCont::continuous_update, this);
+    continuous_command_sub = m_pnh->subscribe("desired_setpoints", 100, &DirectControlCont::continuous_update, this);
 
     /**
      * @brief Declare the degree of freedoms to be controlled by the behavior
