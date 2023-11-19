@@ -32,6 +32,7 @@
 #include "tf2_eigen/tf2_eigen.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "robot_localization/ToLL.h"
+#include "robot_localization/FromLL.h"
 
 using namespace helm;
 
@@ -88,8 +89,10 @@ void PathFollowing3D::initialize() {
     // Meter/Seconds
     m_pnh->param<double>("surge_velocity", m_surge_velocity, 0.5);
 
-    //robot localization to ll service name
+    //robot localization to_ll and from_ll service
     m_pnh->param<std::string>("toll_service", m_toll_service, "toLL");
+
+    m_pnh->param<std::string>("fromll_service", m_fromll_service, "fromLL");
 
     // Arbitrary constant
     m_pnh->param<double>("sigma", m_sigma, 1.0);
@@ -212,10 +215,10 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoint(
         return false;
     }
 
-    //check he to_LL service
+    //check to_LL service
     if(!ros::service::exists(m_toll_service, false)) {
         change_state(m_state_fail);
-        std::cout << "The To_LL service is not available from " << m_fromll_service << std::endl;
+        std::cout << "The To_LL service is not available from " << m_toll_service << std::endl;
     }
     //call the service 
     robot_localization::ToLL ser;
@@ -274,6 +277,48 @@ bool PathFollowing3D::f_cb_srv_load_waypoint(mvp_msgs::LoadWaypoint::Request &re
 
         }
     }
+
+    if(map["ll_waypoints"])
+    {
+        for(uint32_t i = 0; i < map["ll_waypoints"].size() ; i++) {
+            std::map<std::string, double> mp;
+            for(const auto& key : {"lat", "lon", "alt"})
+            {
+                mp[key] = map["ll_waypoints"][i][key].as<float>();
+            }
+            geographic_msgs::GeoPoint geop; 
+            geop.latitude = static_cast<float>(mp["lat"]);
+            geop.longitude = static_cast<float>(mp["lon"]);
+            geop.altitude = static_cast<float>(mp["alt"]);
+
+            //convert into lat lon
+            robot_localization::FromLL ser;
+            ser.request.ll_point.latitude = geop.latitude;
+            ser.request.ll_point.longitude = geop.longitude;
+            ser.request.ll_point.altitude = geop.altitude;
+
+            // call the service
+            // ROS_INFO("%s\n", m_fromll_service.c_str());
+            if(!ros::service::call(m_fromll_service, ser)) {
+                std::cout << "The behavior (" << get_name() << ") failed to compute GPS transforms" << std::endl;
+                // change the state if failed
+                // change_state(m_state_fail);
+                return false;
+            }
+
+            geometry_msgs::Point32 gp;
+
+            gp.x = ser.response.map_point.x;
+            gp.y = ser.response.map_point.y;
+            gp.z = ser.response.map_point.z;
+            temp_waypoints.polygon.points.emplace_back(gp);
+
+            good_waypoint = true;
+
+        }
+
+    }
+
 
     if(good_frame && good_waypoint)
     {
