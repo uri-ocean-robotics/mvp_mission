@@ -29,7 +29,7 @@
 
 #include "behavior_interface/behavior_base.h"
 #include "mvp_msgs/ControlProcess.h"
-
+#include "sensor_msgs/Joy.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_eigen/tf2_eigen.h"
 #include "tf2_ros/transform_listener.h"
@@ -85,10 +85,19 @@ namespace helm {
         ros::Subscriber continuous_command_sub;
 
         /**
+         * @brief subscriber for joy command
+         */
+        ros::Subscriber joy_sub;
+
+        /**
          * @brief mvp message
          */
         void continuous_update(const mvp_msgs::ControlProcess::ConstPtr& new_values);
 
+        /**
+         * @brief joy message
+         */
+        void tele_op(const sensor_msgs::Joy::ConstPtr& msg);
         /**
          * @brief global link id
         */
@@ -218,6 +227,24 @@ namespace helm {
          * @brief Desired value for yaw rate
         */
         double m_desired_yaw_rate;
+
+        /**
+         * @brief teleop yaw increments
+        */
+        double tele_d_yaw;
+        /**
+         * @brief teleop pitch increments
+        */
+        double tele_d_pitch;
+        /**
+         * @brief teleop z increments
+        */
+        double tele_d_z;
+
+        /**
+         * @brief teleop surge scale
+        */
+        double tele_s_surge;
 
         //! @brief Transform buffer for TF2
         tf2_ros::Buffer m_transform_buffer;
