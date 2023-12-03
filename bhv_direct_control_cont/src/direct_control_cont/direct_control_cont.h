@@ -245,6 +245,11 @@ namespace helm {
          * @brief teleop surge scale
         */
         double tele_s_surge;
+        /**
+         * @brief teleop sway scale
+        */
+        double tele_s_sway;
+
 
         //! @brief Transform buffer for TF2
         tf2_ros::Buffer m_transform_buffer;

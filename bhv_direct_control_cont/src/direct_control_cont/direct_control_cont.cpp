@@ -96,6 +96,7 @@ void DirectControlCont::initialize() {
 
     m_pnh->param<double>("tele_d_yaw", tele_d_yaw, 1.0);
     m_pnh->param<double>("tele_s_surge", tele_s_surge, 1.0);
+    m_pnh->param<double>("tele_s_sway", tele_s_sway, 1.0);
     m_pnh->param<double>("tele_d_pitch", tele_d_pitch, 1.0);
     m_pnh->param<double>("tele_d_z", tele_d_z, 1.0);
 
@@ -139,6 +140,8 @@ void DirectControlCont::tele_op(const sensor_msgs::Joy::ConstPtr& msg){
     //LB is the safety button
     if(msg->buttons[4]==1){
         m_desired_surge = msg->axes[1]*tele_s_surge; //left axis up and down
+        m_desired_sway = msg->axes[0]*tele_s_sway; //left axis up and down
+
 
         m_desired_yaw = m_desired_yaw + tele_d_yaw/180*M_PI * (-msg->buttons[0] + msg->buttons[2]); //X button decrease heading B button increase heading
 
