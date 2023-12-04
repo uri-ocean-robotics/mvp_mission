@@ -44,11 +44,6 @@ jobs:
         with:
           required-ros-distributions: noetic
           
-      - uses: ros-tooling/action-ros-ci@v0.3
-        with:
-          package-name: mvp_mission
-          target-ros1-distro: noetic
-          
       - name: Install required packages
         env:
           REPO_NAME: ${{ github.event.repository.name }}
