@@ -94,11 +94,11 @@ void DirectControlCont::initialize() {
     m_pnh->param<double>("desired_pitch_rate", m_desired_pitch_rate, 0.0);
     m_pnh->param<double>("desired_yaw_rate", m_desired_yaw_rate, 0.0);
 
-    m_pnh->param<double>("tele_d_yaw", tele_d_yaw, 1.0);
-    m_pnh->param<double>("tele_s_surge", tele_s_surge, 1.0);
-    m_pnh->param<double>("tele_s_sway", tele_s_sway, 1.0);
-    m_pnh->param<double>("tele_d_pitch", tele_d_pitch, 1.0);
-    m_pnh->param<double>("tele_d_z", tele_d_z, 1.0);
+    m_pnh->param<double>("tele_d_yaw", m_tele_d_yaw, 1.0);
+    m_pnh->param<double>("tele_s_surge", m_tele_s_surge, 1.0);
+    m_pnh->param<double>("tele_s_sway", m_tele_s_sway, 1.0);
+    m_pnh->param<double>("tele_d_pitch", m_tele_d_pitch, 1.0);
+    m_pnh->param<double>("tele_d_depth", m_tele_d_depth, 1.0);
 
     // Subscriber for new command
     continuous_command_sub = m_pnh->subscribe("desired_setpoints", 100, &DirectControlCont::continuous_update, this);
@@ -135,28 +135,25 @@ void DirectControlCont::initialize() {
 }
 
 //tele op is good for control surge, pitch, depth and  heading
-void DirectControlCont::tele_op(const sensor_msgs::Joy::ConstPtr& msg){
+void DirectControlCont::tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
 
     //LB is the safety button
     if(msg->buttons[4]==1){
-        m_desired_surge = msg->axes[1]*tele_s_surge; //left axis up and down
-        m_desired_sway = msg->axes[0]*tele_s_sway; //left axis up and down
+        m_desired_surge = msg->axes[1] * m_tele_s_surge; //left axis up and down
+        m_desired_sway = msg->axes[0] * m_tele_s_sway; //left axis up and down
 
 
-        m_desired_yaw = m_desired_yaw + tele_d_yaw/180*M_PI * (-msg->buttons[0] + msg->buttons[2]); //X button decrease heading B button increase heading
+        m_desired_yaw = m_desired_yaw + m_tele_d_yaw/180*M_PI * (-msg->buttons[0] + msg->buttons[2]); //X button decrease heading B button increase heading
 
-        m_desired_pitch = m_desired_pitch + tele_d_pitch/180*M_PI *(-msg->buttons[3] + msg->buttons[1]); //Y->decrease A->increase
+        m_desired_pitch = m_desired_pitch + m_tele_d_pitch/180*M_PI *(-msg->buttons[3] + msg->buttons[1]); //Y->decrease A->increase
 
-        m_desired_z = m_desired_z + tele_d_z * (-msg->buttons[5] + msg->buttons[7]); //RB depth decrease, RT depth increase
+        m_desired_z = m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); //RB depth decrease, RT depth increase
 
         //saturation
-        
         m_desired_pitch = std::min(std::max(m_desired_pitch, -m_max_pitch), m_max_pitch);
         m_desired_yaw = std::min(std::max(m_desired_yaw, -m_max_yaw), m_max_yaw);
         m_desired_surge = std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
         m_desired_z = std::min(std::max(m_desired_z, -m_max_z), m_max_z);
-
-
     }
 
     //LT is the reset pose button
@@ -182,7 +179,7 @@ void DirectControlCont::tele_op(const sensor_msgs::Joy::ConstPtr& msg){
 }
 
 
-void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstPtr& new_values){
+void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstPtr& new_values) {
 
     // Saturation
     // Set Position

@@ -231,24 +231,24 @@ namespace helm {
         /**
          * @brief teleop yaw increments
         */
-        double tele_d_yaw;
+        double m_tele_d_yaw;
         /**
          * @brief teleop pitch increments
         */
-        double tele_d_pitch;
+        double m_tele_d_pitch;
         /**
          * @brief teleop z increments
         */
-        double tele_d_z;
+        double m_tele_d_depth;
 
         /**
          * @brief teleop surge scale
         */
-        double tele_s_surge;
+        double m_tele_s_surge;
         /**
          * @brief teleop sway scale
         */
-        double tele_s_sway;
+        double m_tele_s_sway;
 
 
         //! @brief Transform buffer for TF2
