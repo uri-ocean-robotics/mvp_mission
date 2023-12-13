@@ -139,7 +139,9 @@ void DirectControlCont::continuous_update(const mvp_msgs::ControlProcess::ConstP
     m_desired_roll = std::min(std::max(new_values->orientation.x, -m_max_roll), m_max_roll);
     m_desired_pitch = std::min(std::max(new_values->orientation.y, -m_max_pitch), m_max_pitch);
     m_desired_yaw = std::min(std::max(new_values->orientation.z, -m_max_yaw), m_max_yaw);
-
+    ///wrap the heading between -pi and pi
+    m_desired_yaw = (fmod(m_desired_yaw + std::copysign(M_PI, m_desired_yaw), 2*M_PI) 
+                - std::copysign(M_PI, m_desired_yaw));
     // Set velocity
     m_desired_surge = std::min(std::max(new_values->velocity.x, -m_max_surge), m_max_surge);
     m_desired_sway = std::min(std::max(new_values->velocity.y, -m_max_sway), m_max_sway);
