@@ -144,6 +144,9 @@ void DirectControlCont::tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
 
 
         m_desired_yaw = m_desired_yaw + m_tele_d_yaw/180*M_PI * (-msg->buttons[0] + msg->buttons[2]); //X button decrease heading B button increase heading
+        m_desired_yaw = (fmod(m_desired_yaw + std::copysign(M_PI, m_desired_yaw), 2*M_PI) 
+                - std::copysign(M_PI, m_desired_yaw));        
+
 
         m_desired_pitch = m_desired_pitch + m_tele_d_pitch/180*M_PI *(-msg->buttons[3] + msg->buttons[1]); //Y->decrease A->increase
 
