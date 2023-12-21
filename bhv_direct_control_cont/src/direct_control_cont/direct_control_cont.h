@@ -26,7 +26,7 @@
 #include "ros/ros.h"
 
 #include "std_msgs/Float64.h"
-
+#include "std_srvs/Empty.h"
 #include "behavior_interface/behavior_base.h"
 #include "mvp_msgs/ControlProcess.h"
 #include "sensor_msgs/Joy.h"
@@ -259,6 +259,11 @@ namespace helm {
          */
         std::shared_ptr<tf2_ros::TransformListener> m_transform_listener;
 
+        /**
+         * @brief for calling controller service
+         */
+        std::string m_ctrl_disable;
+        std::string m_ctrl_enable;
 
     public:
 

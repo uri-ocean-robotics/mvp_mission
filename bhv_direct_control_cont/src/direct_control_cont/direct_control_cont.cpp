@@ -100,6 +100,10 @@ void DirectControlCont::initialize() {
     m_pnh->param<double>("tele_d_pitch", m_tele_d_pitch, 1.0);
     m_pnh->param<double>("tele_d_depth", m_tele_d_depth, 1.0);
 
+    //robot mvp_controller service
+    m_pnh->param<std::string>("ctrl_disable_srv", m_ctrl_disable, "controller/disable");
+    //
+    m_pnh->param<std::string>("ctrl_enable_srv", m_ctrl_enable, "controller/enable");
     // Subscriber for new command
     continuous_command_sub = m_pnh->subscribe("desired_setpoints", 100, &DirectControlCont::continuous_update, this);
     joy_sub = m_pnh->subscribe("joy", 100, &DirectControlCont::tele_op, this);
@@ -144,6 +148,8 @@ void DirectControlCont::tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
 
 
         m_desired_yaw = m_desired_yaw + m_tele_d_yaw/180*M_PI * (-msg->buttons[0] + msg->buttons[2]); //X button decrease heading B button increase heading
+        
+        //wrap yaw into -pi to pi.
         m_desired_yaw = (fmod(m_desired_yaw + std::copysign(M_PI, m_desired_yaw), 2*M_PI) 
                 - std::copysign(M_PI, m_desired_yaw));        
 
@@ -157,6 +163,21 @@ void DirectControlCont::tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
         m_desired_yaw = std::min(std::max(m_desired_yaw, -m_max_yaw), m_max_yaw);
         m_desired_surge = std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
         m_desired_z = std::min(std::max(m_desired_z, -m_max_z), m_max_z);
+    }
+
+    //use back button to call distable controller service
+    if(msg->buttons[8]==1)
+    {
+        //check disable controller service
+        if(!ros::service::exists(m_ctrl_disable, false)) {
+            std::cout << "The service " << m_ctrl_disable << " is not available"<<std::endl;
+        }
+        std_srvs::Empty srv;
+        if(!ros::service::call(m_ctrl_disable, srv)) {
+            std::cout << "Failed to disable the controller" << std::endl;
+            // change the state if failed
+        }
+
     }
 
     //LT is the reset pose button
