@@ -27,8 +27,9 @@
 
 using namespace helm;
 
-Teleoperation::Teleoperation()
-  : m_use_joy(false), m_last_yaw (false), m_last_pitch(false) {
+Teleoperation::Teleoperation(){
+//   : m_use_joy(false), m_last_yaw (false), m_last_pitch(false) {
+    m_use_joy = false;
     std::cout << "A message from the teleoperation" << std::endl;
 }
 
@@ -57,20 +58,64 @@ void Teleoperation::initialize() {
     );
 
     m_nh.reset(new ros::NodeHandle(""));
+    m_transform_listener.reset(new
+        tf2_ros::TransformListener(m_transform_buffer)
+    );
 
     // ROS related: load parameters, setup sub/pub
 
+    // Set frame id
+    m_pnh->param<std::string>("global_link", global_link, "world_ned");
+    m_pnh->param<std::string>("local_link", local_link, "cg_link");
+
+     // ROS related: load parameters, setup sub/pub
+    m_pnh->param<double>("max_x", m_max_x, 5.0);
+    m_pnh->param<double>("max_y", m_max_y, 5.0);
+    m_pnh->param<double>("max_z", m_max_z, 5.0);
+
+    m_pnh->param<double>("max_roll", m_max_roll, M_PI_2);
+    m_pnh->param<double>("max_pitch", m_max_pitch, M_PI_2);
+    m_pnh->param<double>("max_yaw", m_max_yaw, M_PI);
+
     m_pnh->param<double>("max_surge", m_max_surge, 1.0);
-    m_pnh->param<double>("max_pitch_rate", m_max_pitch_rate, 3.15);
-    m_pnh->param<double>("max_yaw_rate", m_max_yaw_rate, 3.15);
-    m_pnh->param<std::string>("joy_topic", m_joy_topic_name, "joy");
-    m_pnh->param<int>("joy_map/axes_surge", m_axes_surge, 1);
-    m_pnh->param<int>("joy_map/axes_pitch", m_axes_pitch, 4);
-    m_pnh->param<int>("joy_map/axes_yaw", m_axes_yaw, 3);
-    m_pnh->param<int>("joy_map/button_enable", m_button_enable, 5);
+    m_pnh->param<double>("max_sway", m_max_sway, 1.0);
+    m_pnh->param<double>("max_heave", m_max_heave, 1.0);
+
+    m_pnh->param<double>("max_roll_rate", m_max_roll_rate, M_PI);
+    m_pnh->param<double>("max_pitch_rate", m_max_pitch_rate, M_PI);
+    m_pnh->param<double>("max_yaw_rate", m_max_yaw_rate, M_PI);
+
+    // Load desired values for control
+    m_pnh->param<double>("desired_x", m_desired_x, 0.0);
+    m_pnh->param<double>("desired_y", m_desired_y, 0.0);
+    m_pnh->param<double>("desired_z", m_desired_z, 0.0);
+
+    m_pnh->param<double>("desired_roll", m_desired_roll, 0.0);
+    m_pnh->param<double>("desired_pitch", m_desired_pitch, 0.0);
+    m_pnh->param<double>("desired_yaw", m_desired_yaw, 0.0);
+
+    m_pnh->param<double>("desired_surge", m_desired_surge, 0.0);
+    m_pnh->param<double>("desired_sway", m_desired_sway, 0.0);
+    m_pnh->param<double>("desired_heave", m_desired_heave, 0.0);
+
+    m_pnh->param<double>("desired_roll_rate", m_desired_roll_rate, 0.0);
+    m_pnh->param<double>("desired_pitch_rate", m_desired_pitch_rate, 0.0);
+    m_pnh->param<double>("desired_yaw_rate", m_desired_yaw_rate, 0.0);
+
+    m_pnh->param<double>("tele_d_yaw", m_tele_d_yaw, 1.0);
+    m_pnh->param<double>("tele_s_surge", m_tele_s_surge, 1.0);
+    m_pnh->param<double>("tele_s_sway", m_tele_s_sway, 1.0);
+    m_pnh->param<double>("tele_d_pitch", m_tele_d_pitch, 1.0);
+    m_pnh->param<double>("tele_d_depth", m_tele_d_depth, 1.0);
 
 
-    m_joy_sub = m_nh->subscribe(m_joy_topic_name, 100, &Teleoperation::f_joy_cb, this);
+    //robot mvp_controller service
+    m_pnh->param<std::string>("ctrl_disable_srv", m_ctrl_disable, "controller/disable");
+    //
+    m_pnh->param<std::string>("ctrl_enable_srv", m_ctrl_enable, "controller/enable");
+
+
+    m_joy_sub = m_pnh->subscribe("joy", 100, &Teleoperation::f_tele_op, this);
 
     /**
      * @brief Declare the degree of freedoms to be controlled by the behavior
@@ -82,62 +127,100 @@ void Teleoperation::initialize() {
      *
      */
     BehaviorBase::m_dofs = decltype(m_dofs){
-        // for flight mode
-        mvp_msgs::ControlMode::DOF_SURGE,
+        // for poistion
+        mvp_msgs::ControlMode::DOF_X,
+        mvp_msgs::ControlMode::DOF_Y,
+        mvp_msgs::ControlMode::DOF_Z,
+        // for orientation 
+        mvp_msgs::ControlMode::DOF_ROLL,
         mvp_msgs::ControlMode::DOF_PITCH,
         mvp_msgs::ControlMode::DOF_YAW,
-
-        // for another control mode
+        // for velocity
         mvp_msgs::ControlMode::DOF_SURGE,
+        mvp_msgs::ControlMode::DOF_SWAY,
+        mvp_msgs::ControlMode::DOF_HEAVE,
+        // for angular velocity
+        mvp_msgs::ControlMode::DOF_ROLL_RATE,
         mvp_msgs::ControlMode::DOF_PITCH_RATE,
         mvp_msgs::ControlMode::DOF_YAW_RATE,
     };
 }
 
-void Teleoperation::f_joy_cb(const sensor_msgs::Joy::ConstPtr &m) {
-    // grab control value from joystick
-    m_joy_surge = m->axes[m_axes_surge];
-    m_joy_yaw_rate = m->axes[m_axes_yaw];
-    m_joy_pitch_rate = m->axes[m_axes_pitch];
+//tele op is good for control surge, pitch, depth and  heading
+void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
 
-    // open or close joystick: RB
-    if (m->buttons[m_button_enable] == 1 ) {
+    //LB is the safety button and the joy is true
+    if(msg->buttons[4]==1 & m_use_joy){
+        
+        m_desired_surge = msg->axes[1] * m_tele_s_surge; //left axis up and down
+        m_desired_sway = msg->axes[0] * m_tele_s_sway; //left axis up and down
+
+
+        m_desired_yaw = m_desired_yaw + m_tele_d_yaw/180*M_PI * (-msg->buttons[0] + msg->buttons[2]); //X button decrease heading B button increase heading
+        
+        //wrap yaw into -pi to pi.
+        m_desired_yaw = (fmod(m_desired_yaw + std::copysign(M_PI, m_desired_yaw), 2*M_PI) 
+                - std::copysign(M_PI, m_desired_yaw));        
+
+
+        m_desired_pitch = m_desired_pitch + m_tele_d_pitch/180*M_PI *(-msg->buttons[3] + msg->buttons[1]); //Y->decrease A->increase
+
+        m_desired_z = m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); //RB depth decrease, RT depth increase
+
+        //saturation
+        m_desired_pitch = std::min(std::max(m_desired_pitch, -m_max_pitch), m_max_pitch);
+        m_desired_yaw = std::min(std::max(m_desired_yaw, -m_max_yaw), m_max_yaw);
+        m_desired_surge = std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
+        m_desired_z = std::min(std::max(m_desired_z, -m_max_z), m_max_z);
+    }
+
+    //use back button to call disable controller service
+    if(msg->buttons[8]==1)
+    {
+        //check disable controller service
+        if(!ros::service::exists(m_ctrl_disable, false)) {
+            std::cout << "The service " << m_ctrl_disable << " is not available"<<std::endl;
+        }
+        std_srvs::Empty srv;
+        if(!ros::service::call(m_ctrl_disable, srv)) {
+            std::cout << "Failed to disable the controller" << std::endl;
+            // change the state if failed
+        }
+        m_use_joy = false;
+    }
+
+    //use start button to call enable controller service
+    if(msg->buttons[9]==1)
+    {
+        //check disable controller service
+        if(!ros::service::exists(m_ctrl_enable, false)) {
+            std::cout << "The service " << m_ctrl_enable << " is not available"<<std::endl;
+        }
+        std_srvs::Empty srv;
+        if(!ros::service::call(m_ctrl_enable, srv)) {
+            std::cout << "Failed to disable the controller" << std::endl;
+            // change the state if failed
+        }
+
+    }
+
+    // the following two button won't affect the controller.
+    //set tele-op to false
+    if(msg->buttons[6]==1)
+    {
         // first time enable joystick and record vehicle pose
         if(!m_use_joy) {
             // record global information
-            m_recorded_picth = BehaviorBase::m_process_values.orientation.y;
-            m_recorded_yaw = BehaviorBase::m_process_values.orientation.z;
+            m_desired_pitch = BehaviorBase::m_process_values.orientation.y;
+            m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
+            m_desired_z = BehaviorBase::m_process_values.position.z;
+            m_desired_surge = 0;
         }
 
-        m_use_joy = true;
-
-        // only record pose if pitch input decrease to 0
-        if(m_joy_pitch_rate == 0) {
-            if(m_last_pitch) {
-                // record global information
-                m_recorded_picth = BehaviorBase::m_process_values.orientation.y;
-                m_last_pitch = false;
-            }
-        }
-        else {
-            m_last_pitch = true;
-        }
-
-        // only record pose if yaw input decrease to 0
-        if(m_joy_yaw_rate == 0) {
-            if(m_last_yaw) {
-                // record global information
-                m_recorded_yaw = BehaviorBase::m_process_values.orientation.z;
-                m_last_yaw = false;
-            }
-        }
-        else {
-            m_last_yaw = true;
-        }
+        m_use_joy = !m_use_joy;
     }
-    else {
-        m_use_joy = false;
-    }
+
+
 }
 
 
@@ -171,28 +254,30 @@ void Teleoperation::disabled() {
 //!       because pitch and yaw are in the global frame, but surge is ok. it's in the body frame.
 bool Teleoperation::request_set_point(
     mvp_msgs::ControlProcess *set_point) {
+    
 
     if( !m_use_joy ) {
         return false;
     }
+    // Set Position
+    set_point->position.x = m_desired_x;
+    set_point->position.y = m_desired_y;
+    set_point->position.z = m_desired_z;
 
-    // get surge input
-    double surge_rate = m_max_surge * m_joy_surge.load(std::memory_order_relaxed);
-    // get pitch input
-    double pitch_rate = m_max_pitch_rate * m_joy_pitch_rate.load(std::memory_order_relaxed);
-    double pitch_angle = pitch_rate * (1.0 / get_helm_frequency());
-    // get yaw input
-    double yaw_rate = m_max_yaw_rate * m_joy_yaw_rate.load(std::memory_order_relaxed);
-    double yaw_angle = yaw_rate * (1.0 / get_helm_frequency());
+    // Set orientation
+    set_point->orientation.x = m_desired_roll;
+    set_point->orientation.y = m_desired_pitch;
+    set_point->orientation.z = m_desired_yaw;
 
-    // Set body frame velocity
-    set_point->velocity.x = surge_rate;
-    set_point->angular_rate.y = pitch_rate;
-    set_point->angular_rate.z =  yaw_rate;
-
-    // Set global frame orientation angles
-    set_point->orientation.y =  m_recorded_picth + pitch_angle;
-    set_point->orientation.z =  m_recorded_yaw - yaw_angle;
+    // Set velocity
+    set_point->velocity.x = m_desired_surge;
+    set_point->velocity.y = m_desired_sway;
+    set_point->velocity.z = m_desired_heave;
+   
+    // Set angular velocity
+    set_point->angular_rate.x = m_desired_roll_rate;
+    set_point->angular_rate.y = m_desired_pitch_rate;
+    set_point->angular_rate.z = m_desired_yaw_rate;
 
     return true;
 }

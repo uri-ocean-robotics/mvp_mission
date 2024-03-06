@@ -28,11 +28,15 @@
 
 #include "ros/ros.h"
 #include "std_msgs/Float64.h"
+#include "std_srvs/Empty.h"
+
 #include "sensor_msgs/Joy.h"
 
 #include "behavior_interface/behavior_base.h"
 #include "mvp_msgs/ControlProcess.h"
-
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2_eigen/tf2_eigen.h"
+#include "tf2_ros/transform_listener.h"
 namespace helm {
 
     class Teleoperation : public BehaviorBase {
@@ -82,96 +86,184 @@ namespace helm {
          */
         ros::Subscriber m_joy_sub;
 
-        /**
-         * @brief Trivial joy stick callback
-         *
-         * @details 1)record joystick input; 2)record gloabl information
-         *          (e.g. pitch and yaw angle) if it's trigged by Joystick Enabled
-         *          or Orientation Update by Joystick
-         *
-         * @param m Message
+        /*
+         * @brief joy message
          */
-        void f_joy_cb(const sensor_msgs::Joy::ConstPtr &m);
+        void f_tele_op(const sensor_msgs::Joy::ConstPtr& msg);
+        
 
         /**
-         * @brief Joystick value for surge (velocity in body frame x-axis)
-         */
-        std::atomic<double> m_joy_surge;
+         * @brief global link id
+        */
+        std::string global_link;
 
         /**
-         * @brief Joystick value for yaw angular velocity
-         */
-        std::atomic<double> m_joy_yaw_rate;
+         * @brief local link id
+        */
+        std::string local_link;
 
         /**
-         * @brief Joystick value for pitch angular velocity
-         */
-        std::atomic<double> m_joy_pitch_rate;
+         * @brief Max value for x
+        */
+        double m_max_x;
 
         /**
-         * @brief Max surge value from joystick input
-         */
+         * @brief Max value for y
+        */
+        double m_max_y;
+
+        /**
+         * @brief Max value for z
+        */
+        double m_max_z;
+
+        /**
+         * @brief Max value for roll
+        */
+        double m_max_roll;
+
+        /**
+         * @brief Max value for pitch
+        */
+        double m_max_pitch;
+
+        /**
+         * @brief Max value for yaw
+        */
+        double m_max_yaw;
+
+        /**
+         * @brief Max value for surge
+        */
         double m_max_surge;
 
         /**
-         * @brief Max picth rate value from joystick input
-         */
+         * @brief Max value for sway
+        */
+        double m_max_sway;
+
+        /**
+         * @brief Max value for heave
+        */
+        double m_max_heave;
+
+        /**
+         * @brief Max value for roll rate
+        */
+        double m_max_roll_rate;
+
+        /**
+         * @brief Max value for pitch rate
+        */
         double m_max_pitch_rate;
 
         /**
-         * @brief Max yaw rate value from joystick input
-         */
+         * @brief Max value for yaw rate
+        */
         double m_max_yaw_rate;
 
         /**
-         * @brief ROS rostopic for joystick node
-         */
-        std::string m_joy_topic_name;
+         * @brief Desired value for x
+        */
+        double m_desired_x;
 
         /**
-         * @brief Joystick map for surge control stick
-         */
-        int m_axes_surge;
+         * @brief Desired value for y
+        */
+        double m_desired_y;
 
         /**
-         * @brief Joystick map for pitch control stick
-         */
-        int m_axes_pitch;
+         * @brief Desired value for z
+        */
+        double m_desired_z;
 
         /**
-         * @brief Joystick map for yaw control stick
-         */
-        int m_axes_yaw;
+         * @brief Desired value for roll
+        */
+        double m_desired_roll;
 
         /**
-         * @brief Joystick map for enable button
+         * @brief Desired value for pitch
+        */
+        double m_desired_pitch;
+
+        /**
+         * @brief Desired value for yaw
+        */
+        double m_desired_yaw;
+
+        /**
+         * @brief Desired value for surge
+        */
+        double m_desired_surge;
+
+        /**
+         * @brief Desired value for sway
+        */
+        double m_desired_sway;
+
+        /**
+         * @brief Desired value for heave
+        */
+        double m_desired_heave;
+
+        /**
+         * @brief Desired value for roll rate
+        */
+        double m_desired_roll_rate;
+
+        /**
+         * @brief Desired value for pitch rate
+        */
+        double m_desired_pitch_rate;
+
+        /**
+         * @brief Desired value for yaw rate
+        */
+        double m_desired_yaw_rate;
+
+        /**
+         * @brief teleop yaw increments
+        */
+        double m_tele_d_yaw;
+        /**
+         * @brief teleop pitch increments
+        */
+        double m_tele_d_pitch;
+        /**
+         * @brief teleop z increments
+        */
+        double m_tele_d_depth;
+
+        /**
+         * @brief teleop surge scale
+        */
+        double m_tele_s_surge;
+        /**
+         * @brief teleop sway scale
+        */
+        double m_tele_s_sway;
+
+
+        //! @brief Transform buffer for TF2
+        tf2_ros::Buffer m_transform_buffer;
+        
+        /**
+         * @brief Transform listener for TF2
          */
-        int m_button_enable;
+        std::shared_ptr<tf2_ros::TransformListener> m_transform_listener;
+
+        /**
+         * @brief for calling controller service
+         */
+        std::string m_ctrl_disable;
+        std::string m_ctrl_enable;
+
 
         /**
          * @brief Value to indicate joystick is enabled or not
          */
         std::atomic<bool> m_use_joy;
-
-        /**
-         * @brief Value to indicate joystick has pitch input previously
-         */
-        bool m_last_pitch;
-
-        /**
-         * @brief Value to indicate joystick has yaw input previously
-         */
-        bool m_last_yaw;
-
-        /**
-         * @brief Value of recorded picth angle in global frame
-         */
-        std::atomic<double> m_recorded_picth;
-
-        /**
-         * @brief Value of recorded yaw angle in global frame
-         */
-        std::atomic<double> m_recorded_yaw;
 
     public:
 
