@@ -94,19 +94,10 @@ void DirectControlCont::initialize() {
     m_pnh->param<double>("desired_pitch_rate", m_desired_pitch_rate, 0.0);
     m_pnh->param<double>("desired_yaw_rate", m_desired_yaw_rate, 0.0);
 
-    m_pnh->param<double>("tele_d_yaw", m_tele_d_yaw, 1.0);
-    m_pnh->param<double>("tele_s_surge", m_tele_s_surge, 1.0);
-    m_pnh->param<double>("tele_s_sway", m_tele_s_sway, 1.0);
-    m_pnh->param<double>("tele_d_pitch", m_tele_d_pitch, 1.0);
-    m_pnh->param<double>("tele_d_depth", m_tele_d_depth, 1.0);
-
     //robot mvp_controller service
     m_pnh->param<std::string>("ctrl_disable_srv", m_ctrl_disable, "controller/disable");
     //
     m_pnh->param<std::string>("ctrl_enable_srv", m_ctrl_enable, "controller/enable");
-    // Subscriber for new command
-    continuous_command_sub = m_pnh->subscribe("desired_setpoints", 100, &DirectControlCont::continuous_update, this);
-    // joy_sub = m_pnh->subscribe("joy", 100, &DirectControlCont::tele_op, this);
 
 
     /**
