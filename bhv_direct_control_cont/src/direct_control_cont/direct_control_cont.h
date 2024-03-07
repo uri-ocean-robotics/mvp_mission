@@ -97,7 +97,7 @@ namespace helm {
         /**
          * @brief joy message
          */
-        void tele_op(const sensor_msgs::Joy::ConstPtr& msg);
+        // void tele_op(const sensor_msgs::Joy::ConstPtr& msg);
         /**
          * @brief global link id
         */

@@ -13,8 +13,12 @@ find_package(catkin REQUIRED COMPONENTS
   behavior_interface
   pluginlib
   sensor_msgs
+  tf2_ros
+  tf2_eigen
 )
-
+find_package(Eigen3 REQUIRED)
+add_definitions(${EIGEN_DEFINITIONS})
+include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
