@@ -1,0 +1,62 @@
+/mvp2_test_robot/mvp_helm:
+  ros__parameters:
+    ########################################
+    ############## Limitation ##############
+    ########################################
+
+    # unit: meter
+    max_x: 5.0
+    max_y: 5.0
+    max_z: 5.0
+
+    # unit: radians 
+    max_roll: 1.5707963 
+    max_pitch: 1.5707963
+    max_yaw: 1.5707963
+
+    # unit: m/s 
+    max_surge: 1.0
+    max_sway: 1.0
+    max_heave: 1.0
+
+    # unit: rad/s
+    max_roll_rate: 3.1415926
+    max_pitch_rate: 3.1415926
+    max_yaw_rate: 3.1415926
+
+    ########################################
+    ############## Desire ##################
+    ########################################
+
+    # position
+    desired_x: 0.0
+    desired_y: 0.0
+    desired_z: 0.5
+
+    # orientation (0.4 rad = 23 degree)
+    desired_roll: 0.0 
+    desired_pitch: 0.0
+    desired_yaw: 0.0
+
+    # velocity
+    desired_surge: 0.0
+    desired_sway: 0.0
+    desired_heave: 0.0
+
+    # angular velocity
+    desired_roll_rate: 0.0
+    desired_pitch_rate: 0.0
+    desired_yaw_rate: 0.0
+
+    ####tele-op, ang in degrees####
+    ##left up/down controls surge
+    ##X and B controls yaw
+    ##Y and A controls pitch
+    ##RB and RT controls depth
+    ## LB has to be pressed 
+    ##LT resets desired states to zero for all.
+    tele_s_surge: 1.0
+    tele_s_sway: 1.0
+    tele_d_yaw: 10.0 
+    tele_d_pitch: 10.0
+    tele_d_depth: 0.5

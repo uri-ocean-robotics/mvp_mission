@@ -16,6 +16,8 @@ git clone --sigle-branch --branch noetic-devel https://github.com/uri-ocean-robo
 
 Install dependencies
 ```bash
+# install yaml-cpp for parsing
+sudo apt-get install libyaml-cpp-dev
 rosdep install --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} -y
 ```
 

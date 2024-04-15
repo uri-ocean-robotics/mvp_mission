@@ -1,0 +1,9 @@
+<class_libraries>
+	<library path="mvp2_bhv_teleoperation">
+	  <class name="helm/Teleoperation" 
+	  		 type="helm::Teleoperation" 
+			 base_class_type="helm::BehaviorBase">
+	    <description></description>
+	  </class>
+	</library>
+</class_libraries>

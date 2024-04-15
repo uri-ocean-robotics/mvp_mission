@@ -1,5 +1,0 @@
-<library path="lib/libdirect_control">
-  <class type="helm::DirectControl" base_class_type="helm::BehaviorBase">
-    <description>A direct control behavior.</description>
-  </class>
-</library>

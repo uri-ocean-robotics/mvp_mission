@@ -1,0 +1,30 @@
+finite_state_machine:
+
+  start:
+    initial: true
+    control_mode: idle
+    transitions: [kill, teleop]
+  
+  kill:
+    control_mode: idle
+    transitions: [start]
+
+  teleop:
+    control_mode: teleop
+    transitions: [start, kill] 
+
+  # template:
+  #   control_mode: hold_dof
+  #   transitions: [start, kill] 
+
+behaviors:
+
+  bhv_teleop:
+    plugin: helm/Teleoperation
+    priority:
+      teleop: 1
+
+  # bhv_template:
+  #   plugin: helm/BehaviorTemplate
+  #   priority:
+  #     template: 1

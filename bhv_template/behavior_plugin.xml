@@ -1,0 +1,9 @@
+<class_libraries>
+	<library path="mvp2_bhv_template">
+	  <class name="helm/BehaviorTemplate" 
+	  		 type="helm::BehaviorTemplate" 
+			 base_class_type="helm::BehaviorBase">
+	    <description></description>
+	  </class>
+	</library>
+</class_libraries>

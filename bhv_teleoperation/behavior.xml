@@ -1,5 +1,0 @@
-<library path="lib/libteleoperation">
-  <class type="helm::Teleoperation" base_class_type="helm::BehaviorBase">
-    <description>A teleoperation behavior.</description>
-  </class>
-</library>
