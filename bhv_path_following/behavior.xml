@@ -1,5 +1,0 @@
-<library path="lib/libpath_following">
-  <class type="helm::PathFollowing" base_class_type="helm::BehaviorBase">
-    <description>A trajectory following behavior.</description>
-  </class>
-</library>
