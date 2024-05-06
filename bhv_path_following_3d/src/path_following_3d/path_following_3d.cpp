@@ -68,12 +68,17 @@ void PathFollowing3D::initialize() {
 
     std::string append_topic_name;
 
+    std::string update_geopath_topic_name;
+
     m_pnh->param<std::string>(
         "update_topic", update_topic_name, "update_waypoints");
 
     m_pnh->param<std::string>(
         "append_topic", append_topic_name, "append_waypoints");
 
+    m_pnh->param<std::string>(
+        "update_geopath_topic", update_geopath_topic_name, "update_geopath");
+        
     m_pnh->param<std::string>("frame_id", m_frame_id, "world");
 
     m_pnh->param<std::string>("enu_frame", m_enu_frame, "world");
@@ -132,6 +137,16 @@ void PathFollowing3D::initialize() {
         )
     );
 
+     m_update_geopath_sub = m_pnh->subscribe<geographic_msgs::GeoPath>(
+        update_geopath_topic_name,
+        10,
+        std::bind(
+            &PathFollowing3D::f_geopath_cb,
+            this,
+            std::placeholders::_1
+        )
+    );
+
     m_full_trajectory_publisher = m_pnh->advertise<visualization_msgs::Marker>(
         "path", 0);
 
@@ -177,7 +192,6 @@ void PathFollowing3D::initialize() {
 
 
 //Get next waypoint callback
-
 bool PathFollowing3D::f_cb_srv_get_next_waypoint(
         mvp_msgs::GetWaypoint::Request &req, mvp_msgs::GetWaypoint::Response &resp) {
             
@@ -338,7 +352,34 @@ bool PathFollowing3D::f_cb_srv_load_waypoint(mvp_msgs::LoadWaypoint::Request &re
 }
 
 
+void PathFollowing3D::f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m)
+{
+    // //convert geo points into x and y
+    geometry_msgs::PolygonStamped temp_waypoints;
+    temp_waypoints.header.frame_id = m_frame_id; //set to world by default
+    for(const auto& i : m->poses) {
+            robot_localization::FromLL ser;
+            ser.request.ll_point.latitude = i.pose.position.latitude;
+            ser.request.ll_point.longitude = i.pose.position.longitude;
+            ser.request.ll_point.altitude = i.pose.position.altitude;
 
+            if(!ros::service::call(m_fromll_service, ser)) {
+                std::cout << "The behavior (" << get_name() << ") failed to compute GPS transforms" << std::endl;
+                // change the state if failed
+                // change_state(m_state_fail);
+                return;
+            }
+            geometry_msgs::Point32 gp;
+
+            gp.x = ser.response.map_point.x;
+            gp.y = ser.response.map_point.y;
+            gp.z = ser.response.map_point.z;
+            temp_waypoints.polygon.points.emplace_back(gp);
+
+    }
+    m_waypoints = temp_waypoints;
+
+}
 
 void PathFollowing3D::f_waypoint_cb(
         const geometry_msgs::PolygonStamped::ConstPtr &m, bool append)

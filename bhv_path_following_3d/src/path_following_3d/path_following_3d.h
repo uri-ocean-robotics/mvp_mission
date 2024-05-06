@@ -30,6 +30,7 @@
 #include "mvp_msgs/ControlProcess.h"
 #include "mvp_msgs/LoadWaypoint.h"
 #include "geometry_msgs/PolygonStamped.h"
+#include "geographic_msgs/GeoPath.h"
 #include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/Marker.h"
 #include "yaml-cpp/yaml.h"
@@ -68,6 +69,11 @@ namespace helm {
          * @brief Trivial update waypoint subscriber
          */
         ros::Subscriber m_update_waypoint_sub;
+
+        /**
+         * @brief Trivial update waypoint using geopath msgs
+         */
+        ros::Subscriber m_update_geopath_sub;
 
         /**
          * @brief Trivial append waypoint subscriber
@@ -221,6 +227,9 @@ namespace helm {
          */
         void f_waypoint_cb(const geometry_msgs::PolygonStamped::ConstPtr &m,
                            bool append);
+
+
+        void f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m);
 
         /**
          * @brief Progress to the next line segment
