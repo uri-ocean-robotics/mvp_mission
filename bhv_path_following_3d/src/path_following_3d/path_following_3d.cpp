@@ -378,6 +378,7 @@ void PathFollowing3D::f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m)
 
     }
     m_waypoints = temp_waypoints;
+    resume_or_start();
 
 }
 
