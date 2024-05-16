@@ -137,15 +137,15 @@ void PathFollowing3D::initialize() {
         )
     );
 
-     m_update_geopath_sub = m_pnh->subscribe<geographic_msgs::GeoPath>(
-        update_geopath_topic_name,
-        10,
-        std::bind(
-            &PathFollowing3D::f_geopath_cb,
-            this,
-            std::placeholders::_1
-        )
-    );
+    //  m_update_geopath_sub = m_pnh->subscribe<geographic_msgs::GeoPath>(
+    //     update_geopath_topic_name,
+    //     10,
+    //     std::bind(
+    //         &PathFollowing3D::f_geopath_cb,
+    //         this,
+    //         std::placeholders::_1
+    //     )
+    // );
 
     m_full_trajectory_publisher = m_pnh->advertise<visualization_msgs::Marker>(
         "path", 0);
@@ -178,6 +178,20 @@ void PathFollowing3D::initialize() {
         "load_waypoints",
         std::bind(
             &PathFollowing3D::f_cb_srv_load_waypoint,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2
+        )
+    );
+
+    //send waypoints via service
+    update_waypoints_server = m_pnh->advertiseService
+        <mvp_msgs::SendWaypoints::Request,
+        mvp_msgs::SendWaypoints::Response>
+    (
+        "update_waypoints",
+        std::bind(
+            &PathFollowing3D::f_cb_srv_update_waypoints,
             this,
             std::placeholders::_1,
             std::placeholders::_2
@@ -374,23 +388,26 @@ bool PathFollowing3D::f_cb_srv_load_waypoint(mvp_msgs::LoadWaypoint::Request &re
     return true;
 }
 
-
-void PathFollowing3D::f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m)
+bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request &req, mvp_msgs::SendWaypoints::Response &resp)
 {
-    // //convert geo points into x and y
+        // //convert geo points into x and y
     geometry_msgs::PolygonStamped temp_waypoints;
-    temp_waypoints.header.frame_id = m_frame_id; //set to world by default
-    for(const auto& i : m->poses) {
+
+    //for latlon type
+    if(strcmp(req.type.c_str(), "geopath") )
+    {
+        temp_waypoints.header.frame_id = m_frame_id; //set to world by default
+        for(const auto& i : req.wpt) {
             robot_localization::FromLL ser;
-            ser.request.ll_point.latitude = i.pose.position.latitude;
-            ser.request.ll_point.longitude = i.pose.position.longitude;
-            ser.request.ll_point.altitude = i.pose.position.altitude;
+            ser.request.ll_point.latitude = i.ll_wpt.latitude;
+            ser.request.ll_point.longitude = i.ll_wpt.longitude;
+            ser.request.ll_point.altitude = i.ll_wpt.altitude;
 
             if(!ros::service::call(m_fromll_service, ser)) {
                 std::cout << "The behavior (" << get_name() << ") failed to compute GPS transforms" << std::endl;
                 // change the state if failed
                 // change_state(m_state_fail);
-                return;
+                return false;
             }
             geometry_msgs::Point32 gp;
 
@@ -399,10 +416,27 @@ void PathFollowing3D::f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m)
             gp.z = ser.response.map_point.z;
             temp_waypoints.polygon.points.emplace_back(gp);
 
+        }
+        m_waypoints = temp_waypoints;
+        resume_or_start();
+        return true;
     }
-    m_waypoints = temp_waypoints;
-    resume_or_start();
-
+    else
+    {
+        temp_waypoints.header.frame_id = req.wpt[0].header.frame_id; //
+        for(const auto& i : req.wpt) {
+            geometry_msgs::Point32 gp;
+            gp.x = i.wpt.x;
+            gp.y = i.wpt.y;
+            gp.z = i.wpt.z;
+            temp_waypoints.polygon.points.emplace_back(gp);
+            //tf hanlded in resume_or_start()
+        }
+        m_waypoints = temp_waypoints;
+        resume_or_start();
+        return true;
+    }
+    
 }
 
 void PathFollowing3D::f_waypoint_cb(

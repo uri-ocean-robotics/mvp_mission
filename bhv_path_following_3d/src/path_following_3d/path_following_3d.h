@@ -29,6 +29,7 @@
 #include "mvp_msgs/GetWaypoints.h"
 #include "mvp_msgs/ControlProcess.h"
 #include "mvp_msgs/LoadWaypoint.h"
+#include "mvp_msgs/SendWaypoints.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "geographic_msgs/GeoPath.h"
 #include "tf2_ros/transform_listener.h"
@@ -104,9 +105,12 @@ namespace helm {
         //! @brief Get next waypoint
         ros::ServiceServer get_next_waypoints_server;
 
-        //! @brief Update waypoints
+        //! @brief load waypoints
         ros::ServiceServer load_waypoint_server;
 
+        //! @brief load waypoints
+        ros::ServiceServer update_waypoints_server;
+        
         /**
          * @brief file path to the waypoint folder
         */
@@ -229,7 +233,7 @@ namespace helm {
                            bool append);
 
 
-        void f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m);
+        // void f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m);
 
         /**
          * @brief Progress to the next line segment
@@ -277,6 +281,11 @@ namespace helm {
         bool f_cb_srv_load_waypoint(
             mvp_msgs::LoadWaypoint::Request &req,
             mvp_msgs::LoadWaypoint::Response &resp);
+
+        bool f_cb_srv_update_waypoints(
+            mvp_msgs::SendWaypoints::Request &req,
+            mvp_msgs::SendWaypoints::Response &resp);
+
 
     public:
 
