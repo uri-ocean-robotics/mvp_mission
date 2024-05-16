@@ -26,10 +26,11 @@
 
 #include "behavior_interface/behavior_base.h"
 #include "ros/ros.h"
-#include "mvp_msgs/GetWaypoint.h"
+#include "mvp_msgs/GetWaypoints.h"
 #include "mvp_msgs/ControlProcess.h"
 #include "mvp_msgs/LoadWaypoint.h"
 #include "geometry_msgs/PolygonStamped.h"
+#include "geographic_msgs/GeoPath.h"
 #include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/Marker.h"
 #include "yaml-cpp/yaml.h"
@@ -70,6 +71,11 @@ namespace helm {
         ros::Subscriber m_update_waypoint_sub;
 
         /**
+         * @brief Trivial update waypoint using geopath msgs
+         */
+        ros::Subscriber m_update_geopath_sub;
+
+        /**
          * @brief Trivial append waypoint subscriber
          */
         ros::Subscriber m_append_waypoint_sub;
@@ -96,7 +102,7 @@ namespace helm {
         //Add serivce for next waypoint
         //Add service for update waypoint  
         //! @brief Get next waypoint
-        ros::ServiceServer get_next_waypoint_server;
+        ros::ServiceServer get_next_waypoints_server;
 
         //! @brief Update waypoints
         ros::ServiceServer load_waypoint_server;
@@ -222,6 +228,9 @@ namespace helm {
         void f_waypoint_cb(const geometry_msgs::PolygonStamped::ConstPtr &m,
                            bool append);
 
+
+        void f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m);
+
         /**
          * @brief Progress to the next line segment
          */
@@ -261,9 +270,9 @@ namespace helm {
         /**
          * @brief This function is for get the next waypoint service
          */
-        bool f_cb_srv_get_next_waypoint(
-            mvp_msgs::GetWaypoint::Request &req,
-            mvp_msgs::GetWaypoint::Response &resp);
+        bool f_cb_srv_get_next_waypoints(
+            mvp_msgs::GetWaypoints::Request &req,
+            mvp_msgs::GetWaypoints::Response &resp);
 
         bool f_cb_srv_load_waypoint(
             mvp_msgs::LoadWaypoint::Request &req,
