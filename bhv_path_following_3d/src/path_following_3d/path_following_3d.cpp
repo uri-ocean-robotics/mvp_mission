@@ -216,10 +216,10 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoints(
     if (req.count.data == 0)
     {
         num = length - m_line_index;
-        printf("the requested waypoint number is larger than the left-over waypoint number \r\n");
+        // printf("the requested waypoint number is larger than the left-over waypoint number \r\n");
     }
 
-    printf("getting waypoints from %d to %d\r\n", m_line_index, num-1);
+    // printf("getting waypoints from %d to %d\r\n", m_line_index, num-1);
 
     resp.wpt.resize(num);
     //get wpts
@@ -235,7 +235,7 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoints(
         // printf("waypoint xyz got\r\n");
         //we need to call the service to convert to lat and lon
         //call the service
-        std::cout << "Converting future waypoints into geopoint" << std::endl;
+        // std::cout << "Converting future waypoints into geopoint" << std::endl;
 
         //convert the resp.wpt from the waypoint frame id into the ENU (world)
         Eigen::Vector3d p_world;
@@ -283,7 +283,6 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoints(
             return false;
         }
     }
-    // printf("wpt=%f,%f,%f\r\n", resp.wpt.x, resp.wpt.y, resp.wpt.z);
 
     return true;
 
@@ -419,6 +418,7 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
         }
         m_waypoints = temp_waypoints;
         resume_or_start();
+        resp.success = true;
         return true;
     }
     else
@@ -434,6 +434,7 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
         }
         m_waypoints = temp_waypoints;
         resume_or_start();
+        resp.success = true;
         return true;
     }
     
