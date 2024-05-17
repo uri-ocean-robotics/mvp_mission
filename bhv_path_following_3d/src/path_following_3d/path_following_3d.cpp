@@ -209,7 +209,7 @@ void PathFollowing3D::initialize() {
 bool PathFollowing3D::f_cb_srv_get_next_waypoints(
         mvp_msgs::GetWaypoints::Request &req, mvp_msgs::GetWaypoints::Response &resp) {
     
-    
+    //the incomplete waypoint start from the second in the list.
     // printf("request recived to get waypoints\r\n");
 
     auto length = m_waypoints.polygon.points.size();
@@ -218,23 +218,31 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoints(
     
     if (req.count.data == 0)
     {
-        num = length - m_line_index;
+        num = length - m_line_index+1;
         // printf("the requested waypoint number is larger than the left-over waypoint number \r\n");
     }
 
     // printf("getting waypoints from %d to %d\r\n", m_line_index, num-1);
 
     resp.wpt.resize(num);
-    //get wpts
+    
     for (int i =0 ; i< num; i++)
     {
-        resp.wpt[i].header.stamp = ros::Time::now();
-        resp.wpt[i].header.frame_id = m_waypoints.header.frame_id;
-        resp.wpt[i].wpt.x = static_cast<double>(m_waypoints.polygon.points[m_line_index + i].x);
-        resp.wpt[i].wpt.y = static_cast<double>(m_waypoints.polygon.points[m_line_index + i].y);
-        resp.wpt[i].wpt.z = static_cast<double>(m_waypoints.polygon.points[m_line_index + i].z);
-
-    
+        if(i == 0)
+        {
+            resp.wpt[i].header.stamp = ros::Time::now();
+            resp.wpt[i].header.frame_id = get_helm_global_link();
+            resp.wpt[i].wpt.x = m_wpt_first.x;
+            resp.wpt[i].wpt.y = m_wpt_first.y;
+            resp.wpt[i].wpt.z = m_wpt_first.z;
+        }
+        else{
+            resp.wpt[i].header.stamp = ros::Time::now();
+            resp.wpt[i].header.frame_id = m_waypoints.header.frame_id;
+            resp.wpt[i].wpt.x = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].x);
+            resp.wpt[i].wpt.y = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].y);
+            resp.wpt[i].wpt.z = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].z);
+        }
         // printf("waypoint xyz got\r\n");
         //we need to call the service to convert to lat and lon
         //call the service
@@ -422,7 +430,7 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
         }
         m_waypoints = temp_waypoints;
         
-        printf("m_waypoints size = %d; temp_waypoints = %d\r\n", m_waypoints.polygon.points.size(), temp_waypoints.polygon.points.size());
+        // printf("m_waypoints size = %d; temp_waypoints = %d\r\n", m_waypoints.polygon.points.size(), temp_waypoints.polygon.points.size());
         m_line_index = 0;
         resume_or_start();
         resp.success = true;
