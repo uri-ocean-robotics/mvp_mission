@@ -209,6 +209,9 @@ void PathFollowing3D::initialize() {
 bool PathFollowing3D::f_cb_srv_get_next_waypoints(
         mvp_msgs::GetWaypoints::Request &req, mvp_msgs::GetWaypoints::Response &resp) {
     
+    
+    // printf("request recived to get waypoints\r\n");
+
     auto length = m_waypoints.polygon.points.size();
 
     int num = req.count.data;
@@ -393,8 +396,9 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
     geometry_msgs::PolygonStamped temp_waypoints;
 
     //for latlon type
-    if(strcmp(req.type.c_str(), "geopath") )
+    if(strcmp(req.type.c_str(), "geopath") == 0)
     {
+        // printf("updating waypoints \r\n");
         temp_waypoints.header.frame_id = m_frame_id; //set to world by default
         for(const auto& i : req.wpt) {
             robot_localization::FromLL ser;
@@ -417,6 +421,9 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
 
         }
         m_waypoints = temp_waypoints;
+        
+        printf("m_waypoints size = %d; temp_waypoints = %d\r\n", m_waypoints.polygon.points.size(), temp_waypoints.polygon.points.size());
+        m_line_index = 0;
         resume_or_start();
         resp.success = true;
         return true;
@@ -433,6 +440,7 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
             //tf hanlded in resume_or_start()
         }
         m_waypoints = temp_waypoints;
+        m_line_index = 0;
         resume_or_start();
         resp.success = true;
         return true;
@@ -456,7 +464,8 @@ void PathFollowing3D::f_waypoint_cb(
             m_waypoints.polygon.points.emplace_back(i);
         }
         f_transform_waypoints(
-        m_process_values.header.frame_id,
+        // m_process_values.header.frame_id,
+        get_helm_global_link(),
         m_waypoints,
         &m_transformed_waypoints
         );
@@ -524,6 +533,7 @@ void PathFollowing3D::f_transform_waypoints(
 
     tm.header.stamp = ros::Time::now();
     tm.header.frame_id = target_frame;
+    // printf("target_frame = %s\r\n", target_frame.c_str());
 
     try {
 
@@ -590,7 +600,8 @@ void PathFollowing3D::resume_or_start() {
     // Transform all the points into controller's frame
     geometry_msgs::PolygonStamped poly;
     f_transform_waypoints(
-        m_process_values.header.frame_id,
+        // m_process_values.header.frame_id,
+        get_helm_global_link(),
         m_waypoints,
         &m_transformed_waypoints
     );
