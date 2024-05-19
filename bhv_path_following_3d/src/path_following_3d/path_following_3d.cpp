@@ -384,9 +384,10 @@ bool PathFollowing3D::f_cb_srv_load_waypoint(mvp_msgs::LoadWaypoint::Request &re
     if(good_frame && good_waypoint)
     {
         m_waypoints = temp_waypoints;
+        printf("waypoint updated from loading file service \r\n");
         m_line_index = 0;
         resume_or_start();
-
+        
         resp.success=true;
     }
     else
@@ -429,7 +430,7 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
 
         }
         m_waypoints = temp_waypoints;
-        
+        printf("geopath type waypoint updated from the service \r\n");
         // printf("m_waypoints size = %d; temp_waypoints = %d\r\n", m_waypoints.polygon.points.size(), temp_waypoints.polygon.points.size());
         m_line_index = 0;
         resume_or_start();
@@ -448,6 +449,7 @@ bool PathFollowing3D::f_cb_srv_update_waypoints(mvp_msgs::SendWaypoints::Request
             //tf hanlded in resume_or_start()
         }
         m_waypoints = temp_waypoints;
+        printf("local type waypoint updated from the service \r\n");
         m_line_index = 0;
         resume_or_start();
         resp.success = true;
