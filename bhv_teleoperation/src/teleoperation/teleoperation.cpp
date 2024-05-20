@@ -148,7 +148,8 @@ void Teleoperation::initialize() {
 
 //tele op is good for control surge, pitch, depth and  heading
 void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
-
+    printf("disbale: %d\n", msg->buttons[8]);
+    
     //LB is the safety button and the joy is true
     if(msg->buttons[4]==1 & m_use_joy){
         
@@ -209,17 +210,20 @@ void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
     if(msg->buttons[6]==1)
     {
         // first time enable joystick and record vehicle pose
-        if(!m_use_joy) {
+        // if(!m_use_joy) {
             // record global information
-            m_desired_pitch = BehaviorBase::m_process_values.orientation.y;
-            m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
-            m_desired_z = BehaviorBase::m_process_values.position.z;
-            m_desired_surge = 0;
-        }
+        m_desired_pitch = BehaviorBase::m_process_values.orientation.y;
+        m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
+        m_desired_z = BehaviorBase::m_process_values.position.z;
+        m_desired_surge = 0;
+        // }
 
-        m_use_joy = !m_use_joy;
+        m_use_joy = true; //!m_use_joy;
+        // printf("m_use_joy = %s\r\n", m_use_joy ? "yes":"no");
+        // printf("depth =%lf || %lf\r\n", m_desired_z, BehaviorBase::m_process_values.position.z);
+
     }
-
+    
 
 }
 
@@ -259,6 +263,8 @@ bool Teleoperation::request_set_point(
     if( !m_use_joy ) {
         return false;
     }
+
+    // printf("set point will be set \r\n");
     // Set Position
     set_point->position.x = m_desired_x;
     set_point->position.y = m_desired_y;
@@ -278,6 +284,8 @@ bool Teleoperation::request_set_point(
     set_point->angular_rate.x = m_desired_roll_rate;
     set_point->angular_rate.y = m_desired_pitch_rate;
     set_point->angular_rate.z = m_desired_yaw_rate;
+
+    // printf("set point depth =%lf\r\n", set_point->position.z);
 
     return true;
 }
