@@ -38,6 +38,7 @@
  */
 #include "helm.h"
 #include "mvp_msgs/HelmState.h"
+#include "std_msgs/String.h"
 #include "behavior_container.h"
 #include "dictionary.h"
 #include "utils.h"
@@ -122,6 +123,11 @@ void Helm::initialize() {
 
     m_helm_current_state = m_nh->advertise<mvp_msgs::HelmState>(
         "helm/current_state",
+        100
+    );
+
+    m_helm_state_change_caller = m_nh->advertise<std_msgs::String>(
+        "helm/change_state_caller",
         100
     );
 
@@ -273,7 +279,7 @@ void Helm::f_iterate() {
 
     m_helm_current_state.publish(current_state);
 
-    
+
     if(m_controller_process_values == nullptr) {
         return;
     }
@@ -426,7 +432,9 @@ bool Helm::f_cb_change_state(mvp_msgs::ChangeState::Request &req,
         resp.state.mode = s.mode;
         resp.state.transitions = s.transitions;
         resp.status = true;
-
+        std_msgs::String caller;
+        caller.data = req.caller;
+        m_helm_state_change_caller.publish(caller);
         return true;
     }
 
@@ -434,6 +442,8 @@ bool Helm::f_cb_change_state(mvp_msgs::ChangeState::Request &req,
     resp.state.mode = m_state_machine->get_active_state().mode;
     resp.state.transitions = m_state_machine->get_active_state().transitions;
     resp.status = false;
+
+    
 
     return true;
 }
