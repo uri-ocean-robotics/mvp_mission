@@ -152,6 +152,11 @@ namespace helm {
         double m_surge_velocity;
 
         /**
+         * @brief Desired pitch
+         */
+        double m_pitch;
+
+        /**
          * @brief experimental integral gain
          */
         double m_sigma;

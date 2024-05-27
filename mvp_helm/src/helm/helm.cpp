@@ -38,6 +38,7 @@
  */
 #include "helm.h"
 #include "mvp_msgs/HelmState.h"
+#include "mvp_msgs/SetpointBehavior.h"
 #include "std_msgs/String.h"
 #include "behavior_container.h"
 #include "dictionary.h"
@@ -128,6 +129,11 @@ void Helm::initialize() {
 
     m_helm_state_change_caller = m_nh->advertise<std_msgs::String>(
         "helm/change_state_caller",
+        100
+    );
+
+    m_helm_setpoint_bhv = m_nh->advertise<mvp_msgs::SetpointBehavior>(
+        "helm/setpoint_bhv",
         100
     );
 
@@ -316,7 +322,7 @@ void Helm::f_iterate() {
      */
     std::array<double, 12> dof_ctrl{};
     std::array<int, 12> dof_priority{};
-
+    mvp_msgs::SetpointBehavior m_set_point_bhv;
     for(const auto& i : m_behavior_containers) {
 
         /**
@@ -392,6 +398,8 @@ void Helm::f_iterate() {
             if(priority > dof_priority[dof]) {
                 dof_ctrl[dof] = bhv_control_array[dof];
                 dof_priority[dof] = priority;
+                m_set_point_bhv.behavior[dof] = i->get_behavior()->get_name();
+                
             }
         }
 
@@ -407,6 +415,11 @@ void Helm::f_iterate() {
     msg.header.stamp = ros::Time::now();
     msg.header.frame_id = m_global_frame;
     m_pub_controller_set_point.publish(msg);
+
+    m_set_point_bhv.control_mode = active_state.mode;
+    m_set_point_bhv.header.stamp = ros::Time::now();
+    m_set_point_bhv.header.frame_id = m_global_frame;
+    m_helm_setpoint_bhv.publish(m_set_point_bhv);
 
 }
 

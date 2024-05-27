@@ -60,6 +60,7 @@ void PathFollowing3D::initialize() {
 
     BehaviorBase::m_dofs = decltype(m_dofs){
         mvp_msgs::ControlMode::DOF_SURGE,
+        mvp_msgs::ControlMode::DOF_PITCH,
         mvp_msgs::ControlMode::DOF_YAW,
         mvp_msgs::ControlMode::DOF_Z
     };
@@ -93,6 +94,11 @@ void PathFollowing3D::initialize() {
 
     // Meter/Seconds
     m_pnh->param<double>("surge_velocity", m_surge_velocity, 0.5);
+
+    //radians, desired pitch
+    m_pnh->param<double>("pitch_angle", m_pitch, 0.0);
+
+    
 
     //robot localization to_ll and from_ll service
     m_pnh->param<std::string>("toll_service", m_toll_service, "toLL");
@@ -734,6 +740,7 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
     //Set the direct z set point
     m_cmd.position.z = m_wpt_second.z;
 
+    m_cmd.orientation.y = m_pitch;
     /*
      * Command it to the helm
      */

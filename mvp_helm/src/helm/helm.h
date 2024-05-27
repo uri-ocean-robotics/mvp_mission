@@ -173,9 +173,11 @@ namespace helm {
         //! @brief Helm current state publishing
         ros::Publisher m_helm_current_state;
 
-        //! @brief Helm current state publishing
+        //! @brief Helm change state caller
         ros::Publisher m_helm_state_change_caller;
 
+        //! @brief Helm publish controller dof behavior
+        ros::Publisher m_helm_setpoint_bhv;
 
         /**
          * @brief Topic callback for state
