@@ -40,6 +40,7 @@
 #include "mvp_msgs/ControlProcess.h"
 #include "mvp_msgs/GetControlModes.h"
 
+
 #include "mvp_msgs/GetState.h"
 #include "mvp_msgs/GetStates.h"
 #include "mvp_msgs/ChangeState.h"
@@ -168,6 +169,9 @@ namespace helm {
 
         //! @brief Controller state request
         ros::Publisher m_pub_controller_set_point;
+
+        //! @brief Helm current state publishing
+        ros::Publisher m_helm_current_state;
 
         /**
          * @brief Topic callback for state
