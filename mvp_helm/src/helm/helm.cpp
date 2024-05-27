@@ -37,7 +37,7 @@
  * Helm
  */
 #include "helm.h"
-
+#include "mvp_msgs/HelmState.h"
 #include "behavior_container.h"
 #include "dictionary.h"
 #include "utils.h"
@@ -116,6 +116,12 @@ void Helm::initialize() {
 
     m_pub_controller_set_point = m_nh->advertise<mvp_msgs::ControlProcess>(
         "controller/process/set_point",
+        100
+    );
+
+
+    m_helm_current_state = m_nh->advertise<mvp_msgs::HelmState>(
+        "helm/current_state",
         100
     );
 
@@ -253,14 +259,24 @@ void Helm::f_cb_controller_process(
 }
 
 void Helm::f_iterate() {
-    if(m_controller_process_values == nullptr) {
-        return;
-    }
+
     /**
      * Acquire state information from finite state machine. Get state name and
      * respective mode to that state.
      */
     auto active_state = m_state_machine->get_active_state();
+
+    mvp_msgs::HelmState current_state;
+    current_state.name = active_state.name;
+    current_state.mode =  active_state.mode;
+    current_state.transitions = active_state.transitions;
+
+    m_helm_current_state.publish(current_state);
+
+    
+    if(m_controller_process_values == nullptr) {
+        return;
+    }
 
     auto active_mode = std::find_if(
         m_controller_modes.modes.begin(),
@@ -276,6 +292,9 @@ void Helm::f_iterate() {
             " level controller configuration! Helm is skipping.");
         return;
     }
+
+
+
     // Type cast the vector
     std::vector<int> dofs;
     std::for_each(
