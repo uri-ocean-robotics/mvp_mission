@@ -173,6 +173,10 @@ namespace helm {
         //! @brief Helm current state publishing
         ros::Publisher m_helm_current_state;
 
+        //! @brief Helm current state publishing
+        ros::Publisher m_helm_state_change_caller;
+
+
         /**
          * @brief Topic callback for state
          * @param msg
