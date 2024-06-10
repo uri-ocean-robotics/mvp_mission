@@ -20,13 +20,13 @@ def generate_launch_description():
     mvp_mission_param_file = os.path.join(mvp_mission_path, 'mvp_mission.yaml') 
     
     # behaviors param
-    mvp_teleop_param_file = os.path.join(mvp_mission_path, 'bhv_teleop.yaml') 
+    bhv_teleop_param_file = os.path.join(mvp_mission_path, 'bhv_teleop.yaml') 
 
     # helm param 
     mvp_helm_path = os.path.join(
         get_package_share_directory('mvp_helm'),
-        'mvp_mission_config'
-        )
+        'mvp_mission_config')
+
     mvp_helm_config_file = os.path.join(mvp_helm_path, 'helm.yaml') 
 
     # launch the node
@@ -45,9 +45,9 @@ def generate_launch_description():
                             {'helm_config_file': mvp_helm_config_file},
                             {'tf_prefix': robot_name},
                             mvp_mission_param_file,
-                            mvp_teleop_param_file
-                            ]
-                        )
+                            bhv_teleop_param_file
+                        ]
+                    )
             ])
         
 ])
