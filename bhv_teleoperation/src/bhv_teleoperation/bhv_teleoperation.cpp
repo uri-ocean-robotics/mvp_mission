@@ -16,9 +16,9 @@
 
     Author: Lin Zhao
     Email: linzhao@uri.edu
-    Year: 2022
+    Year: 2024
 
-    Copyright (C) 2022 Smart Ocean Systems Laboratory
+    Copyright (C) 2024 Smart Ocean Systems Laboratory
 */
 
 

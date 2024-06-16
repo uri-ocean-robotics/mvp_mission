@@ -49,6 +49,7 @@ private:
     friend class Helm;
 
     friend class BehaviorContainer;
+    
 
     /**
      * @brief Frequency of the helm
@@ -137,6 +138,25 @@ protected:
      */
     std::vector<int> m_dofs;
 
+    int SETPOINT_DOF_LENGTH =12;
+
+    struct DOF {
+        //! @NOTE: ROLL_RATE, PITCH_RATE, YAW_RATE are controlle in global frame
+        enum IDX : int {
+            X =             mvp_msgs::msg::ControlMode::DOF_X,
+            Y =             mvp_msgs::msg::ControlMode::DOF_Y,
+            Z =             mvp_msgs::msg::ControlMode::DOF_Z,
+            ROLL =          mvp_msgs::msg::ControlMode::DOF_ROLL,
+            PITCH =         mvp_msgs::msg::ControlMode::DOF_PITCH,
+            YAW =           mvp_msgs::msg::ControlMode::DOF_YAW,
+            U =             mvp_msgs::msg::ControlMode::DOF_U,
+            V =             mvp_msgs::msg::ControlMode::DOF_V,
+            W =             mvp_msgs::msg::ControlMode::DOF_W,
+            P =             mvp_msgs::msg::ControlMode::DOF_P,
+            Q =             mvp_msgs::msg::ControlMode::DOF_Q,
+            R =             mvp_msgs::msg::ControlMode::DOF_R,
+        };
+    };
     /**
      * @brief Registered state of the of the low level controller
      */

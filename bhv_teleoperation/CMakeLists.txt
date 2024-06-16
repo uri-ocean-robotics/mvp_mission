@@ -55,11 +55,11 @@ include_directories(
 )
 
 # plugins
-add_library(mvp2_bhv_teleoperation SHARED
+add_library(mvp_bhv_teleoperation SHARED
   src/bhv_teleoperation/bhv_teleoperation.cpp
 )
 
-ament_target_dependencies(mvp2_bhv_teleoperation
+ament_target_dependencies(mvp_bhv_teleoperation
   ${dependencies}
 )
 
@@ -71,7 +71,7 @@ pluginlib_export_plugin_description_file(behavior_interface behavior_plugin.xml)
 
 
 install(TARGETS 
-  mvp2_bhv_teleoperation
+  mvp_bhv_teleoperation
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -91,7 +91,7 @@ install(DIRECTORY src/
 
 ament_export_include_directories(include)
 ament_export_libraries(
-  mvp2_bhv_teleoperation
+  mvp_bhv_teleoperation
 )
 ament_export_dependencies(${dependencies})
 ament_package()
