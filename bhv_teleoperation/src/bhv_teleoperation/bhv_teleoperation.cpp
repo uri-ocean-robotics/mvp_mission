@@ -76,7 +76,6 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->get_parameter("max_yaw_rate", m_max_yaw_rate);
 
     // Load desired values
-
     node->declare_parameter("desired_x", 0.0);
     node->get_parameter("desired_x", m_desired_x);
     node->declare_parameter("desired_y", 0.0);
@@ -236,6 +235,7 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         // }
 
         m_use_joy = false;
+        RCLCPP_WARN(m_logger, "teleop disabled !");
     }
 
     //use start button to call enable controller service
@@ -256,6 +256,7 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         // }
 
         //! TODO: should set m_use_joy to true ?
+
     }
 
     // the following two button won't affect the controller.
@@ -263,22 +264,18 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if(msg->buttons[6]==1)
     {
         // first time enable joystick and record vehicle pose
-        if(!m_use_joy) {
+        // if(!m_use_joy) {
             // record global information
             m_desired_pitch = BehaviorBase::m_process_values.orientation.y;
             m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
             m_desired_z = BehaviorBase::m_process_values.position.z;
             m_desired_surge = 0;
-        }
+        // }
 
-        m_use_joy = !m_use_joy;
+        m_use_joy = true;
 
-        if(m_use_joy) {
-            RCLCPP_WARN(m_logger, "telop enabled !");
-        }
-        else {
-            RCLCPP_WARN(m_logger, "telop disabled !");
-        }
+        RCLCPP_WARN(m_logger, "teleop enabled !");
+
     }
 }
 
@@ -317,7 +314,7 @@ bool Teleoperation::request_set_point(
     if( !m_use_joy ) {
         return false;
     }
-
+    //set point /heder/frame_id and child frame id will be the same as the helm setting (not additional setting here).
     // Set Position
     set_point->position.x = m_desired_x;
     set_point->position.y = m_desired_y;
