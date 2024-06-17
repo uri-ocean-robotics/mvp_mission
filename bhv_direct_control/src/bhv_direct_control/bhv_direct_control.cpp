@@ -182,7 +182,7 @@ void DirectControl::m_setpoint_callback(const mvp_msgs::msg::ControlProcess::Sha
     m_desired_value(DOF::PITCH) = std::min( std::max(msg->velocity.x, -m_max(DOF::PITCH)), m_max(DOF::PITCH) );
     m_desired_value(DOF::YAW) = std::min( std::max(msg->velocity.x, -m_max(DOF::YAW)), m_max(DOF::YAW) );
 
-    transform_setpoint();
+    
 }
 
 
@@ -342,6 +342,27 @@ void DirectControl::disabled()
 bool DirectControl::request_set_point(
     mvp_msgs::msg::ControlProcess *set_point) 
 {
+    transform_setpoint();
+    set_point->position.x = m_desired_value(DOF::X);
+    set_point->position.y = m_desired_value(DOF::Y);
+    set_point->position.z = m_desired_value(DOF::Z);
+
+    // Set orientation
+    set_point->orientation.x = m_desired_value(DOF::ROLL);
+    set_point->orientation.y = m_desired_value(DOF::PITCH);
+    set_point->orientation.z = m_desired_value(DOF::YAW);
+
+    // Set velocity
+    set_point->velocity.x = m_desired_value(DOF::U);
+    set_point->velocity.y = m_desired_value(DOF::V);
+    set_point->velocity.z = m_desired_value(DOF::W);
+   
+    // Set angular velocity
+    set_point->angular_rate.x = m_desired_value(DOF::P);
+    set_point->angular_rate.y = m_desired_value(DOF::Q);
+    set_point->angular_rate.z = m_desired_value(DOF::R);
+
+    return true;
 }
 
 
