@@ -56,23 +56,23 @@ void Bathtub::initialize(const rclcpp::Node::WeakPtr &parent)
     //setup tf buffer
     m_transform_buffer = std::make_unique<tf2_ros::Buffer>(node->get_clock());
     m_transform_listener = std::make_unique<tf2_ros::TransformListener>(*m_transform_buffer);
-
+    std::string prefix = get_name() + "/";
     //get vector params
 
-    node->declare_parameter("no_depth_time", m_no_depth_time);
-    node->get_parameter("no_depth_time", m_no_depth_time);
+    node->declare_parameter(prefix + "no_depth_time", m_no_depth_time);
+    node->get_parameter(prefix + "no_depth_time", m_no_depth_time);
 
-    node->declare_parameter("depth_list", m_depth_list);
-    node->get_parameter("depth_list", m_depth_list);
+    node->declare_parameter(prefix + "depth_list", m_depth_list);
+    node->get_parameter(prefix + "depth_list", m_depth_list);
 
-    node->declare_parameter("depth_list", m_dive_ang_list);
-    node->get_parameter("depth_list", m_dive_ang_list);
+    node->declare_parameter(prefix + "depth_list", m_dive_ang_list);
+    node->get_parameter(prefix + "depth_list", m_dive_ang_list);
 
-    node->declare_parameter("depth_list", m_climb_ang_list);
-    node->get_parameter("depth_list", m_climb_ang_list);
+    node->declare_parameter(prefix + "depth_list", m_climb_ang_list);
+    node->get_parameter(prefix + "depth_list", m_climb_ang_list);
 
-    node->declare_parameter("depth_list", m_depth_time_list);
-    node->get_parameter("depth_list", m_depth_time_list);
+    node->declare_parameter(prefix + "depth_list", m_depth_time_list);
+    node->get_parameter(prefix + "depth_list", m_depth_time_list);
 
     std::string node_name = node->get_name();
     std::string ns = node->get_namespace();
@@ -244,7 +244,7 @@ bool Bathtub::request_set_point(
 
         }
     }
-
+    return true;
 }
 
 
