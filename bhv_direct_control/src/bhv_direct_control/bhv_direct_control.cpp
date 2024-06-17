@@ -60,66 +60,67 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
     //use array instead of 12 variables
     m_desired_value = Eigen::VectorXd::Zero(SETPOINT_DOF_LENGTH);  //12 DOF
 
+    std::string prefix = get_name() + "/";
     //load max
-    node->declare_parameter("max_x", 5.0);
-    node->get_parameter("max_x", m_max(DOF::X));
-    node->declare_parameter("max_y", 5.0);
-    node->get_parameter("max_y", m_max(DOF::Y));
-    node->declare_parameter("max_z", 5.0);
-    node->get_parameter("max_z", m_max(DOF::Z));
+    node->declare_parameter(prefix + "max_x", 5.0);
+    node->get_parameter(prefix + "max_x", m_max(DOF::X));
+    node->declare_parameter(prefix + "max_y", 5.0);
+    node->get_parameter(prefix + "max_y", m_max(DOF::Y));
+    node->declare_parameter(prefix + "max_z", 5.0);
+    node->get_parameter(prefix + "max_z", m_max(DOF::Z));
 
-    node->declare_parameter("max_roll", M_PI_2);
-    node->get_parameter("max_roll", m_max(DOF::ROLL));
-    node->declare_parameter("max_pitch", M_PI_2);
-    node->get_parameter("max_pitch", m_max(DOF::PITCH));
-    node->declare_parameter("max_yaw", M_PI);
-    node->get_parameter("max_yaw", m_max(DOF::YAW));
+    node->declare_parameter(prefix + "max_roll", M_PI_2);
+    node->get_parameter(prefix + "max_roll", m_max(DOF::ROLL));
+    node->declare_parameter(prefix + "max_pitch", M_PI_2);
+    node->get_parameter(prefix + "max_pitch", m_max(DOF::PITCH));
+    node->declare_parameter(prefix + "max_yaw", M_PI);
+    node->get_parameter(prefix + "max_yaw", m_max(DOF::YAW));
     
-    node->declare_parameter("max_u", 1.0);
-    node->get_parameter("max_u", m_max(DOF::U));
-    node->declare_parameter("max_v", 1.0);
-    node->get_parameter("max_v", m_max(DOF::V));
-    node->declare_parameter("max_w", 1.0);
-    node->get_parameter("max_w", m_max(DOF::W));
+    node->declare_parameter(prefix + "max_u", 1.0);
+    node->get_parameter(prefix + "max_u", m_max(DOF::U));
+    node->declare_parameter(prefix + "max_v", 1.0);
+    node->get_parameter(prefix + "max_v", m_max(DOF::V));
+    node->declare_parameter(prefix + "max_w", 1.0);
+    node->get_parameter(prefix + "max_w", m_max(DOF::W));
 
-    node->declare_parameter("max_p", 1.0);
-    node->get_parameter("max_p", m_max(DOF::P));
-    node->declare_parameter("max_q", 1.0);
-    node->get_parameter("max_q", m_max(DOF::Q));
-    node->declare_parameter("max_r", 1.0);
-    node->get_parameter("max_r", m_max(DOF::R));
+    node->declare_parameter(prefix + "max_p", 1.0);
+    node->get_parameter(prefix + "max_p", m_max(DOF::P));
+    node->declare_parameter(prefix + "max_q", 1.0);
+    node->get_parameter(prefix + "max_q", m_max(DOF::Q));
+    node->declare_parameter(prefix + "max_r", 1.0);
+    node->get_parameter(prefix + "max_r", m_max(DOF::R));
 
     //load desired
-    node->declare_parameter("desired_x", 0.0);
-    node->get_parameter("desired_x", m_desired_value(DOF::X));
-    node->declare_parameter("desired_y", 0.0);
-    node->get_parameter("desired_y", m_desired_value(DOF::Y));
-    node->declare_parameter("desired_z", 0.0);
-    node->get_parameter("desired_z", m_desired_value(DOF::Z));
+    node->declare_parameter(prefix + "desired_x", 0.0);
+    node->get_parameter(prefix + "desired_x", m_desired_value(DOF::X));
+    node->declare_parameter(prefix + "desired_y", 0.0);
+    node->get_parameter(prefix + "desired_y", m_desired_value(DOF::Y));
+    node->declare_parameter(prefix + "desired_z", 0.0);
+    node->get_parameter(prefix + "desired_z", m_desired_value(DOF::Z));
     
-    node->declare_parameter("desired_roll", 0.0);
-    node->get_parameter("desired_roll", m_desired_value(DOF::ROLL));
-    node->declare_parameter("desired_pitch", 0.0);
-    node->get_parameter("desired_pitch", m_desired_value(DOF::PITCH));
-    node->declare_parameter("desired_yaw", 0.0);
-    node->get_parameter("desired_yaw", m_desired_value(DOF::YAW));
+    node->declare_parameter(prefix + "desired_roll", 0.0);
+    node->get_parameter(prefix + "desired_roll", m_desired_value(DOF::ROLL));
+    node->declare_parameter(prefix + "desired_pitch", 0.0);
+    node->get_parameter(prefix + "desired_pitch", m_desired_value(DOF::PITCH));
+    node->declare_parameter(prefix + "desired_yaw", 0.0);
+    node->get_parameter(prefix + "desired_yaw", m_desired_value(DOF::YAW));
     
-    node->declare_parameter("desired_u", 0.0);
-    node->get_parameter("desired_u", m_desired_value(DOF::U));
-    node->declare_parameter("desired_v", 0.0);
-    node->get_parameter("desired_v", m_desired_value(DOF::V));
-    node->declare_parameter("desired_w", 0.0);
-    node->get_parameter("desired_w", m_desired_value(DOF::W));
+    node->declare_parameter(prefix + "desired_u", 0.0);
+    node->get_parameter(prefix + "desired_u", m_desired_value(DOF::U));
+    node->declare_parameter(prefix + "desired_v", 0.0);
+    node->get_parameter(prefix + "desired_v", m_desired_value(DOF::V));
+    node->declare_parameter(prefix + "desired_w", 0.0);
+    node->get_parameter(prefix + "desired_w", m_desired_value(DOF::W));
 
-    node->declare_parameter("desired_p", 0.0);
-    node->get_parameter("desired_p", m_desired_value(DOF::P));
-    node->declare_parameter("desired_q", 0.0);
-    node->get_parameter("desired_q", m_desired_value(DOF::Q));
-    node->declare_parameter("desired_r", 0.0);
-    node->get_parameter("desired_r", m_desired_value(DOF::R));
+    node->declare_parameter(prefix + "desired_p", 0.0);
+    node->get_parameter(prefix + "desired_p", m_desired_value(DOF::P));
+    node->declare_parameter(prefix + "desired_q", 0.0);
+    node->get_parameter(prefix + "desired_q", m_desired_value(DOF::Q));
+    node->declare_parameter(prefix + "desired_r", 0.0);
+    node->get_parameter(prefix + "desired_r", m_desired_value(DOF::R));
 
     ///topics
-    m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("desired_setpoints", 100, 
+    m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("~/"+ prefix + "desired_setpoints", 100, 
                                                                 std::bind(&DirectControl::m_setpoint_callback, 
                                                                 this, _1));
 

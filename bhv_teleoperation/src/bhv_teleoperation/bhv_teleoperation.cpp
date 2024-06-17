@@ -131,7 +131,7 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     //        not the same on the vehilce, just the direct topic
     // joystick sub
     m_joy_sub = node->create_subscription<sensor_msgs::msg::Joy>(
-        "~/joy", rclcpp::SystemDefaultsQoS(),
+        "~/"+ prefix + "joy", rclcpp::SystemDefaultsQoS(),
         std::bind(&Teleoperation::f_tele_op,
         this, std::placeholders::_1));
 
