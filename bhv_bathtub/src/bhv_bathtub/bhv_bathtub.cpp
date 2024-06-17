@@ -189,10 +189,10 @@ bool Bathtub::request_set_point(
     //do depth segments
     else
     {
-        if(now.seconds() - bhv_timer.seconds() > m_no_depth_time )
+        if(now.seconds() - bhv_timer.seconds() > m_depth_time_list[m_depth_index-1] )
         {
             m_depth_index ++; //start depth segments
-            //check if we are at the end?
+            //check if we are at the end? if so we start from the beginning
             if (m_depth_index  == static_cast<int>( m_depth_list.size())-1 )
             {
                 m_depth_index = 0;

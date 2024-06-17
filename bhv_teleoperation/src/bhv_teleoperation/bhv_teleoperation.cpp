@@ -46,83 +46,83 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     /* Load Parameters for ROS2 */
 
     // Load max parameters
+    std::string prefix = get_name() + "/";
+    // node->declare_parameter(prefix + "max_x", 5.0);
+    // node->get_parameter(prefix + "max_x", m_max_x);
+    // node->declare_parameter(prefix + "max_y", 5.0);
+    // node->get_parameter(prefix + "max_y", m_max_y);
+    // node->declare_parameter(prefix + "max_z", 5.0);
+    // node->get_parameter(prefix + "max_z", m_max_z);
 
-    node->declare_parameter("max_x", 5.0);
-    node->get_parameter("max_x", m_max_x);
-    node->declare_parameter("max_y", 5.0);
-    node->get_parameter("max_y", m_max_y);
-    node->declare_parameter("max_z", 5.0);
-    node->get_parameter("max_z", m_max_z);
+    // node->declare_parameter(prefix + "max_roll", M_PI_2);
+    // node->get_parameter(prefix + "max_roll", m_max_roll);
+    // node->declare_parameter(prefix + "max_pitch", M_PI_2);
+    // node->get_parameter(prefix + "max_pitch", m_max_pitch);
+    // node->declare_parameter(prefix + "max_yaw", M_PI_2);
+    // node->get_parameter(prefix + "max_yaw", m_max_yaw);
 
-    node->declare_parameter("max_roll", M_PI_2);
-    node->get_parameter("max_roll", m_max_roll);
-    node->declare_parameter("max_pitch", M_PI_2);
-    node->get_parameter("max_pitch", m_max_pitch);
-    node->declare_parameter("max_yaw", M_PI_2);
-    node->get_parameter("max_yaw", m_max_yaw);
+    // node->declare_parameter(prefix + "max_surge", 1.0);
+    // node->get_parameter(prefix + "max_surge", m_max_surge);
+    // node->declare_parameter(prefix + "max_sway", 1.0);
+    // node->get_parameter(prefix + "max_sway", m_max_sway);
+    // node->declare_parameter(prefix + "max_heave", 1.0);
+    // node->get_parameter(prefix + "max_heave", m_max_heave);
 
-    node->declare_parameter("max_surge", 1.0);
-    node->get_parameter("max_surge", m_max_surge);
-    node->declare_parameter("max_sway", 1.0);
-    node->get_parameter("max_sway", m_max_sway);
-    node->declare_parameter("max_heave", 1.0);
-    node->get_parameter("max_heave", m_max_heave);
-
-    node->declare_parameter("max_roll_rate", M_PI);
-    node->get_parameter("max_roll_rate", m_max_roll_rate);
-    node->declare_parameter("max_pitch_rate", M_PI);
-    node->get_parameter("max_pitch_rate", m_max_pitch_rate);
-    node->declare_parameter("max_yaw_rate", M_PI);
-    node->get_parameter("max_yaw_rate", m_max_yaw_rate);
+    // node->declare_parameter(prefix + "max_roll_rate", M_PI);
+    // node->get_parameter(prefix + "max_roll_rate", m_max_roll_rate);
+    // node->declare_parameter(prefix + "max_pitch_rate", M_PI);
+    // node->get_parameter(prefix + "max_pitch_rate", m_max_pitch_rate);
+    // node->declare_parameter(prefix + "max_yaw_rate", M_PI);
+    // node->get_parameter(prefix + "max_yaw_rate", m_max_yaw_rate);
 
     // Load desired values
-    node->declare_parameter("desired_x", 0.0);
-    node->get_parameter("desired_x", m_desired_x);
-    node->declare_parameter("desired_y", 0.0);
-    node->get_parameter("desired_y", m_desired_y);
-    node->declare_parameter("desired_z", 0.0);
-    node->get_parameter("desired_z", m_desired_z);
+    // node->declare_parameter(prefix + "desired_x", 0.0);
+    // node->get_parameter(prefix + "desired_x", m_desired_x);
+    // node->declare_parameter(prefix + "desired_y", 0.0);
+    // node->get_parameter(prefix + "desired_y", m_desired_y);
+    // node->declare_parameter(prefix + "desired_z", 0.0);
+    // node->get_parameter(prefix + "desired_z", m_desired_z);
 
-    node->declare_parameter("desired_roll", 0.0);
-    node->get_parameter("desired_roll", m_desired_roll);
-    node->declare_parameter("desired_pitch", 0.0);
-    node->get_parameter("desired_pitch", m_desired_pitch);
-    node->declare_parameter("desired_yaw", 0.0);
-    node->get_parameter("desired_yaw", m_desired_yaw);
+    // node->declare_parameter(prefix + "desired_roll", 0.0);
+    // node->get_parameter(prefix + "desired_roll", m_desired_roll);
+    // node->declare_parameter(prefix + "desired_pitch", 0.0);
+    // node->get_parameter(prefix + "desired_pitch", m_desired_pitch);
+    // node->declare_parameter(prefix + "desired_yaw", 0.0);
+    // node->get_parameter(prefix + "desired_yaw", m_desired_yaw);
 
-    node->declare_parameter("desired_surge", 0.0);
-    node->get_parameter("desired_surge", m_desired_surge);
-    node->declare_parameter("desired_sway", 0.0);
-    node->get_parameter("desired_sway", m_desired_sway);
-    node->declare_parameter("desired_heave", 0.0);
-    node->get_parameter("desired_heave", m_desired_heave);
+    // node->declare_parameter(prefix + "desired_surge", 0.0);
+    // node->get_parameter(prefix + "desired_surge", m_desired_surge);
+    // node->declare_parameter(prefix + "desired_sway", 0.0);
+    // node->get_parameter(prefix + "desired_sway", m_desired_sway);
+    // node->declare_parameter(prefix + "desired_heave", 0.0);
+    // node->get_parameter(prefix + "desired_heave", m_desired_heave);
 
-    node->declare_parameter("desired_roll_rate", 0.0);
-    node->get_parameter("desired_roll_rate", m_desired_roll_rate);
-    node->declare_parameter("desired_pitch_rate", 0.0);
-    node->get_parameter("desired_pitch_rate", m_desired_pitch_rate);
-    node->declare_parameter("desired_yaw_rate", 0.0);
-    node->get_parameter("desired_yaw_rate", m_desired_yaw_rate);
+    // node->declare_parameter("desired_roll_rate", 0.0);
+    // node->get_parameter("desired_roll_rate", m_desired_roll_rate);
+    // node->declare_parameter("desired_pitch_rate", 0.0);
+    // node->get_parameter("desired_pitch_rate", m_desired_pitch_rate);
+    // node->declare_parameter("desired_yaw_rate", 0.0);
+    // node->get_parameter("desired_yaw_rate", m_desired_yaw_rate);
 
     // Load increments in control
 
-    node->declare_parameter("tele_s_surge", 1.0);
-    node->get_parameter("tele_s_surge", m_tele_s_surge);
-    node->declare_parameter("tele_s_sway", 1.0);
-    node->get_parameter("tele_s_sway", m_tele_s_sway);    
-    node->declare_parameter("tele_d_yaw", 1.0);
-    node->get_parameter("tele_d_yaw", m_tele_d_yaw);
-    node->declare_parameter("tele_d_pitch", 1.0);
-    node->get_parameter("tele_d_pitch", m_tele_d_pitch);
-    node->declare_parameter("tele_d_depth", 1.0);
-    node->get_parameter("tele_d_depth", m_tele_d_depth);
+    node->declare_parameter(prefix + "tele_s_surge", 1.0);
+    node->get_parameter(prefix + "tele_s_surge", m_tele_s_surge);
+    node->declare_parameter(prefix + "tele_s_sway", 1.0);
+    node->get_parameter(prefix + "tele_s_sway", m_tele_s_sway);    
+    node->declare_parameter(prefix + "tele_d_yaw", 1.0);
+    node->get_parameter(prefix + "tele_d_yaw", m_tele_d_yaw);
+    node->declare_parameter(prefix + "tele_d_pitch", 1.0);
+    node->get_parameter(prefix + "tele_d_pitch", m_tele_d_pitch);
+    node->declare_parameter(prefix + "tele_d_depth", 1.0);
+    node->get_parameter(prefix + "tele_d_depth", m_tele_d_depth);
 
     // Load  enable/disable control
 
-    node->declare_parameter("ctrl_disable_srv", "controller/disable");
-    node->get_parameter("ctrl_disable_srv", m_ctrl_disable);
-    node->declare_parameter("ctrl_enable_srv", "controller/enable");
-    node->get_parameter("ctrl_enable_srv", m_ctrl_enable);
+    node->declare_parameter(prefix + "ctrl_disable_srv", "controller/disable");
+    node->get_parameter(prefix + "ctrl_disable_srv", m_ctrl_disable);
+    node->declare_parameter(prefix + "ctrl_enable_srv", "controller/enable");
+    node->get_parameter(prefix + "ctrl_enable_srv", m_ctrl_enable);
 
     /*************************************************************************/
     /* Setup ROS2 sub/pub/srv/... */
@@ -131,7 +131,7 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     //        not the same on the vehilce, just the direct topic
     // joystick sub
     m_joy_sub = node->create_subscription<sensor_msgs::msg::Joy>(
-        "/joy", rclcpp::SystemDefaultsQoS(),
+        "~/joy", rclcpp::SystemDefaultsQoS(),
         std::bind(&Teleoperation::f_tele_op,
         this, std::placeholders::_1));
 
