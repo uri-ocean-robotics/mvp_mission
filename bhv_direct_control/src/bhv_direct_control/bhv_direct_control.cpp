@@ -119,6 +119,14 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "desired_r", 0.0);
     node->get_parameter(prefix + "desired_r", m_desired_value(DOF::R));
 
+    //bhv global link and local link
+    node->declare_parameter(prefix + "global_link", "");
+    node->get_parameter(prefix + "global_link", bhv_global_link);
+
+    node->declare_parameter(prefix + "child_link", "");
+    node->get_parameter(prefix + "child_link", bhv_child_link);
+
+
     ///topics
     m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("~/"+ prefix + "desired_setpoints", 100, 
                                                                 std::bind(&DirectControl::m_setpoint_callback, 
@@ -164,26 +172,25 @@ void DirectControl::m_setpoint_callback(const mvp_msgs::msg::ControlProcess::Sha
     bhv_child_link = msg->child_frame_id;
     ///linear velocity
     m_desired_value(DOF::U) = std::min( std::max(msg->velocity.x, -m_max(DOF::U)), m_max(DOF::U) );
-    m_desired_value(DOF::V) = std::min( std::max(msg->velocity.x, -m_max(DOF::V)), m_max(DOF::V) );
-    m_desired_value(DOF::W) = std::min( std::max(msg->velocity.x, -m_max(DOF::W)), m_max(DOF::W) );
+    m_desired_value(DOF::V) = std::min( std::max(msg->velocity.y, -m_max(DOF::V)), m_max(DOF::V) );
+    m_desired_value(DOF::W) = std::min( std::max(msg->velocity.z, -m_max(DOF::W)), m_max(DOF::W) );
 
 
     ///angular velocity
     m_desired_value(DOF::P) = std::min( std::max(msg->velocity.x, -m_max(DOF::P)), m_max(DOF::P) );
-    m_desired_value(DOF::Q) = std::min( std::max(msg->velocity.x, -m_max(DOF::Q)), m_max(DOF::Q) );
-    m_desired_value(DOF::R) = std::min( std::max(msg->velocity.x, -m_max(DOF::R)), m_max(DOF::R) );
+    m_desired_value(DOF::Q) = std::min( std::max(msg->velocity.y, -m_max(DOF::Q)), m_max(DOF::Q) );
+    m_desired_value(DOF::R) = std::min( std::max(msg->velocity.z, -m_max(DOF::R)), m_max(DOF::R) );
 
     //Position
-    m_desired_value(DOF::X) = std::min( std::max(msg->velocity.x, -m_max(DOF::X)), m_max(DOF::X) );
-    m_desired_value(DOF::Y) = std::min( std::max(msg->velocity.x, -m_max(DOF::Y)), m_max(DOF::Y) );
-    m_desired_value(DOF::Z) = std::min( std::max(msg->velocity.x, -m_max(DOF::Z)), m_max(DOF::Z) );
+    m_desired_value(DOF::X) = std::min( std::max(msg->position.x, -m_max(DOF::X)), m_max(DOF::X) );
+    m_desired_value(DOF::Y) = std::min( std::max(msg->position.y, -m_max(DOF::Y)), m_max(DOF::Y) );
+    m_desired_value(DOF::Z) = std::min( std::max(msg->position.z, -m_max(DOF::Z)), m_max(DOF::Z) );
 
     //euler angle
-    m_desired_value(DOF::ROLL) = std::min( std::max(msg->velocity.x, -m_max(DOF::ROLL)), m_max(DOF::ROLL) );
-    m_desired_value(DOF::PITCH) = std::min( std::max(msg->velocity.x, -m_max(DOF::PITCH)), m_max(DOF::PITCH) );
-    m_desired_value(DOF::YAW) = std::min( std::max(msg->velocity.x, -m_max(DOF::YAW)), m_max(DOF::YAW) );
+    m_desired_value(DOF::ROLL) = std::min( std::max(msg->orientation.x, -m_max(DOF::ROLL)), m_max(DOF::ROLL) );
+    m_desired_value(DOF::PITCH) = std::min( std::max(msg->orientation.y, -m_max(DOF::PITCH)), m_max(DOF::PITCH) );
+    m_desired_value(DOF::YAW) = std::min( std::max(msg->orientation.z, -m_max(DOF::YAW)), m_max(DOF::YAW) );
 
-    
 }
 
 
@@ -229,14 +236,19 @@ void DirectControl::transform_setpoint()
         Eigen::Matrix3d R_helm_global =  tf_hgbg_eigen.rotation() *R;
         ypr_helm = R_helm_global.eulerAngles(2, 1, 0);
         
-        // ypr_helm.y() = asin(-R_helm_global(2, 0));
+        Eigen::Vector3d ypr_helm2;
+
+        ypr_helm2.y() = asin(-R_helm_global(2, 0));
 
         // // Calculate yaw (rotation about Z-axis)
-        // ypr_helm.z() = atan2(R_helm_global(1, 0), R_helm_global(0, 0));
+        ypr_helm2.z() = atan2(R_helm_global(1, 0), R_helm_global(0, 0));
 
         // // Calculate roll (rotation about X-axis)
-        // ypr_helm.x() = atan2(R_helm_global(2, 1), R_helm_global(2, 2));
+        ypr_helm2.x() = atan2(R_helm_global(2, 1), R_helm_global(2, 2));
 
+        // std::cout << "Function:\n" << ypr_helm << std::endl;
+        // std::cout << "Manual:\n" << ypr_helm2 << std::endl;
+        
         //computet he bhv_local to helm local
         geometry_msgs::msg::TransformStamped tf_bl_hl = m_transform_buffer->lookupTransform(
             get_helm_local_link(),
@@ -244,6 +256,8 @@ void DirectControl::transform_setpoint()
             tf2::TimePointZero,
             10ms
         );
+
+        // printf("helm_local = %s, bhv_child = %s\r\n", get_helm_local_link().c_str(), bhv_child_link.c_str());
         auto tf_blhl_eigen = tf2::transformToEigen(tf_bl_hl);
         
         ///velocity
@@ -274,7 +288,7 @@ void DirectControl::transform_setpoint()
 
 
     } catch (const tf2::TransformException & e) {
-            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute thruster tf between ") + e.what());
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in direct contro: ") + e.what());
             RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
                          get_helm_global_link().c_str(), bhv_global_link.c_str(), e.what() ); 
           return;
@@ -311,6 +325,7 @@ Eigen::MatrixXd DirectControl::f_angular_velocity_transform(const Eigen::VectorX
         transform(2,0) = 0.0;
         transform(2,1) = 0.0;
         transform(2,2) = 0.0;
+        RCLCPP_WARN(m_logger, "the angular transform matrix is approaching the singularity point");
     }
     else {
         transform(0,0) = 1.0;
@@ -322,7 +337,7 @@ Eigen::MatrixXd DirectControl::f_angular_velocity_transform(const Eigen::VectorX
         transform(2,0) = 0.0;
         transform(2,1) = sin(orientation(DOF::ROLL)) / cos(orientation(DOF::PITCH));
         transform(2,2) = cos(orientation(DOF::ROLL)) / cos(orientation(DOF::PITCH));
-        RCLCPP_WARN(m_logger, "the angular transform matrix is approaching the singularity point");
+       
     }    
 
     return transform;
@@ -348,6 +363,7 @@ bool DirectControl::request_set_point(
     set_point->position.y = m_desired_value(DOF::Y);
     set_point->position.z = m_desired_value(DOF::Z);
 
+    printf("set_point z = %lf\r\n", set_point->position.z);
     // Set orientation
     set_point->orientation.x = m_desired_value(DOF::ROLL);
     set_point->orientation.y = m_desired_value(DOF::PITCH);

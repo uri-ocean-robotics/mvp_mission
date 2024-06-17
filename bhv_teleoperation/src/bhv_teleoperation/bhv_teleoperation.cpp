@@ -47,65 +47,8 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     // Load max parameters
     std::string prefix = get_name() + "/";
-    // node->declare_parameter(prefix + "max_x", 5.0);
-    // node->get_parameter(prefix + "max_x", m_max_x);
-    // node->declare_parameter(prefix + "max_y", 5.0);
-    // node->get_parameter(prefix + "max_y", m_max_y);
-    // node->declare_parameter(prefix + "max_z", 5.0);
-    // node->get_parameter(prefix + "max_z", m_max_z);
-
-    // node->declare_parameter(prefix + "max_roll", M_PI_2);
-    // node->get_parameter(prefix + "max_roll", m_max_roll);
-    // node->declare_parameter(prefix + "max_pitch", M_PI_2);
-    // node->get_parameter(prefix + "max_pitch", m_max_pitch);
-    // node->declare_parameter(prefix + "max_yaw", M_PI_2);
-    // node->get_parameter(prefix + "max_yaw", m_max_yaw);
-
-    // node->declare_parameter(prefix + "max_surge", 1.0);
-    // node->get_parameter(prefix + "max_surge", m_max_surge);
-    // node->declare_parameter(prefix + "max_sway", 1.0);
-    // node->get_parameter(prefix + "max_sway", m_max_sway);
-    // node->declare_parameter(prefix + "max_heave", 1.0);
-    // node->get_parameter(prefix + "max_heave", m_max_heave);
-
-    // node->declare_parameter(prefix + "max_roll_rate", M_PI);
-    // node->get_parameter(prefix + "max_roll_rate", m_max_roll_rate);
-    // node->declare_parameter(prefix + "max_pitch_rate", M_PI);
-    // node->get_parameter(prefix + "max_pitch_rate", m_max_pitch_rate);
-    // node->declare_parameter(prefix + "max_yaw_rate", M_PI);
-    // node->get_parameter(prefix + "max_yaw_rate", m_max_yaw_rate);
-
-    // Load desired values
-    // node->declare_parameter(prefix + "desired_x", 0.0);
-    // node->get_parameter(prefix + "desired_x", m_desired_x);
-    // node->declare_parameter(prefix + "desired_y", 0.0);
-    // node->get_parameter(prefix + "desired_y", m_desired_y);
-    // node->declare_parameter(prefix + "desired_z", 0.0);
-    // node->get_parameter(prefix + "desired_z", m_desired_z);
-
-    // node->declare_parameter(prefix + "desired_roll", 0.0);
-    // node->get_parameter(prefix + "desired_roll", m_desired_roll);
-    // node->declare_parameter(prefix + "desired_pitch", 0.0);
-    // node->get_parameter(prefix + "desired_pitch", m_desired_pitch);
-    // node->declare_parameter(prefix + "desired_yaw", 0.0);
-    // node->get_parameter(prefix + "desired_yaw", m_desired_yaw);
-
-    // node->declare_parameter(prefix + "desired_surge", 0.0);
-    // node->get_parameter(prefix + "desired_surge", m_desired_surge);
-    // node->declare_parameter(prefix + "desired_sway", 0.0);
-    // node->get_parameter(prefix + "desired_sway", m_desired_sway);
-    // node->declare_parameter(prefix + "desired_heave", 0.0);
-    // node->get_parameter(prefix + "desired_heave", m_desired_heave);
-
-    // node->declare_parameter("desired_roll_rate", 0.0);
-    // node->get_parameter("desired_roll_rate", m_desired_roll_rate);
-    // node->declare_parameter("desired_pitch_rate", 0.0);
-    // node->get_parameter("desired_pitch_rate", m_desired_pitch_rate);
-    // node->declare_parameter("desired_yaw_rate", 0.0);
-    // node->get_parameter("desired_yaw_rate", m_desired_yaw_rate);
-
+   
     // Load increments in control
-
     node->declare_parameter(prefix + "tele_s_surge", 1.0);
     node->get_parameter(prefix + "tele_s_surge", m_tele_s_surge);
     node->declare_parameter(prefix + "tele_s_sway", 1.0);
@@ -204,15 +147,6 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         m_desired_z = 
             m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
 
-        //saturation
-        m_desired_pitch = 
-            std::min(std::max(m_desired_pitch, -m_max_pitch), m_max_pitch);
-        m_desired_yaw = 
-            std::min(std::max(m_desired_yaw, -m_max_yaw), m_max_yaw);
-        m_desired_surge = 
-            std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
-        m_desired_z = 
-            std::min(std::max(m_desired_z, -m_max_z), m_max_z);
     }
 
     //use back button to call disable controller service

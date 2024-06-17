@@ -89,66 +89,6 @@ private:
     rclcpp::Logger m_logger{rclcpp::get_logger("mvp2_mission_bhv_teleop")};
 
     /**
-        * @brief Max value for x
-    */
-    double m_max_x;
-
-    /**
-        * @brief Max value for y
-    */
-    double m_max_y;
-
-    /**
-        * @brief Max value for z
-    */
-    double m_max_z;
-
-    /**
-        * @brief Max value for roll
-    */
-    double m_max_roll;
-
-    /**
-        * @brief Max value for pitch
-    */
-    double m_max_pitch;
-
-    /**
-        * @brief Max value for yaw
-    */
-    double m_max_yaw;
-
-    /**
-        * @brief Max value for surge
-    */
-    double m_max_surge;
-
-    /**
-        * @brief Max value for sway
-    */
-    double m_max_sway;
-
-    /**
-        * @brief Max value for heave
-    */
-    double m_max_heave;
-
-    /**
-        * @brief Max value for roll rate
-    */
-    double m_max_roll_rate;
-
-    /**
-        * @brief Max value for pitch rate
-    */
-    double m_max_pitch_rate;
-
-    /**
-        * @brief Max value for yaw rate
-    */
-    double m_max_yaw_rate;
-
-    /**
         * @brief Desired value for x
     */
     double m_desired_x;
