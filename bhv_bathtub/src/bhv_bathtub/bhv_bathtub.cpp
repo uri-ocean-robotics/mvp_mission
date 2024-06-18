@@ -109,7 +109,7 @@ void Bathtub::initialize(const rclcpp::Node::WeakPtr &parent)
 
 void Bathtub::activated() 
 {
-    rclcpp::Clock clock(RCL_SYSTEM_TIME);
+    rclcpp::Clock clock(RCL_ROS_TIME);
 
     bhv_timer =  clock.now();
     m_depth_index = -1;
@@ -185,9 +185,10 @@ bool Bathtub::request_set_point(
 {
     Eigen::Vector3d xyz_bw;
     auto steady_clock = rclcpp::Clock();
-    rclcpp::Clock clock(RCL_SYSTEM_TIME);
+    // rclcpp::Clock clock(RCL_SYSTEM_TIME);
 
-    rclcpp::Time now = clock.now();
+    rclcpp::Time now = rclcpp::Clock(RCL_ROS_TIME).now();//clock.now();
+
     //////////////////////////////////////////
     //no depth time out//////////////////////
     ////////////////////////////////////////
@@ -250,15 +251,15 @@ bool Bathtub::request_set_point(
             {   
                 //set the flag and start the timer.
                 m_depth_reached = true;
-                bhv_timer = clock.now();
+                bhv_timer = rclcpp::Clock(RCL_ROS_TIME).now();
                 printf("depth reached and timer started \r\n");
             }
         }
         transform_setpoint();
 
-        printf("index in the depth list: %d\r\n", m_depth_index);
-        printf("bathtub depth converted = %lf\r\n", m_desired_depth);
-        printf("bathtub pitch converted = %lf\r\n", m_desired_pitch);
+        // printf("index in the depth list: %d\r\n", m_depth_index);
+        // printf("bathtub depth converted = %lf\r\n", m_desired_depth);
+        // printf("bathtub pitch converted = %lf\r\n", m_desired_pitch);
         set_point->position.z = m_desired_depth;
         set_point->orientation.y = m_desired_pitch;
 
@@ -269,7 +270,7 @@ bool Bathtub::request_set_point(
             {
                 m_depth_index ++; //start depth segments
                 m_depth_reached = false;
-                bhv_timer = clock.now(); //reset the timer
+                bhv_timer = rclcpp::Clock(RCL_ROS_TIME).now(); //reset the timer
                 printf("time out reached depth index =%d\r\n", m_depth_index);
                 //check if we are at the end? if so we start from the beginning
                 if (m_depth_index  == static_cast<int>( m_depth_list.size()) )

@@ -83,13 +83,13 @@ void Helm::initialize() {
     );
 
     m_helm_state_change_caller = this->create_publisher<std_msgs::msg::String>(
-        "helm/change_state_caller",
+        "mvp_helm/change_state_caller",
         100
     );
     
 
     m_helm_setpoint_bhv = this->create_publisher<mvp_msgs::msg::SetpointBehavior>(
-        "helm/setpoint_bhv",
+        "mvp_helm/setpoint_bhv",
         100
     );
 
@@ -428,9 +428,7 @@ void Helm::f_iterate() {
      * Push commands to low level controller
      */
     auto msg = utils::array_to_control_process_msg(dof_ctrl);
-
     
-
     m_set_point_bhv.control_mode = active_state.control_mode;
     m_set_point_bhv.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
     m_set_point_bhv.header.frame_id = m_global_frame;
@@ -447,6 +445,7 @@ void Helm::f_iterate() {
         msg.control_mode = active_state.control_mode;
         msg.child_frame_id = m_local_frame;
         m_pub_controller_set_point->publish(msg);    
+    
     }
 
 }
