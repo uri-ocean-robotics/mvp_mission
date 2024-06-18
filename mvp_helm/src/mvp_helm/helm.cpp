@@ -82,6 +82,11 @@ void Helm::initialize() {
         100
     );
 
+    m_helm_state_change_caller = this->create_publisher<std_msgs::msg::String>(
+        "helm/change_state_caller",
+        100
+    );
+    
 
     m_helm_setpoint_bhv = this->create_publisher<mvp_msgs::msg::SetpointBehavior>(
         "helm/setpoint_bhv",
@@ -220,6 +225,9 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
         resp->state.mode = s.control_mode;
         resp->state.transitions = s.transitions;
         resp->status = true;
+        std_msgs::msg::String caller;
+        caller.data=req->caller;
+        m_helm_state_change_caller->publish(caller);
 
         return true;
     }
@@ -421,18 +429,26 @@ void Helm::f_iterate() {
      */
     auto msg = utils::array_to_control_process_msg(dof_ctrl);
 
-    // makeup the message
-    msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-    msg.header.frame_id = m_global_frame;
-    msg.control_mode = active_state.control_mode;
-    msg.child_frame_id = m_local_frame;
-    m_pub_controller_set_point->publish(msg);    
-
+    
 
     m_set_point_bhv.control_mode = active_state.control_mode;
     m_set_point_bhv.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
     m_set_point_bhv.header.frame_id = m_global_frame;
     m_helm_setpoint_bhv->publish(m_set_point_bhv);
+    //only publish the set  point when there is a bhv setting the set point
+    bool all_empty = std::all_of(m_set_point_bhv.behavior.begin(), m_set_point_bhv.behavior.end(), [](const std::string& s) {
+        return s.empty();
+    });
+    if(all_empty == false) 
+    {
+        // makeup the message
+        msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+        msg.header.frame_id = m_global_frame;
+        msg.control_mode = active_state.control_mode;
+        msg.child_frame_id = m_local_frame;
+        m_pub_controller_set_point->publish(msg);    
+    }
+
 }
 
 } // namespace helm

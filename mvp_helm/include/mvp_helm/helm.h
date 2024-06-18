@@ -99,6 +99,10 @@ private:
     rclcpp::Publisher<mvp_msgs::msg::ControlProcess>::SharedPtr 
         m_pub_controller_set_point;
 
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr 
+        m_helm_state_change_caller;
+
+
     rclcpp::Service<mvp_msgs::srv::ChangeState>::SharedPtr 
         m_change_state_srv;
 

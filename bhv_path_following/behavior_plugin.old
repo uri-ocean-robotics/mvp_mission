@@ -1,0 +1,9 @@
+<class_libraries>
+	<library path="mvp_bhv_path_following">
+	  <class name="helm/PathFollowing" 
+	  		 type="helm::PathFollowing" 
+			 base_class_type="helm::BehaviorBase">
+	    <description></description>
+	  </class>
+	</library>
+</class_libraries>
