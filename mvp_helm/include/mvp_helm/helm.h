@@ -12,6 +12,9 @@
 
 #include "mvp_msgs/msg/control_modes.hpp"
 #include "mvp_msgs/msg/control_process.hpp"
+#include "mvp_msgs/msg/setpoint_behavior.hpp"
+
+
 #include "mvp_msgs/srv/get_control_modes.hpp"
 #include "mvp_msgs/srv/get_state.hpp"
 #include "mvp_msgs/srv/get_states.hpp"
@@ -104,6 +107,10 @@ private:
 
     rclcpp::Service<mvp_msgs::srv::GetState>::SharedPtr 
         m_get_state_srv;
+
+    //! @brief bhv setpoint state request
+    rclcpp::Publisher<mvp_msgs::msg::SetpointBehavior>::SharedPtr 
+        m_helm_setpoint_bhv;
 
     /**
       * @brief Topic callback for state

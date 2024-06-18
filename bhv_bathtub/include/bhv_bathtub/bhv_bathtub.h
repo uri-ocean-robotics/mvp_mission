@@ -93,6 +93,11 @@ private:
     double m_desired_depth;
 
     double m_desired_pitch;
+
+    bool m_depth_reached;
+
+    double m_depth_band;
+
     /**
         * @brief depth segments
      */

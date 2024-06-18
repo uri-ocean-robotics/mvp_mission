@@ -118,14 +118,15 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
     node->get_parameter(prefix + "desired_q", m_desired_value(DOF::Q));
     node->declare_parameter(prefix + "desired_r", 0.0);
     node->get_parameter(prefix + "desired_r", m_desired_value(DOF::R));
+    
+    std::string node_name = node->get_name();
+    std::string ns = node->get_namespace();
+    if (!ns.empty() && ns[0] == '/') {
+        ns = ns.substr(1);
+    }
 
-    //bhv global link and local link
-    node->declare_parameter(prefix + "global_link", "");
-    node->get_parameter(prefix + "global_link", bhv_global_link);
-
-    node->declare_parameter(prefix + "child_link", "");
-    node->get_parameter(prefix + "child_link", bhv_child_link);
-
+    bhv_global_link = ns + "/world_ned";
+    bhv_child_link = ns + "/cg_link";
 
     ///topics
     m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("~/"+ prefix + "desired_setpoints", 100, 
@@ -363,7 +364,7 @@ bool DirectControl::request_set_point(
     set_point->position.y = m_desired_value(DOF::Y);
     set_point->position.z = m_desired_value(DOF::Z);
 
-    printf("set_point z = %lf\r\n", set_point->position.z);
+    // printf("set_point z = %lf\r\n", set_point->position.z);
     // Set orientation
     set_point->orientation.x = m_desired_value(DOF::ROLL);
     set_point->orientation.y = m_desired_value(DOF::PITCH);

@@ -62,22 +62,35 @@ void Bathtub::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "no_depth_time", m_no_depth_time);
     node->get_parameter(prefix + "no_depth_time", m_no_depth_time);
 
+    node->declare_parameter(prefix + "depth_band", m_depth_band);
+    node->get_parameter(prefix + "depth_band", m_depth_band);
+
     node->declare_parameter(prefix + "depth_list", m_depth_list);
     node->get_parameter(prefix + "depth_list", m_depth_list);
 
-    node->declare_parameter(prefix + "depth_list", m_dive_ang_list);
-    node->get_parameter(prefix + "depth_list", m_dive_ang_list);
+    node->declare_parameter(prefix + "dive_ang_list", m_dive_ang_list);
+    node->get_parameter(prefix + "dive_ang_list", m_dive_ang_list);
 
-    node->declare_parameter(prefix + "depth_list", m_climb_ang_list);
-    node->get_parameter(prefix + "depth_list", m_climb_ang_list);
+    node->declare_parameter(prefix + "climb_ang_list", m_climb_ang_list);
+    node->get_parameter(prefix + "climb_ang_list", m_climb_ang_list);
 
-    node->declare_parameter(prefix + "depth_list", m_depth_time_list);
-    node->get_parameter(prefix + "depth_list", m_depth_time_list);
+    node->declare_parameter(prefix + "depth_time_list", m_depth_time_list);
+    node->get_parameter(prefix + "depth_time_list", m_depth_time_list);
 
     std::string node_name = node->get_name();
     std::string ns = node->get_namespace();
 
+    if (!ns.empty() && ns[0] == '/') {
+        ns = ns.substr(1);
+    }
     bhv_global_link = ns + "/world_ned";
+
+    node->declare_parameter(prefix + "global_link", bhv_global_link);
+    node->get_parameter(prefix + "global_link", bhv_global_link);
+
+    m_depth_index = -2; 
+    m_depth_reached = false;
+    
     /**
      * @brief Declare the degree of freedoms to be controlled by the behavior
      *
@@ -99,7 +112,7 @@ void Bathtub::activated()
     rclcpp::Clock clock(RCL_SYSTEM_TIME);
 
     bhv_timer =  clock.now();
-    m_depth_index = 0;
+    m_depth_index = -1;
     std::cout << "Bathtub behavior is activated!" << std::endl;
 }
 
@@ -130,7 +143,7 @@ void Bathtub::transform_setpoint()
         //got the desired depth
         m_desired_depth = xyz_helm.z();
     }catch (const tf2::TransformException & e) {
-            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute thruster tf between ") + e.what());
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in bathtub ") + e.what());
             RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
                          get_helm_global_link().c_str(), bhv_global_link.c_str(), e.what() ); 
           return;
@@ -158,7 +171,7 @@ void Bathtub::transform_setpoint()
 
 
     }catch (const tf2::TransformException & e) {
-            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute thruster tf between ") + e.what());
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in bathtub ") + e.what());
             RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
                          get_helm_global_link().c_str(), bhv_global_link.c_str(), e.what() ); 
           return;
@@ -175,32 +188,31 @@ bool Bathtub::request_set_point(
     rclcpp::Clock clock(RCL_SYSTEM_TIME);
 
     rclcpp::Time now = clock.now();
-    if(m_depth_index == 0)
-    {
+    //////////////////////////////////////////
+    //no depth time out//////////////////////
+    ////////////////////////////////////////
+    if(m_depth_index == -1)
+    {   
         if(now.seconds() - bhv_timer.seconds() > m_no_depth_time )
         {
-            m_depth_index = 1; //start depth segments
+            m_depth_index = 0; //start depth segments
+            m_depth_reached = false;
+            printf("no depth time expired \r\n");
+            
         }
         else
         {
             return false;
         }
     }
-    //do depth segments
-    else
+    //////////////////////////////////////////
+    //do depth segments//////////////////////
+    ////////////////////////////////////////
+    else if(m_depth_index > -1)
     {
-        if(now.seconds() - bhv_timer.seconds() > m_depth_time_list[m_depth_index-1] )
-        {
-            m_depth_index ++; //start depth segments
-            //check if we are at the end? if so we start from the beginning
-            if (m_depth_index  == static_cast<int>( m_depth_list.size())-1 )
-            {
-                m_depth_index = 0;
-            }
-        }
-         m_desired_depth = m_depth_list[m_depth_index-1];
-        //convert depth into the helm global link.
+        m_desired_depth = m_depth_list[m_depth_index];
 
+        //convert depth into the helm global link.
         try{
         //get tf from bhv world to helm world
         geometry_msgs::msg::TransformStamped tf_hw_bw = m_transform_buffer->lookupTransform(
@@ -218,22 +230,54 @@ bool Bathtub::request_set_point(
                         + tf_eigen.translation();
 
         //determine we need to dive or climb in NED.
-        if(m_desired_depth > xyz_bw.z())
+        if(m_desired_depth > xyz_bw.z() + m_depth_band)
         {
-            m_desired_pitch = m_dive_ang_list[m_depth_index-1];
+            m_desired_pitch = m_dive_ang_list[m_depth_index];
         }
-        else if(m_desired_depth < xyz_bw.z())
+        else if(m_desired_depth < xyz_bw.z() - m_depth_band)
         {
-            m_desired_pitch = m_climb_ang_list[m_depth_index-1];
+            m_desired_pitch = m_climb_ang_list[m_depth_index];
         }
         else
         {
             m_desired_pitch = 0;
         }
 
+        //check if we have reached the depth//
+        if(m_depth_reached ==false)
+        {
+            if( fabs(m_desired_depth - xyz_bw.z()) < m_depth_band)
+            {   
+                //set the flag and start the timer.
+                m_depth_reached = true;
+                bhv_timer = clock.now();
+                printf("depth reached and timer started \r\n");
+            }
+        }
         transform_setpoint();
+
+        printf("index in the depth list: %d\r\n", m_depth_index);
+        printf("bathtub depth converted = %lf\r\n", m_desired_depth);
+        printf("bathtub pitch converted = %lf\r\n", m_desired_pitch);
         set_point->position.z = m_desired_depth;
         set_point->orientation.y = m_desired_pitch;
+
+        //CHECK depth holding time out.
+        if (m_depth_reached)
+        {
+            if(now.seconds() - bhv_timer.seconds() > m_depth_time_list[m_depth_index] )
+            {
+                m_depth_index ++; //start depth segments
+                m_depth_reached = false;
+                bhv_timer = clock.now(); //reset the timer
+                printf("time out reached depth index =%d\r\n", m_depth_index);
+                //check if we are at the end? if so we start from the beginning
+                if (m_depth_index  == static_cast<int>( m_depth_list.size()) )
+                {
+                    m_depth_index = -1;
+                }
+            }
+        }
 
 
         } catch (const tf2::TransformException & e) {

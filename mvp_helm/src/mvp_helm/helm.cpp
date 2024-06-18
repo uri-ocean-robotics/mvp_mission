@@ -82,6 +82,12 @@ void Helm::initialize() {
         100
     );
 
+
+    m_helm_setpoint_bhv = this->create_publisher<mvp_msgs::msg::SetpointBehavior>(
+        "helm/setpoint_bhv",
+        100
+    );
+
     /***************************************************************************
      * Initialize ros services
      */
@@ -329,6 +335,7 @@ void Helm::f_iterate() {
      */
     std::array<double, 12> dof_ctrl{};
     std::array<int, 12> dof_priority{};        
+    mvp_msgs::msg::SetpointBehavior m_set_point_bhv;
 
     for(const auto& i : m_behavior_containers) {
 
@@ -404,6 +411,7 @@ void Helm::f_iterate() {
             if(priority > dof_priority[dof]) {
                 dof_ctrl[dof] = bhv_control_array[dof];
                 dof_priority[dof] = priority;
+                m_set_point_bhv.behavior[dof] = i->get_behavior()->get_name();
             }
         }
     }
@@ -419,6 +427,12 @@ void Helm::f_iterate() {
     msg.control_mode = active_state.control_mode;
     msg.child_frame_id = m_local_frame;
     m_pub_controller_set_point->publish(msg);    
+
+
+    m_set_point_bhv.control_mode = active_state.control_mode;
+    m_set_point_bhv.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    m_set_point_bhv.header.frame_id = m_global_frame;
+    m_helm_setpoint_bhv->publish(m_set_point_bhv);
 }
 
 } // namespace helm
