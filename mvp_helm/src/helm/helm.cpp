@@ -174,6 +174,8 @@ void Helm::initialize() {
      */
     f_get_controller_modes();
 
+    ROS_INFO("*******MVP Helm is ready*******");
+
 }
 
 void Helm::run() {
