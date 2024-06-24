@@ -412,16 +412,24 @@ void Helm::f_iterate() {
      */
     auto msg = utils::array_to_control_process_msg(dof_ctrl);
 
-    // makeup the message
-    msg.control_mode = active_state.mode;
-    msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = m_global_frame;
-    m_pub_controller_set_point.publish(msg);
 
     m_set_point_bhv.control_mode = active_state.mode;
     m_set_point_bhv.header.stamp = ros::Time::now();
     m_set_point_bhv.header.frame_id = m_global_frame;
     m_helm_setpoint_bhv.publish(m_set_point_bhv);
+
+    bool all_empty = std::all_of(m_set_point_bhv.behavior.begin(), m_set_point_bhv.behavior.end(),
+                                 [](const std::string& s) {
+                                    return s.empty();
+                                });
+    if(all_empty == false)
+    {   
+        // makeup the message
+        msg.control_mode = active_state.mode;
+        msg.header.stamp = ros::Time::now();
+        msg.header.frame_id = m_global_frame;
+        m_pub_controller_set_point.publish(msg);
+    }
 
 }
 

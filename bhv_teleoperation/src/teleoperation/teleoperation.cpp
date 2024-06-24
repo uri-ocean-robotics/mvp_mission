@@ -148,7 +148,7 @@ void Teleoperation::initialize() {
 
 //tele op is good for control surge, pitch, depth and  heading
 void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
-    printf("disbale: %d\n", msg->buttons[8]);
+    // printf("disbale: %d\n", msg->buttons[8]);
     
     //LB is the safety button and the joy is true
     if(msg->buttons[4]==1 & m_use_joy){
