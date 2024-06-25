@@ -219,6 +219,12 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoints(
     // printf("request recived to get waypoints\r\n");
 
     auto length = m_waypoints.polygon.points.size();
+    
+    if (length == 0)
+    {
+        ROS_WARN_STREAM("No waypoint programmed");
+        return false;
+    }
 
     int num = req.count.data;
     
