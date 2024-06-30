@@ -108,7 +108,7 @@ void Teleoperation::initialize() {
     m_pnh->param<double>("tele_d_pitch", m_tele_d_pitch, 1.0);
     m_pnh->param<double>("tele_d_depth", m_tele_d_depth, 1.0);
 
-
+    m_pnh->param<double>("no_joy_timeout", m_no_joy_timeout, 3.0);
     //robot mvp_controller service
     m_pnh->param<std::string>("ctrl_disable_srv", m_ctrl_disable, "controller/disable");
     //
@@ -209,19 +209,19 @@ void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
     //set tele-op to false
     if(msg->buttons[6]==1)
     {
-        // first time enable joystick and record vehicle pose
-        // if(!m_use_joy) {
-            // record global information
-        m_desired_pitch = BehaviorBase::m_process_values.orientation.y;
+        // record global information
+        m_desired_pitch = 0;
         m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
         m_desired_z = BehaviorBase::m_process_values.position.z;
         m_desired_surge = 0;
-        // }
-
         m_use_joy = true; //!m_use_joy;
-        // printf("m_use_joy = %s\r\n", m_use_joy ? "yes":"no");
-        // printf("depth =%lf || %lf\r\n", m_desired_z, BehaviorBase::m_process_values.position.z);
-
+        ROS_INFO("Teleopation is enabled");
+        
+    }
+    if(m_use_joy)
+    {
+        //get the time
+        m_last_joy_time = ros::Time::now().toSec();
     }
     
 
@@ -264,6 +264,10 @@ bool Teleoperation::request_set_point(
         return false;
     }
 
+    if(ros::Time::now().toSec() - m_last_joy_time>m_no_joy_timeout)
+    {
+        return false;
+    }
     // printf("set point will be set \r\n");
     // Set Position
     set_point->position.x = m_desired_x;

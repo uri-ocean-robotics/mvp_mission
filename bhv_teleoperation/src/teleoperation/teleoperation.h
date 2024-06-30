@@ -243,7 +243,13 @@ namespace helm {
          * @brief teleop sway scale
         */
         double m_tele_s_sway;
+        
+        /**
+          * @brief timeout for no joy command
+        */
+        double m_last_joy_time;
 
+        double m_no_joy_timeout;
 
         //! @brief Transform buffer for TF2
         tf2_ros::Buffer m_transform_buffer;
