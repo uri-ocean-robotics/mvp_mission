@@ -266,6 +266,7 @@ bool Teleoperation::request_set_point(
 
     if(ros::Time::now().toSec() - m_last_joy_time>m_no_joy_timeout)
     {
+        ROS_WARN("No joy command for %.1lf second. no Set points will be send", m_no_joy_timeout);
         return false;
     }
     // printf("set point will be set \r\n");
