@@ -223,7 +223,7 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoints(
     if (length == 0)
     {
         ROS_WARN_STREAM("No waypoint programmed");
-        return false;
+        // return false;
     }
 
     int num = req.count.data;
