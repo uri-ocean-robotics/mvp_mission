@@ -234,8 +234,10 @@ bool PathFollowing3D::f_cb_srv_get_next_waypoints(
         // printf("the requested waypoint number is larger than the left-over waypoint number \r\n");
     }
 
-    // printf("getting waypoints from %d to %d\r\n", m_line_index, num-1);
-
+    //resize the num variable if it is larger than the actual lenght of the waypoint
+    if (num > length) {
+        num = length+1;
+    }
     resp.wpt.resize(num);
     
     for (int i =0 ; i< num; i++)
