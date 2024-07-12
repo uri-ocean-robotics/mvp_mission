@@ -48,6 +48,8 @@ PathFollowing3D::~PathFollowing3D() {
 
     m_append_waypoint_sub.shutdown();
 
+    m_update_surge_sub.shutdown();
+
 }
 
 void PathFollowing3D::initialize() {
@@ -71,11 +73,17 @@ void PathFollowing3D::initialize() {
 
     std::string update_geopath_topic_name;
 
+    std::string surge_topic_name;
+
     m_pnh->param<std::string>(
         "update_topic", update_topic_name, "update_waypoints");
 
     m_pnh->param<std::string>(
         "append_topic", append_topic_name, "append_waypoints");
+
+     m_pnh->param<std::string>(
+        "surge_topic", surge_topic_name, "update_surge");
+
 
     m_pnh->param<std::string>(
         "update_geopath_topic", update_geopath_topic_name, "update_geopath");
@@ -142,6 +150,17 @@ void PathFollowing3D::initialize() {
             true
         )
     );
+
+    m_update_surge_sub = m_pnh->subscribe<std_msgs::Float64>(
+        surge_topic_name,
+        10,
+        std::bind(
+            &PathFollowing3D::f_surge_cb,
+            this,
+            std::placeholders::_1
+        )
+    );
+    
 
     //  m_update_geopath_sub = m_pnh->subscribe<geographic_msgs::GeoPath>(
     //     update_geopath_topic_name,
@@ -210,6 +229,11 @@ void PathFollowing3D::initialize() {
 
 }
 
+
+void PathFollowing3D::f_surge_cb(const std_msgs::Float64::ConstPtr &m)
+{   
+    m_surge_velocity = m->data;
+}
 
 //Get next waypoint callback
 bool PathFollowing3D::f_cb_srv_get_next_waypoints(

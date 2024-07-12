@@ -35,6 +35,7 @@
 #include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/Marker.h"
 #include "yaml-cpp/yaml.h"
+#include "std_msgs/Float64.h"
 
 
 namespace helm {
@@ -80,6 +81,11 @@ namespace helm {
          * @brief Trivial append waypoint subscriber
          */
         ros::Subscriber m_append_waypoint_sub;
+
+        /**
+         * @brief Trivial update surge subscriber
+         */
+        ros::Subscriber m_update_surge_sub;
 
         /**
          * @brief Trivial marker publisher
@@ -238,6 +244,7 @@ namespace helm {
                            bool append);
 
 
+        void f_surge_cb(const std_msgs::Float64::ConstPtr &m);
         // void f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m);
 
         /**
