@@ -69,38 +69,13 @@ void Teleoperation::initialize() {
     m_pnh->param<std::string>("local_link", local_link, "cg_link");
 
      // ROS related: load parameters, setup sub/pub
-    m_pnh->param<double>("max_x", m_max_x, 5.0);
-    m_pnh->param<double>("max_y", m_max_y, 5.0);
-    m_pnh->param<double>("max_z", m_max_z, 5.0);
-
+    m_pnh->param<double>("max_z", m_max_z, 100.0);
     m_pnh->param<double>("max_roll", m_max_roll, M_PI_2);
     m_pnh->param<double>("max_pitch", m_max_pitch, M_PI_2);
-    m_pnh->param<double>("max_yaw", m_max_yaw, M_PI);
-
+    //no limit for yaw.
     m_pnh->param<double>("max_surge", m_max_surge, 1.0);
     m_pnh->param<double>("max_sway", m_max_sway, 1.0);
-    m_pnh->param<double>("max_heave", m_max_heave, 1.0);
-
-    m_pnh->param<double>("max_roll_rate", m_max_roll_rate, M_PI);
-    m_pnh->param<double>("max_pitch_rate", m_max_pitch_rate, M_PI);
-    m_pnh->param<double>("max_yaw_rate", m_max_yaw_rate, M_PI);
-
-    // Load desired values for control
-    m_pnh->param<double>("desired_x", m_desired_x, 0.0);
-    m_pnh->param<double>("desired_y", m_desired_y, 0.0);
-    m_pnh->param<double>("desired_z", m_desired_z, 0.0);
-
-    m_pnh->param<double>("desired_roll", m_desired_roll, 0.0);
-    m_pnh->param<double>("desired_pitch", m_desired_pitch, 0.0);
-    m_pnh->param<double>("desired_yaw", m_desired_yaw, 0.0);
-
-    m_pnh->param<double>("desired_surge", m_desired_surge, 0.0);
-    m_pnh->param<double>("desired_sway", m_desired_sway, 0.0);
-    m_pnh->param<double>("desired_heave", m_desired_heave, 0.0);
-
-    m_pnh->param<double>("desired_roll_rate", m_desired_roll_rate, 0.0);
-    m_pnh->param<double>("desired_pitch_rate", m_desired_pitch_rate, 0.0);
-    m_pnh->param<double>("desired_yaw_rate", m_desired_yaw_rate, 0.0);
+    //no heave control
 
     m_pnh->param<double>("tele_d_yaw", m_tele_d_yaw, 1.0);
     m_pnh->param<double>("tele_s_surge", m_tele_s_surge, 1.0);
@@ -109,6 +84,14 @@ void Teleoperation::initialize() {
     m_pnh->param<double>("tele_d_depth", m_tele_d_depth, 1.0);
 
     m_pnh->param<double>("no_joy_timeout", m_no_joy_timeout, 3.0);
+
+    //initial values for used set point dof
+    m_desired_roll = 0;
+    m_desired_pitch = 0;
+    m_desired_yaw = 0;
+    m_desired_z = 0;
+    m_desired_surge = 0;
+    m_desired_sway = 0;
     //robot mvp_controller service
     m_pnh->param<std::string>("ctrl_disable_srv", m_ctrl_disable, "controller/disable");
     //
@@ -128,8 +111,6 @@ void Teleoperation::initialize() {
      */
     BehaviorBase::m_dofs = decltype(m_dofs){
         // for poistion
-        mvp_msgs::ControlMode::DOF_X,
-        mvp_msgs::ControlMode::DOF_Y,
         mvp_msgs::ControlMode::DOF_Z,
         // for orientation 
         mvp_msgs::ControlMode::DOF_ROLL,
@@ -138,15 +119,11 @@ void Teleoperation::initialize() {
         // for velocity
         mvp_msgs::ControlMode::DOF_SURGE,
         mvp_msgs::ControlMode::DOF_SWAY,
-        mvp_msgs::ControlMode::DOF_HEAVE,
         // for angular velocity
-        mvp_msgs::ControlMode::DOF_ROLL_RATE,
-        mvp_msgs::ControlMode::DOF_PITCH_RATE,
-        mvp_msgs::ControlMode::DOF_YAW_RATE,
     };
 }
 
-//tele op is good for control surge, pitch, depth and  heading
+//tele op is good for control surge, pitch, depth and  yaw, and zero-roll
 void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
     // printf("disbale: %d\n", msg->buttons[8]);
     
@@ -169,9 +146,11 @@ void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
         m_desired_z = m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); //RB depth decrease, RT depth increase
 
         //saturation
+        m_desired_roll = std::min(std::max(m_desired_roll, -m_max_roll), m_max_roll);
         m_desired_pitch = std::min(std::max(m_desired_pitch, -m_max_pitch), m_max_pitch);
-        m_desired_yaw = std::min(std::max(m_desired_yaw, -m_max_yaw), m_max_yaw);
+        //no limit for yaw.
         m_desired_surge = std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
+        m_desired_sway = std::min(std::max(m_desired_sway, -m_max_sway), m_max_sway);
         m_desired_z = std::min(std::max(m_desired_z, -m_max_z), m_max_z);
     }
 
@@ -209,12 +188,14 @@ void Teleoperation::f_tele_op(const sensor_msgs::Joy::ConstPtr& msg) {
     //set tele-op to false
     if(msg->buttons[6]==1)
     {
-        // record global information
+        // record desired value based on vehicle's current information
+        m_desired_roll = 0;
         m_desired_pitch = 0;
         m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
         m_desired_z = BehaviorBase::m_process_values.position.z;
         m_desired_surge = 0;
-        m_use_joy = true; //!m_use_joy;
+        m_desired_sway = 0;
+        m_use_joy = true; ;
         ROS_INFO("Teleopation is enabled");
         
     }
@@ -267,12 +248,14 @@ bool Teleoperation::request_set_point(
     if(ros::Time::now().toSec() - m_last_joy_time>m_no_joy_timeout)
     {
         ROS_WARN("No joy command for %.1lf second. no Set points will be send", m_no_joy_timeout);
+        ROS_WARN("Teleop is disable, please enable it again using the joystick");
+        m_use_joy = false;
         return false;
     }
     // printf("set point will be set \r\n");
     // Set Position
-    set_point->position.x = m_desired_x;
-    set_point->position.y = m_desired_y;
+    // set_point->position.x = m_desired_x;
+    // set_point->position.y = m_desired_y;
     set_point->position.z = m_desired_z;
 
     // Set orientation
@@ -283,14 +266,13 @@ bool Teleoperation::request_set_point(
     // Set velocity
     set_point->velocity.x = m_desired_surge;
     set_point->velocity.y = m_desired_sway;
-    set_point->velocity.z = m_desired_heave;
+    // set_point->velocity.z = m_desired_heave;
    
     // Set angular velocity
-    set_point->angular_rate.x = m_desired_roll_rate;
-    set_point->angular_rate.y = m_desired_pitch_rate;
-    set_point->angular_rate.z = m_desired_yaw_rate;
+    // set_point->angular_rate.x = m_desired_roll_rate;
+    // set_point->angular_rate.y = m_desired_pitch_rate;
+    // set_point->angular_rate.z = m_desired_yaw_rate;
 
-    // printf("set point depth =%lf\r\n", set_point->position.z);
 
     return true;
 }
