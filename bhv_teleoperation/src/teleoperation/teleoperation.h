@@ -102,16 +102,7 @@ namespace helm {
         */
         std::string local_link;
 
-        /**
-         * @brief Max value for x
-        */
-        double m_max_x;
-
-        /**
-         * @brief Max value for y
-        */
-        double m_max_y;
-
+        
         /**
          * @brief Max value for z
         */
@@ -127,10 +118,6 @@ namespace helm {
         */
         double m_max_pitch;
 
-        /**
-         * @brief Max value for yaw
-        */
-        double m_max_yaw;
 
         /**
          * @brief Max value for surge
@@ -141,36 +128,6 @@ namespace helm {
          * @brief Max value for sway
         */
         double m_max_sway;
-
-        /**
-         * @brief Max value for heave
-        */
-        double m_max_heave;
-
-        /**
-         * @brief Max value for roll rate
-        */
-        double m_max_roll_rate;
-
-        /**
-         * @brief Max value for pitch rate
-        */
-        double m_max_pitch_rate;
-
-        /**
-         * @brief Max value for yaw rate
-        */
-        double m_max_yaw_rate;
-
-        /**
-         * @brief Desired value for x
-        */
-        double m_desired_x;
-
-        /**
-         * @brief Desired value for y
-        */
-        double m_desired_y;
 
         /**
          * @brief Desired value for z
@@ -201,26 +158,6 @@ namespace helm {
          * @brief Desired value for sway
         */
         double m_desired_sway;
-
-        /**
-         * @brief Desired value for heave
-        */
-        double m_desired_heave;
-
-        /**
-         * @brief Desired value for roll rate
-        */
-        double m_desired_roll_rate;
-
-        /**
-         * @brief Desired value for pitch rate
-        */
-        double m_desired_pitch_rate;
-
-        /**
-         * @brief Desired value for yaw rate
-        */
-        double m_desired_yaw_rate;
 
         /**
          * @brief teleop yaw increments
