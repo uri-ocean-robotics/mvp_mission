@@ -31,6 +31,8 @@
 #include "mvp_msgs/LoadWaypoint.h"
 #include "mvp_msgs/SendWaypoints.h"
 #include "geometry_msgs/PolygonStamped.h"
+#include "geometry_msgs/PointStamped.h"
+
 #include "geographic_msgs/GeoPath.h"
 #include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/Marker.h"
@@ -86,6 +88,11 @@ namespace helm {
          * @brief Trivial update surge subscriber
          */
         ros::Subscriber m_update_surge_sub;
+
+         /**
+         * @brief Trivial update surge subscriber
+         */
+        ros::Subscriber m_altitude_sub;
 
         /**
          * @brief Trivial marker publisher
@@ -156,6 +163,27 @@ namespace helm {
          * @brief Surge velocity for the behavior
          */
         double m_surge_velocity;
+
+
+        /**
+         * @brief minimum altitude
+         */
+        double m_min_altitude;
+
+        /**
+          * @brief altitude flag
+        */
+        bool m_altitude_safety_flag = false;
+
+        /**
+         * @brief world_ned altitude
+         */
+        double m_altitude;
+
+        /**
+         * @brief altitude topic
+         */
+        std::string m_altitude_topic_name;
 
         /**
          * @brief Desired pitch
@@ -245,6 +273,9 @@ namespace helm {
 
 
         void f_surge_cb(const std_msgs::Float64::ConstPtr &m);
+
+        void f_altitude_cb(const geometry_msgs::PointStamped::ConstPtr &m);
+
         // void f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m);
 
         /**
