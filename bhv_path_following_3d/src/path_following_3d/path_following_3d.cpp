@@ -106,14 +106,6 @@ void PathFollowing3D::initialize() {
     //radians, desired pitch
     m_pnh->param<double>("pitch_angle", m_pitch, 0.0);
 
-
-    //minimum altitude before it overwrites the m_depth
-    m_pnh->param<double>("m_min_altitude", m_min_altitude, -1.0);
-
-    
-    //altitude topic name
-    m_pnh->param<std::string>("altitude_topic_name", m_altitude_topic_name,"");
-
     //robot localization to_ll and from_ll service
     m_pnh->param<std::string>("toll_service", m_toll_service, "toLL");
 
@@ -167,15 +159,6 @@ void PathFollowing3D::initialize() {
         )
     );
 
-    m_altitude_sub = m_pnh->subscribe<geometry_msgs::PointStamped>(
-        m_altitude_topic_name,
-        10,
-        std::bind(
-            &PathFollowing3D::f_altitude_cb,
-            this,
-            std::placeholders::_1
-        )
-    );
 
     //  m_update_geopath_sub = m_pnh->subscribe<geographic_msgs::GeoPath>(
     //     update_geopath_topic_name,
@@ -248,35 +231,6 @@ void PathFollowing3D::initialize() {
 void PathFollowing3D::f_surge_cb(const std_msgs::Float64::ConstPtr &m)
 {   
     m_surge_velocity = m->data;
-}
-
-void PathFollowing3D::f_altitude_cb(const geometry_msgs::PointStamped::ConstPtr &m)
-{
-    //transform point stamp into world_ned
-    geometry_msgs::PointStamped point_in_helm_global;
-
-    // m_transform_listener.transformPoint(get_helm_global_link(), m, point_in_helm_global);
-
-    try{
-        point_in_helm_global = m_transform_buffer.transform(*m, get_helm_global_link());   
-
-        double current_altitude = point_in_helm_global.point.z;
-
-        if(current_altitude<m_min_altitude)
-        {
-            m_altitude = current_altitude;
-            m_altitude_safety_flag = true;
-
-        }
-        else
-        {
-            m_altitude_safety_flag = false;
-        }
-    }
-
-    catch (tf2::TransformException &ex) {
-        ROS_WARN("Could NOT transform: %s", ex.what());
-    }
 }
 
 //Get next waypoint callback
@@ -814,14 +768,9 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
     }
 
     //Set the direct z set point
-    if(m_altitude_safety_flag)
-    {
-        m_cmd.position.z = BehaviorBase::m_process_values.position.z - m_altitude;
-    }
-    else
-    {
-        m_cmd.position.z = m_wpt_second.z;
-    }
+
+    m_cmd.position.z = m_wpt_second.z;
+
     m_cmd.orientation.y = m_pitch;
     /*
      * Command it to the helm

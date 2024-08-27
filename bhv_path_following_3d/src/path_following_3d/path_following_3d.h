@@ -163,28 +163,7 @@ namespace helm {
          * @brief Surge velocity for the behavior
          */
         double m_surge_velocity;
-
-
-        /**
-         * @brief minimum altitude
-         */
-        double m_min_altitude;
-
-        /**
-          * @brief altitude flag
-        */
-        bool m_altitude_safety_flag = false;
-
-        /**
-         * @brief world_ned altitude
-         */
-        double m_altitude;
-
-        /**
-         * @brief altitude topic
-         */
-        std::string m_altitude_topic_name;
-
+        
         /**
          * @brief Desired pitch
          */
@@ -273,8 +252,6 @@ namespace helm {
 
 
         void f_surge_cb(const std_msgs::Float64::ConstPtr &m);
-
-        void f_altitude_cb(const geometry_msgs::PointStamped::ConstPtr &m);
 
         // void f_geopath_cb(const geographic_msgs::GeoPath::ConstPtr &m);
 
