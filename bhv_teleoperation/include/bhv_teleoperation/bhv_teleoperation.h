@@ -169,6 +169,21 @@ private:
         * @brief teleop sway scale
     */
     double m_tele_s_sway;
+    /**
+        * @brief teleop no joy command timeout
+    */
+    double m_no_joy_timeout;
+    double m_last_joy_time;
+
+    /**
+        * @brief max values
+     */
+    double m_max_z;
+    double m_max_roll;
+    double m_max_pitch;
+    double m_max_surge;
+    double m_max_sway;
+
 
     /**
         * @brief for calling controller service

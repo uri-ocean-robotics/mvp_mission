@@ -51,21 +51,44 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     // Load increments in control
     node->declare_parameter(prefix + "tele_s_surge", 1.0);
     node->get_parameter(prefix + "tele_s_surge", m_tele_s_surge);
+
     node->declare_parameter(prefix + "tele_s_sway", 1.0);
-    node->get_parameter(prefix + "tele_s_sway", m_tele_s_sway);    
+    node->get_parameter(prefix + "tele_s_sway", m_tele_s_sway); 
+
     node->declare_parameter(prefix + "tele_d_yaw", 1.0);
     node->get_parameter(prefix + "tele_d_yaw", m_tele_d_yaw);
+
     node->declare_parameter(prefix + "tele_d_pitch", 1.0);
     node->get_parameter(prefix + "tele_d_pitch", m_tele_d_pitch);
+
     node->declare_parameter(prefix + "tele_d_depth", 1.0);
     node->get_parameter(prefix + "tele_d_depth", m_tele_d_depth);
 
-    // Load  enable/disable control
+    //load max values
+    node->declare_parameter(prefix + "max_z", 100.0);
+    node->get_parameter(prefix + "max_z", m_max_z);
 
+    node->declare_parameter(prefix + "max_roll", M_PI_2);
+    node->get_parameter(prefix + "max_roll", m_max_roll);
+
+    node->declare_parameter(prefix + "max_pitch", M_PI_2);
+    node->get_parameter(prefix + "max_pitch", m_max_pitch);
+
+    node->declare_parameter(prefix + "max_surge", 1.0);
+    node->get_parameter(prefix + "max_surge", m_max_surge);
+
+    node->declare_parameter(prefix + "max_sway", 1.0);
+    node->get_parameter(prefix + "max_sway", m_max_sway);
+
+    // Load  enable/disable control
     node->declare_parameter(prefix + "ctrl_disable_srv", "controller/disable");
     node->get_parameter(prefix + "ctrl_disable_srv", m_ctrl_disable);
+    
     node->declare_parameter(prefix + "ctrl_enable_srv", "controller/enable");
     node->get_parameter(prefix + "ctrl_enable_srv", m_ctrl_enable);
+
+    node->declare_parameter(prefix + "no_joy_timeout", 3.0);
+    node->get_parameter(prefix + "no_joy_timeout", m_no_joy_timeout);
 
     /*************************************************************************/
     /* Setup ROS2 sub/pub/srv/... */
@@ -98,8 +121,6 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     BehaviorBase::m_dofs = decltype(m_dofs){
         // for poistion
-        mvp_msgs::msg::ControlMode::DOF_X,
-        mvp_msgs::msg::ControlMode::DOF_Y,
         mvp_msgs::msg::ControlMode::DOF_Z,
         // for orientation 
         mvp_msgs::msg::ControlMode::DOF_ROLL,
@@ -108,12 +129,16 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
         // for velocity
         mvp_msgs::msg::ControlMode::DOF_U,
         mvp_msgs::msg::ControlMode::DOF_V,
-        mvp_msgs::msg::ControlMode::DOF_W,
-        // for angular velocity
-        mvp_msgs::msg::ControlMode::DOF_P,
-        mvp_msgs::msg::ControlMode::DOF_Q,
-        mvp_msgs::msg::ControlMode::DOF_R,
     };
+
+
+    /////initialize the desired pose first
+    m_desired_roll = 0;
+    m_desired_pitch = 0;
+    m_desired_yaw = 0;
+    m_desired_z = 0;
+    m_desired_surge = 0;
+    m_desired_sway = 0;
 }
 
 //tele op is good for control surge, pitch, depth and  heading
@@ -147,6 +172,14 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         m_desired_z = 
             m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
 
+        //saturation
+        m_desired_roll = std::min(std::max(m_desired_roll, -m_max_roll), m_max_roll);
+        m_desired_pitch = std::min(std::max(m_desired_pitch, -m_max_pitch), m_max_pitch);
+        //no limit for yaw.
+        m_desired_surge = std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
+        m_desired_sway = std::min(std::max(m_desired_sway, -m_max_sway), m_max_sway);
+        m_desired_z = std::min(std::max(m_desired_z, -m_max_z), m_max_z);
+
     }
 
     //use back button to call disable controller service
@@ -159,14 +192,6 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         auto resp = m_disable_ctrl_clinet->async_send_request(request);
 
         //! TODO: weakptr has no accesss to the node interface, check the result of srv 
-
-        // Wait for the result.
-        // if (rclcpp::spin_until_future_complete(m_node->get_node_base_interface(), resp) 
-        //     != rclcpp::FutureReturnCode::SUCCESS){
-
-        //     RCLCPP_ERROR(m_logger, 
-        //         "Failed to call service(%s)", m_ctrl_disable.c_str());
-        // }
 
         m_use_joy = false;
         RCLCPP_WARN(m_logger, "teleop disabled !");
@@ -181,16 +206,6 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         
         auto resp = m_enable_ctrl_client->async_send_request(request);
 
-        // Wait for the result.
-        // if (rclcpp::spin_until_future_complete(m_node, resp) 
-        //     != rclcpp::FutureReturnCode::SUCCESS) {
-
-        //     RCLCPP_ERROR(m_logger, 
-        //         "Failed to call service(%s)", m_ctrl_disable.c_str());
-        // }
-
-        //! TODO: should set m_use_joy to true ?
-
     }
 
     // the following two button won't affect the controller.
@@ -198,18 +213,20 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if(msg->buttons[6]==1)
     {
         // first time enable joystick and record vehicle pose
-        // if(!m_use_joy) {
-            // record global information
-            m_desired_pitch = BehaviorBase::m_process_values.orientation.y;
-            m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
-            m_desired_z = BehaviorBase::m_process_values.position.z;
-            m_desired_surge = 0;
-        // }
-
+        m_desired_pitch = 0;
+        m_desired_roll = 0;
+        m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
+        m_desired_z = BehaviorBase::m_process_values.position.z;
+        m_desired_surge = 0;
+        m_desired_sway = 0;
         m_use_joy = true;
-
         RCLCPP_WARN(m_logger, "teleop enabled !");
-
+    }
+    
+    //record the timeout
+    if(m_use_joy)
+    {
+        m_last_joy_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
     }
 }
 
@@ -248,10 +265,18 @@ bool Teleoperation::request_set_point(
     if( !m_use_joy ) {
         return false;
     }
+
+    //timeout
+    if(rclcpp::Clock(RCL_ROS_TIME).now().seconds()-m_last_joy_time > m_no_joy_timeout)
+    {
+        RCLCPP_WARN(m_logger, "No joy command for %.1lf second.", m_no_joy_timeout);
+        RCLCPP_WARN(m_logger, "Teleop is disabled, please enable it again using the joystick");
+        m_use_joy = false;
+        return false;
+    }
+
     //set point /heder/frame_id and child frame id will be the same as the helm setting (not additional setting here).
     // Set Position
-    set_point->position.x = m_desired_x;
-    set_point->position.y = m_desired_y;
     set_point->position.z = m_desired_z;
 
     // Set orientation
@@ -262,12 +287,7 @@ bool Teleoperation::request_set_point(
     // Set velocity
     set_point->velocity.x = m_desired_surge;
     set_point->velocity.y = m_desired_sway;
-    set_point->velocity.z = m_desired_heave;
    
-    // Set angular velocity
-    set_point->angular_rate.x = m_desired_roll_rate;
-    set_point->angular_rate.y = m_desired_pitch_rate;
-    set_point->angular_rate.z = m_desired_yaw_rate;
 
     return true;
 }
