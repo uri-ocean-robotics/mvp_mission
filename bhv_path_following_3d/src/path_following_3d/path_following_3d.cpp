@@ -106,8 +106,6 @@ void PathFollowing3D::initialize() {
     //radians, desired pitch
     m_pnh->param<double>("pitch_angle", m_pitch, 0.0);
 
-    
-
     //robot localization to_ll and from_ll service
     m_pnh->param<std::string>("toll_service", m_toll_service, "toLL");
 
@@ -117,6 +115,17 @@ void PathFollowing3D::initialize() {
     m_pnh->param<double>("sigma", m_sigma, 1.0);
     
     m_pnh->param<double>("beta_gain", m_beta_gain, 0.0);
+
+    //adapitve terms
+    m_pnh->param<double>("lookahead_max", m_lookahead_max, 10.0);
+    
+    m_pnh->param<double>("lookahead_min", m_lookahead_min, 1.0);
+
+    m_pnh->param<double>("lookahead_gamma", m_lookahead_gamma, 0.01);
+
+    
+
+    m_pnh->param<bool>("lookahead_adaptive_flag", m_lookahead_adaptive, false);
 
     //file path to the waypoint folder
     m_pnh->param<std::string>("waypoint_path", waypoint_path, "~/go_to_list");
@@ -160,7 +169,7 @@ void PathFollowing3D::initialize() {
             std::placeholders::_1
         )
     );
-    
+
 
     //  m_update_geopath_sub = m_pnh->subscribe<geographic_msgs::GeoPath>(
     //     update_geopath_topic_name,
@@ -705,9 +714,11 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
     // Compute along track errors
     double Xe =  dx1 * cos(gamma_p) + dy1 * sin(gamma_p);
     double Ye = -dx1 * sin(gamma_p) + dy1 * cos(gamma_p);
-
-    double Xke = (x - m_wpt_second.x) * cos(gamma_p) +
-        (y - m_wpt_second.y) * sin(gamma_p);
+    
+    //
+    double Xke = dx2 *cos(gamma_p) + dy2 *sin(gamma_p);
+    // double Xke = (x - m_wpt_second.x) * cos(gamma_p) +
+        // (y - m_wpt_second.y) * sin(gamma_p);
 
     // Check of overshoot
     double lookahead = m_lookahead_distance;
@@ -751,16 +762,35 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
     double u = BehaviorBase::m_process_values.velocity.x;
     double v = BehaviorBase::m_process_values.velocity.y;
     double yaw = BehaviorBase::m_process_values.orientation.z;
+
     double ye_dot = -u * sin(-yaw+gamma_p) + v * cos(-yaw + gamma_p);
 
 
+
+    /// compute desired set point now
     // set the surge velocity
     m_cmd.velocity.x = m_surge_velocity;
 
     // set the heading for line of sight
-    m_cmd.orientation.z = gamma_p - atan( (Ye + m_sigma*m_yint)/ lookahead   + ye_dot*m_beta_gain);
-    double aoa = atan( Ye / lookahead); 
-    // ROS_INFO("%lf, %lf, %lf, %lf\n", m_yint, gamma_p*180/3.1415926, ye_dot, m_cmd.orientation.z*180/3.1415926);
+    // m_cmd.orientation.z = gamma_p - atan( (Ye + m_sigma*m_yint)/ lookahead   + ye_dot*m_beta_gain);
+    if(m_lookahead_adaptive)
+    {
+         //adapitve lookahead
+        // lookahead = m_lookahead_max - (m_lookahead_max - m_lookahead_min)*exp(-m_lookahead_gamma*fabs(Ye));
+        lookahead = (m_lookahead_max - m_lookahead_min)*exp(-m_lookahead_gamma*fabs(Ye)) + m_lookahead_min;
+
+        printf("lookahead distance = %f\r\n", lookahead);
+        
+        // m_cmd.orientation.z = gamma_p - atan(Ye/lookahead);
+
+    }
+    
+    m_cmd.orientation.z = gamma_p - atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
+
+
+
+   
+
     // check the acceptance radius
     
     auto dist = std::sqrt(dx2 * dx2 + dy2*dy2);
@@ -770,6 +800,7 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
     }
 
     //Set the direct z set point
+
     m_cmd.position.z = m_wpt_second.z;
 
     m_cmd.orientation.y = m_pitch;

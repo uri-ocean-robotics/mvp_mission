@@ -1,0 +1,5 @@
+<library path="lib/libaltitude_tracking">
+  <class type="helm::AltitudeTracking" base_class_type="helm::BehaviorBase">
+    <description>A altitude tracking behavior.</description>
+  </class>
+</library>
