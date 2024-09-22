@@ -154,6 +154,14 @@ namespace helm {
          */
         double m_lookahead_distance;
 
+        double m_lookahead_max;
+        
+        double m_lookahead_min;
+
+        double m_lookahead_gamma;
+
+        bool m_lookahead_adaptive;
+
         /**
          * @brief Overshoot timeout in seconds
          */
