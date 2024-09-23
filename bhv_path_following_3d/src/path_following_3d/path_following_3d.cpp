@@ -779,7 +779,7 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
         // lookahead = m_lookahead_max - (m_lookahead_max - m_lookahead_min)*exp(-m_lookahead_gamma*fabs(Ye));
         lookahead = (m_lookahead_max - m_lookahead_min)*exp(-m_lookahead_gamma*fabs(Ye)) + m_lookahead_min;
 
-        printf("lookahead distance = %f\r\n", lookahead);
+        // printf("lookahead distance = %f\r\n", lookahead);
         
         // m_cmd.orientation.z = gamma_p - atan(Ye/lookahead);
 
