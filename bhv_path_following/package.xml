@@ -4,7 +4,7 @@
   <name>bhv_path_following</name>
   <version>0.0.0</version>
   <description>TODO</description>
-  <maintainer email="mzhou@uri.edu">Mingxi Zhou</maintainer>
+  <maintainer email="linzhao@uri.edu">Lin Zhao</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -15,8 +15,13 @@
   <build_depend>geometry_msgs</build_depend>
   <build_depend>behavior_interface</build_depend>
   <build_depend>pluginlib</build_depend>
-  <build_depend>sensor_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
   <build_depend>std_srvs</build_depend>
+
+  <depend>tf2_ros</depend>
+  <depend>tf2</depend>
+  <depend>tf2_eigen</depend>
+  <depend>robot_localization</depend>
 
   <exec_depend>rclcpp</exec_depend>
   <exec_depend>mvp_msgs</exec_depend>
@@ -24,10 +29,8 @@
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>behavior_interface</exec_depend>
   <exec_depend>pluginlib</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>std_srvs</exec_depend>
-  <depend>tf2_ros</depend>
-  <depend>tf2_eigen</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
