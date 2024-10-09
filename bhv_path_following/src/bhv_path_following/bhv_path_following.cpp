@@ -256,40 +256,56 @@ void PathFollowing::f_transform_waypoints(
         ps.point.z = pt.z;
         geometry_msgs::msg::PointStamped t;
         ps.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now(); // Set to current time
-        t = m_transform_buffer->transform(ps, target_frame, tf2::durationFromSec(0.5));
-        printf("point frame = %s\r\n", ps.header.frame_id.c_str());
+        // t = m_transform_buffer->transform(ps, target_frame, tf2::durationFromSec(0.5));
+        // printf("point frame = %s\r\n", ps.header.frame_id.c_str());
 
-        // geometry_msgs::msg::TransformStamped tf_p2target;
-        // try {
-        //     tf_p2target = m_transform_buffer->lookupTransform(
-        //         target_frame,
-        //         ps.header.frame_id,
-        //         tf2::TimePointZero,   // Use the latest available transform
-        //         10ms                  // Timeout for lookup
-        //     );
-        // } catch (const tf2::TransformException &ex) {
-        //     RCLCPP_ERROR(m_logger, "Transform lookup failed: %s", ex.what());
-        //     continue;
-        // }
-        // ps.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-        // // Transform the point into the target frame
-        // geometry_msgs::msg::PointStamped transformed_point;
-        // tf2::doTransform(ps, transformed_point, tf_p2target);
-        
-        // // Add the transformed point to the output polygon
-        // geometry_msgs::msg::Point32 new_pt;
-        // new_pt.x = transformed_point.point.x;
-        // new_pt.y = transformed_point.point.y;
-        // new_pt.z = transformed_point.point.z;
-        // tm.polygon.points.emplace_back(new_pt);
-        
-    
-        geometry_msgs::msg::Point32 p;
-        p.x = static_cast<float>(t.point.x);
-        p.y = static_cast<float>(t.point.y);
-        p.z = static_cast<float>(t.point.z);
+        geometry_msgs::msg::TransformStamped tf_p2target;
+        try {
+            tf_p2target = m_transform_buffer->lookupTransform(
+                target_frame,
+                ps.header.frame_id,
+                tf2::TimePointZero,   // Use the latest available transform
+                10ms                  // Timeout for lookup
+            );
 
-        tm.polygon.points.emplace_back(p);
+            // Extract translation and rotation from the transform
+            const geometry_msgs::msg::Vector3 &translation = tf_p2target.transform.translation;
+            const geometry_msgs::msg::Quaternion &rotation = tf_p2target.transform.rotation;
+
+            // Convert geometry_msgs::msg::Quaternion to tf2::Quaternion
+            tf2::Quaternion quat(rotation.x, rotation.y, rotation.z, rotation.w);
+
+            // Convert geometry_msgs::msg::PointStamped point into tf2::Vector3
+            tf2::Vector3 point_in(ps.point.x, ps.point.y, ps.point.z);
+
+            // Create a tf2::Transform from the translation and rotation
+            tf2::Transform transform(quat, tf2::Vector3(translation.x, translation.y, translation.z));
+
+            // Apply the transformation (rotate and translate the point)
+            tf2::Vector3 point_out = transform * point_in;
+
+            geometry_msgs::msg::PointStamped transformed_point;
+            // Store the transformed point in the output message
+            transformed_point.point.x = point_out.x();
+            transformed_point.point.y = point_out.y();
+            transformed_point.point.z = point_out.z();
+
+            // Optionally, set the transformed point's header information
+            transformed_point.header.stamp = ps.header.stamp; // Keep the same timestamp
+            transformed_point.header.frame_id = target_frame;
+            
+            geometry_msgs::msg::Point32 p;
+            p.x = static_cast<float>(transformed_point.point.x);
+            p.y = static_cast<float>(transformed_point.point.y);
+            p.z = static_cast<float>(transformed_point.point.z);
+
+            tm.polygon.points.emplace_back(p);
+
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_ERROR(m_logger, "Transform lookup failed: %s", ex.what());
+            continue;
+        }
+        
     }
     *out = tm;
 
@@ -763,10 +779,10 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     auto dist = std::sqrt(dx2 * dx2 + dy2*dy2);
     if(dist < m_acceptance_radius ) {
         f_next_line_segment();
+        printf("waypoint_reached\r\n");
         m_overshoot_timer = 0;
     }
 
-    
     return true;
 }
 
