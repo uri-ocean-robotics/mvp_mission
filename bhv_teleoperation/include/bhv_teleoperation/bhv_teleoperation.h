@@ -82,7 +82,7 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr m_joy_sub;
 
-    rclcpp::Client<std_srvs::srv::Empty>::SharedPtr m_disable_ctrl_clinet;
+    rclcpp::Client<std_srvs::srv::Empty>::SharedPtr m_disable_ctrl_client;
 
     rclcpp::Client<std_srvs::srv::Empty>::SharedPtr m_enable_ctrl_client;
 

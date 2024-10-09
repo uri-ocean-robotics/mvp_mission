@@ -34,6 +34,7 @@
 #include "visualization_msgs/msg/marker.hpp"
 
 #include "behavior_interface/behavior_base.h"
+
 #include "mvp_msgs/msg/control_process.hpp"
 #include "mvp_msgs/srv/get_waypoints.hpp"
 #include "mvp_msgs/srv/load_waypoint.hpp"
@@ -48,7 +49,8 @@ namespace helm {
 
 using namespace std::chrono_literals;  //NOLINT
 
-class PathFollowing : public BehaviorBase {
+class PathFollowing : public BehaviorBase 
+{
 private:
     /**
         * @brief Destroy the Teleoperation object
@@ -85,7 +87,8 @@ private:
      * @brief ros related 
      */
     rclcpp::Node::WeakPtr m_node;
-
+    // rclcpp::Node::SharedPtr node;
+    
     rclcpp::Logger m_logger{rclcpp::get_logger("mvp2_mission_bhv_path_following")};
     
     

@@ -47,7 +47,11 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     // Load max parameters
     std::string prefix = get_name() + "/";
-   
+    std::string m_ns;
+    m_ns = node->get_namespace();
+    if (!m_ns.empty() && m_ns[0] == '/') {
+        m_ns = m_ns.substr(1);
+    }
     // Load increments in control
     node->declare_parameter(prefix + "tele_s_surge", 1.0);
     node->get_parameter(prefix + "tele_s_surge", m_tele_s_surge);
@@ -83,9 +87,11 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     // Load  enable/disable control
     node->declare_parameter(prefix + "ctrl_disable_srv", "controller/disable");
     node->get_parameter(prefix + "ctrl_disable_srv", m_ctrl_disable);
+    m_ctrl_disable = "/" + m_ns + "/" + m_ctrl_disable;
     
     node->declare_parameter(prefix + "ctrl_enable_srv", "controller/enable");
     node->get_parameter(prefix + "ctrl_enable_srv", m_ctrl_enable);
+    m_ctrl_enable = "/" + m_ns + "/" + m_ctrl_enable;
 
     node->declare_parameter(prefix + "no_joy_timeout", 3.0);
     node->get_parameter(prefix + "no_joy_timeout", m_no_joy_timeout);
@@ -102,11 +108,11 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
         this, std::placeholders::_1));
 
     // controller srv
-    m_disable_ctrl_clinet = node->create_client<std_srvs::srv::Empty>(m_ctrl_disable);
+    m_disable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_disable);
 
     m_enable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_enable);
 
-    while (!m_disable_ctrl_clinet->wait_for_service(2s)) {
+    while (!m_disable_ctrl_client->wait_for_service(2s)) {
         RCLCPP_WARN(m_logger, 
             "service(%s) not available, waiting again...", m_ctrl_disable.c_str());
     }
@@ -189,7 +195,7 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
 
         auto request = std::make_shared<std_srvs::srv::Empty::Request>();
         
-        auto resp = m_disable_ctrl_clinet->async_send_request(request);
+        auto resp = m_disable_ctrl_client->async_send_request(request);
 
         //! TODO: weakptr has no accesss to the node interface, check the result of srv 
 

@@ -36,7 +36,7 @@ using std::placeholders::_3;
 
 
 Bathtub::Bathtub() {
-    std::cout << "A message from the DirectControl" << std::endl;
+    std::cout << "A message from the BathTUb" << std::endl;
 }
 
 Bathtub::~Bathtub() {
