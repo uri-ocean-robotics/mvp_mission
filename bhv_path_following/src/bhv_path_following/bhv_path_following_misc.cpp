@@ -36,12 +36,33 @@ void PathFollowing::f_visualize_path(bool clear) {
         marker.action = visualization_msgs::msg::Marker::DELETEALL;
     } else {
         marker.action = visualization_msgs::msg::Marker::MODIFY;
-        for (const auto &i: m_transformed_waypoints.polygon.points) {
-            geometry_msgs::msg::Point p;
-            p.x = i.x;
-            p.y = i.y;
-            p.z = i.z;
-            marker.points.emplace_back(p);
+        // for (const auto &i: m_transformed_waypoints.polygon.points) {
+        //     geometry_msgs::msg::Point p;
+        //     p.x = i.x;
+        //     p.y = i.y;
+        //     p.z = i.z;
+        //     marker.points.emplace_back(p);
+        // }
+        // printf("waypoint_size=%d\r\n", m_transformed_waypoints.polygon.points.size());
+        for (size_t i = 0; i < m_transformed_waypoints.polygon.points.size(); i++) {
+            geometry_msgs::msg::Point p1;
+
+            // First point with the current z value
+            p1.x = m_transformed_waypoints.polygon.points[i].x;
+            p1.y = m_transformed_waypoints.polygon.points[i].y;
+            p1.z = m_transformed_waypoints.polygon.points[i].z;
+            marker.points.emplace_back(p1);
+
+            // // Second point with the z value of the next point (for the points except the last one))
+            if (i < m_transformed_waypoints.polygon.points.size() - 1) 
+            {
+                geometry_msgs::msg::Point p2;
+                p2.x = m_transformed_waypoints.polygon.points[i].x;
+                p2.y = m_transformed_waypoints.polygon.points[i].y;
+                p2.z = m_transformed_waypoints.polygon.points[i + 1].z;
+                marker.points.emplace_back(p2);
+            }
+            
         }
         marker.pose.position.x = 0;
         marker.pose.position.y = 0;
@@ -80,13 +101,25 @@ void PathFollowing::f_visualize_segment(bool clear) {
         marker.action = visualization_msgs::msg::Marker::DELETEALL;
     } else {
         marker.action = visualization_msgs::msg::Marker::MODIFY;
-        for(const auto& i : {m_wpt_first, m_wpt_second}) {
-            geometry_msgs::msg::Point p;
-            p.x = i.x;
-            p.y = i.y;
-            p.z = i.z;
-            marker.points.emplace_back(p);
-        }
+        
+        // for(const auto& i : {m_wpt_first, m_wpt_second}) {
+        //     geometry_msgs::msg::Point p;
+        //     p.x = i.x;
+        //     p.y = i.y;
+        //     p.z = i.z;
+        //     marker.points.emplace_back(p);
+        // }
+        // printf("m_wpt_first= %lf, %lf\r\n", m_wpt_first.x, m_wpt_first.y);
+        // printf("m_wpt_second= %lf, %lf\r\n", m_wpt_second.x, m_wpt_second.y);
+        geometry_msgs::msg::Point p, p2;
+        p.x = m_wpt_first.x;
+        p.y = m_wpt_first.y;
+        p.z = m_wpt_second.z;
+        marker.points.emplace_back(p);
+        p2.x = m_wpt_second.x;
+        p2.y = m_wpt_second.y;
+        p2.z = m_wpt_second.z;
+        marker.points.emplace_back(p2);
 
         marker.pose.position.x = 0;
         marker.pose.position.y = 0;
