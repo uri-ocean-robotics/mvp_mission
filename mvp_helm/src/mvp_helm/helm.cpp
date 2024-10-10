@@ -302,15 +302,17 @@ void Helm::f_helm_loop() {
 
 void Helm::f_iterate() {
     auto steady_clock = rclcpp::Clock();
-    if(m_controller_process_values == nullptr) {
-        return;
-    }
+    
 
     /**
      * Acquire state information from finite state machine. Get state name and
      * respective mode to that state.
      */
     auto active_state = m_state_machine->get_active_state();
+
+    if(m_controller_process_values == nullptr) {
+        return;
+    }
 
     auto active_mode = std::find_if(
         m_controller_modes.modes.begin(),
@@ -320,6 +322,7 @@ void Helm::f_iterate() {
         }
     );
 
+    
     if(active_mode == std::end(m_controller_modes.modes)) {
         RCLCPP_WARN_STREAM_THROTTLE(
             this->get_logger(), steady_clock, 10,
@@ -437,6 +440,7 @@ void Helm::f_iterate() {
     bool all_empty = std::all_of(m_set_point_bhv.behavior.begin(), m_set_point_bhv.behavior.end(), [](const std::string& s) {
         return s.empty();
     });
+
     if(all_empty == false) 
     {
         // makeup the message
