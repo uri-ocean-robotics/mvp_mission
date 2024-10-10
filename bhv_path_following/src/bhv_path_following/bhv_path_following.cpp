@@ -348,7 +348,7 @@ void PathFollowing::f_next_line_segment() {
         m_transformed_waypoints.polygon.points[(m_line_index + 1) % length];
     m_yint = 0;  //reset the integral?
     m_line_index++;
-
+    // printf("m_line_index= %d vs length=%d\r\n", m_line_index, length);
     if(m_line_index == length) {
         change_state(m_state_done);
         m_line_index = 0;
@@ -667,6 +667,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         return false;
     }
     
+    // printf("waypoint: x= %lf, y=%lf\r\n", m_wpt_second.x, m_wpt_second.y);
     // Warn the user if there is less than 2 points in the waypoint list
     if(m_waypoints.polygon.points.size() < 1) {
         return false;
