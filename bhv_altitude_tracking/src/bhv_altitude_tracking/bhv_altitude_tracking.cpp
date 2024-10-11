@@ -70,6 +70,15 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "altitude_tracking_mode", m_altitude_mode);
     node->get_parameter(prefix + "altitude_tracking_mode", m_altitude_mode);
 
+    node->declare_parameter(prefix + "pitch_gain", 0.0);
+    node->get_parameter(prefix + "pitch_gain", m_pitch_gain);
+
+    node->declare_parameter(prefix + "pitch_assist_band", 0.0);
+    node->get_parameter(prefix + "pitch_assist_band", m_pitch_assist_band);
+
+    node->declare_parameter(prefix + "max_pitch", 0.0);
+    node->get_parameter(prefix + "max_pitch", m_max_pitch);
+
     std::string m_altitude_measurement_topic;
     std::string m_desired_altitude_topic;
 
@@ -88,6 +97,7 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
                                                                 this, _1));
     BehaviorBase::m_dofs = decltype(m_dofs){
         mvp_msgs::msg::ControlMode::DOF_Z,
+        mvp_msgs::msg::ControlMode::DOF_PITCH
     };
 }
 
@@ -142,6 +152,17 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
                 // printf("altitude safety depth =%lf\n\r", set_point->position.z);
                 auto steady_clock = rclcpp::Clock();
                 RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("minimum altitude exceeded"));
+
+                //compute the desired pitch
+                if(fabs(set_point->position.z - BehaviorBase::m_process_values.position.z) > m_pitch_assist_band)
+                {
+                m_pitch = -m_pitch_gain * (set_point->position.z - BehaviorBase::m_process_values.position.z); //positive error needs a negative pitch in cg_link
+                m_pitch = std::min(std::max(m_pitch, -m_max_pitch), m_max_pitch);
+                }
+                else{
+                    m_pitch = 0;
+                }
+                set_point->orientation.y = m_pitch;
                 return true;
             }
             break;
@@ -150,6 +171,18 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
             set_point->position.z = m_bottom_depth - m_desired_altitude;
             // printf("altitude tracking depth =%lf\n\r", set_point->position.z);
             // printf("altitude =%lf\n\r", m_bottom_depth);
+            //compute the desired pitch
+            if(fabs(set_point->position.z - BehaviorBase::m_process_values.position.z) > m_pitch_assist_band)
+            {
+            m_pitch = -m_pitch_gain * (set_point->position.z - BehaviorBase::m_process_values.position.z); //positive error needs a negative pitch in cg_link
+            m_pitch = std::min(std::max(m_pitch, -m_max_pitch), m_max_pitch);
+
+            }
+            else{
+                m_pitch = 0;
+            }
+            set_point->orientation.y = m_pitch;
+            
 
             return true;
 

@@ -84,6 +84,14 @@ private:
 
     double m_bottom_depth = 1000;
 
+    double m_pitch;
+
+    double m_pitch_gain;
+
+    double m_pitch_assist_band;
+
+    double m_max_pitch;
+
     int m_altitude_mode;  //-1: disabled, 0: safety_mode, 1:continuous
 
     //altitude topic from dvl
