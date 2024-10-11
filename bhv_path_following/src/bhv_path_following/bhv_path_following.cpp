@@ -386,6 +386,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
     }
 
     int num = request->count.data;
+    
     if (num == 0)
     {
         num = length - m_line_index+1;
@@ -698,9 +699,11 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     double lookahead = m_lookahead_distance;
 
     if(Xke > 0 ) {
+        auto steady_clock = rclcpp::Clock();
         // overshoot detected
         // ROS_WARN_THROTTLE(5, "Overshoot detected!");
-        RCLCPP_ERROR(m_logger, "Overshoot Detected!");
+        // RCLCPP_ERROR(m_logger, "Overshoot Detected!");
+         RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Overshoot Detected!"));
         // RCLCPP_WARN_THROTTLE(m_logger, *node->get_clock(), 5000, "Overshoot detected!");
         // Look back
         lookahead = -lookahead;

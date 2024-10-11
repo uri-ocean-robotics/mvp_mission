@@ -1,0 +1,9 @@
+<class_libraries>
+	<library path="mvp_bhv_altitude_tracking">
+	  <class name="helm/AltitudeTracking" 
+	  		 type="helm::AltitudeTracking" 
+			 base_class_type="helm::BehaviorBase">
+	    <description></description>
+	  </class>
+	</library>
+</class_libraries>
