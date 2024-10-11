@@ -27,6 +27,7 @@ find_package(pluginlib REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 ####################################################################
 #####                   setup dependencies                     #####
@@ -40,6 +41,7 @@ set(dependencies
   pluginlib
   tf2_ros
   tf2_eigen
+  tf2_geometry_msgs
 )
 
 ####################################################################

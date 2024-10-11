@@ -34,6 +34,7 @@
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_eigen/tf2_eigen.hpp"
 #include "tf2_ros/transform_listener.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp" 
 
 namespace helm {
 
@@ -81,7 +82,7 @@ private:
      */
     double m_desired_altitude;
 
-    double m_altitude;
+    double m_bottom_depth = 1000;
 
     int m_altitude_mode;  //-1: disabled, 0: safety_mode, 1:continuous
 

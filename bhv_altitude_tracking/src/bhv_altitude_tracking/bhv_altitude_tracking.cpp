@@ -69,12 +69,21 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
 
     node->declare_parameter(prefix + "altitude_tracking_mode", m_altitude_mode);
     node->get_parameter(prefix + "altitude_tracking_mode", m_altitude_mode);
+
+    std::string m_altitude_measurement_topic;
+    std::string m_desired_altitude_topic;
+
+    node->declare_parameter(prefix + "altitude_measurement_topic", m_altitude_measurement_topic);
+    node->get_parameter(prefix + "altitude_measurement_topic", m_altitude_measurement_topic);
+
+    node->declare_parameter(prefix + "desired_altitude_topic", m_desired_altitude_topic);
+    node->get_parameter(prefix + "desired_altitude_topic", m_desired_altitude_topic);
     
-    m_altitude_sub = node->create_subscription<geometry_msgs::msg::PointStamped>("~/"+ prefix + "altitude_data", 100, 
+    m_altitude_sub = node->create_subscription<geometry_msgs::msg::PointStamped>(m_altitude_measurement_topic, 100, 
                                                                 std::bind(&AltitudeTracking::f_m_altitude_cb, 
                                                                 this, _1));
 
-    m_desired_altitude_sub = node->create_subscription<std_msgs::msg::Float64>("~/"+ prefix + "desired_altitude", 100, 
+    m_desired_altitude_sub = node->create_subscription<std_msgs::msg::Float64>("~/"+ prefix + m_desired_altitude_topic, 100, 
                                                                 std::bind(&AltitudeTracking::f_c_altitude_cb, 
                                                                 this, _1));
     BehaviorBase::m_dofs = decltype(m_dofs){
@@ -98,14 +107,21 @@ void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::S
     auto steady_clock = rclcpp::Clock();
     //transform point stamp into world_ned
     geometry_msgs::msg::PointStamped point_in_helm_global;
-
+    geometry_msgs::msg::PointStamped ps;
+    ps.header = msg->header;
+    ps.point.x = msg->point.x;
+    ps.point.y = msg->point.y;
+    ps.point.z = msg->point.z;
+    // printf("target frame = %s\r\n", get_helm_global_link().c_str());
+    // printf("point frame = %s\r\n", ps.header.frame_id.c_str());
     try{
-        point_in_helm_global = m_transform_buffer->transform(*msg, get_helm_global_link());   
-        m_altitude =  point_in_helm_global.point.z;
+        point_in_helm_global = m_transform_buffer->transform(ps, get_helm_global_link().c_str(), tf2::durationFromSec(1.0));   
+        m_bottom_depth =  point_in_helm_global.point.z;
+        // printf("altitude transformed =%lf\n\r", m_bottom_depth);
     }
 
     catch (tf2::TransformException &ex) {
-        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Could NOT transform"));
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Could NOT transform dvl altitude into bottom depth"));
     }
 }
 
@@ -120,15 +136,21 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
     switch(m_altitude_mode)
     {
         case 0:
-            if(m_altitude < m_desired_altitude)
+            if(m_bottom_depth - m_desired_altitude < BehaviorBase::m_process_values.position.z)
             {
-                set_point->position.z = BehaviorBase::m_process_values.position.z + m_altitude - m_desired_altitude;
+                set_point->position.z = m_bottom_depth - m_desired_altitude;
+                // printf("altitude safety depth =%lf\n\r", set_point->position.z);
+                auto steady_clock = rclcpp::Clock();
+                RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("minimum altitude exceeded"));
                 return true;
             }
             break;
 
         case 1:
-            set_point->position.z = BehaviorBase::m_process_values.position.z + m_altitude - m_desired_altitude;
+            set_point->position.z = m_bottom_depth - m_desired_altitude;
+            // printf("altitude tracking depth =%lf\n\r", set_point->position.z);
+            // printf("altitude =%lf\n\r", m_bottom_depth);
+
             return true;
 
         default:
