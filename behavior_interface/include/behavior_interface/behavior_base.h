@@ -40,6 +40,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "mvp_msgs/msg/control_process.hpp"
 #include "mvp_msgs/msg/control_mode.hpp"
+#include "geometry_msgs/msg/point.hpp"
+#include "geographic_msgs/msg/geo_point.hpp"
 
 namespace helm
 {
@@ -84,6 +86,9 @@ private:
      * from MVP-Helm.
      */
     std::function<bool(const std::string&)> f_change_state;
+
+    std::function<void(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point)> f_dis2ll;
+    std::function<void(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg::Point::SharedPtr map_point)> f_ll2dis;
 
     void f_set_active_state(const std::string& state) {
         m_active_state = state;
@@ -195,6 +200,15 @@ protected:
         return f_change_state(state);
     }
 
+    virtual auto dis2ll(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point) -> void final
+    {
+         return f_dis2ll(map_point, ll_point);
+    }
+
+    virtual auto ll2dis(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg::Point::SharedPtr map_point) -> void final
+    {
+         return f_ll2dis(ll_point, map_point);
+    }
     /**
      * @brief 
      */

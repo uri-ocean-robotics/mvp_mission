@@ -28,6 +28,9 @@
 #include "mvp_helm/exception.h"
 #include "mvp_helm/behavior_container.h"
 #include "behavior_interface/behavior_base.h"
+#include "robot_localization/srv/to_ll.hpp"
+#include "robot_localization/srv/from_ll.hpp"
+
 
 namespace helm
 {
@@ -64,6 +67,8 @@ private:
       */
     mvp_msgs::msg::ControlModes m_controller_modes;
 
+
+    geographic_msgs::msg::GeoPoint m_datum;
     /**
     * @brief bhv container
     */
@@ -95,6 +100,10 @@ private:
     rclcpp::Subscription<mvp_msgs::msg::ControlProcess>::SharedPtr 
         m_sub_controller_process_values;
 
+    //! @brief datum subscriber
+    rclcpp::Subscription<geographic_msgs::msg::GeoPoint>::SharedPtr 
+        m_datum_sub;
+
     //! @brief Controller state request
     rclcpp::Publisher<mvp_msgs::msg::ControlProcess>::SharedPtr 
         m_pub_controller_set_point;
@@ -123,6 +132,7 @@ private:
     void f_cb_controller_process(
         const mvp_msgs::msg::ControlProcess::SharedPtr msg);
 
+
     bool f_cb_change_state(
         const std::shared_ptr<mvp_msgs::srv::ChangeState::Request> req,
         const std::shared_ptr<mvp_msgs::srv::ChangeState::Response> resp);
@@ -136,6 +146,13 @@ private:
         const std::shared_ptr<mvp_msgs::srv::GetStates::Response> resp);
 
     bool f_change_state(const std::string& name);
+
+    void f_cb_datum(const geographic_msgs::msg::GeoPoint::SharedPtr msg);
+
+    void f_ll2dis(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg::Point::SharedPtr map_point);
+
+    void f_dis2ll(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point);
+ 
 
     /**
       * @brief Initiates the plugins

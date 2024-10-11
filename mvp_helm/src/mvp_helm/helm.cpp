@@ -3,6 +3,7 @@
 #include <vector>
 #include <utility>
 #include "mvp_helm/helm.h"
+#include <GeographicLib/Geodesic.hpp>
 
 using namespace std::chrono_literals;
 
@@ -20,13 +21,12 @@ Helm::Helm(const rclcpp::NodeOptions & options)
 
     this->declare_parameter(CONF_HELM_GLOBAL, "world_ned");
     this->get_parameter(CONF_HELM_GLOBAL, m_global_link_id);
-    std::cout<<"global_link: "<<m_global_link_id<<std::endl;
+    // std::cout<<"global_link: "<<m_global_link_id<<std::endl;
 
     this->declare_parameter(CONF_HELM_LOCAL, "cg_link");
     this->get_parameter(CONF_HELM_LOCAL, m_local_link_id);
-    std::cout<<"local_link: "<<m_local_link_id<<std::endl;
+    // std::cout<<"local_link: "<<m_local_link_id<<std::endl;
     
-
     this->declare_parameter(CONF_HELM_FILE, "helm.yaml");
     this->get_parameter(CONF_HELM_FILE, m_helm_config_file);
 
@@ -77,6 +77,12 @@ void Helm::initialize() {
         std::bind(&Helm::f_cb_controller_process, this, std::placeholders::_1)
     );
 
+    m_datum_sub = this->create_subscription<geographic_msgs::msg::GeoPoint>(
+        "datum",
+        100,
+        std::bind(&Helm::f_cb_datum, this, std::placeholders::_1)
+    );
+
     m_pub_controller_set_point = this->create_publisher<mvp_msgs::msg::ControlProcess>(
         "controller/process/set_point",
         100
@@ -111,6 +117,7 @@ void Helm::initialize() {
         "~/get_states",
         std::bind(&Helm::f_cb_get_states, this, std::placeholders::_1, std::placeholders::_2)
     );
+    
 
     /***************************************************************************
      * Initialize state machine
@@ -144,6 +151,10 @@ void Helm::f_initialize_behaviors() {
 
         i->get_behavior()->f_change_state =
             std::bind(&Helm::f_change_state, this, std::placeholders::_1);
+
+        i->get_behavior()-> f_dis2ll = std::bind(&Helm::f_dis2ll, this, std::placeholders::_1, std::placeholders::_2);
+
+        i->get_behavior()-> f_ll2dis = std::bind(&Helm::f_ll2dis, this, std::placeholders::_1, std::placeholders::_2);
 
         i->get_behavior()->m_helm_frequency = m_helm_freq;
 
@@ -210,6 +221,11 @@ void Helm::f_cb_controller_process(const mvp_msgs::msg::ControlProcess::SharedPt
     // RCLCPP_INFO(this->get_logger(), "Test: receive controller process: control_mode=%s", msg->control_mode.c_str());
 
     m_controller_process_values = msg;
+}
+
+void Helm::f_cb_datum(const geographic_msgs::msg::GeoPoint::SharedPtr msg)
+{
+    m_datum =*msg;
 }
 
 bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::Request> req,
@@ -288,6 +304,41 @@ bool Helm::f_change_state(const std::string& name) {
 
     return m_state_machine->translate_to(name);
 }
+
+void Helm::f_dis2ll(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point)
+{   
+    //from world frame
+    // double lat = m_datum.latitude + map_point.y/m_earthR * 180.0/M_PI;
+    // double lon = m_datum.longitude + map_point.x/(m_earthR*cos(m_datum.latitude/180.0*M_PI)) * 180.0/M_PI;
+    const GeographicLib::Geodesic& geod = GeographicLib::Geodesic::WGS84();
+    double lat, lon;
+     // Calculate latitude and longitude of target point
+    geod.Direct(m_datum.latitude, m_datum.longitude, 0.0, map_point.y, lat, lon); // Move north
+    geod.Direct(lat, lon, 90.0, map_point.x, lat, lon); // Move east
+    
+    ll_point->latitude = lat;
+    ll_point->longitude = lon;
+    ll_point->altitude = map_point.z;
+}
+
+
+void Helm::f_ll2dis(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg::Point::SharedPtr map_point)
+{
+    double distance, azimuth1, azimuth2;
+    const GeographicLib::Geodesic& geod = GeographicLib::Geodesic::WGS84();
+    geod.Inverse(m_datum.latitude, m_datum.longitude, 
+                 ll_point.latitude, ll_point.longitude, 
+                 distance, azimuth1, azimuth2);
+    double north = distance *cos(azimuth1/180.0*M_PI);
+    double east = distance * sin(azimuth1/180.0*M_PI);
+
+    map_point->x = east;
+    map_point->y = north;
+    map_point->z = ll_point.altitude;
+   
+}
+
+
 
 void Helm::f_helm_loop() {
 

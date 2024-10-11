@@ -1,6 +1,10 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <fstream>
+// #include <iostream>
+// #include <filesystem>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include "bhv_path_following/bhv_path_following.h"
@@ -73,17 +77,11 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->get_parameter(prefix + "enu_frame", m_enu_frame);
     m_enu_frame = m_ns + "/" + m_enu_frame;
 
-    node->declare_parameter(prefix + "toll_service", "toLL");
-    node->get_parameter(prefix + "toll_service", m_toll_service);
-    m_toll_service = "/" + m_ns + "/" + m_toll_service;
-    
-
-    node->declare_parameter(prefix + "fromll_service", "fromLL");
-    node->get_parameter(prefix + "fromll_service", m_fromll_service);
-    m_fromll_service = "/" + m_ns + "/" + m_fromll_service;
-
     node->declare_parameter(prefix + "waypoint_path", "~/go_to_list");
-    node->get_parameter(prefix + "waypoint_path", waypoint_path);
+    node->get_parameter(prefix + "waypoint_path", m_waypoint_path);
+
+    node->declare_parameter(prefix + "waypoint_file_package", "~/go_to_list");
+    node->get_parameter(prefix + "waypoint_file_package", m_waypoint_file_package);
 
     node->declare_parameter(prefix + "state_done", "");
     node->get_parameter(prefix + "state_done", m_state_done);
@@ -123,7 +121,7 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->get_parameter(prefix + "lookahead_min", m_lookahead_min);
 
     node->declare_parameter(prefix + "lookahead_gamma", 0.01);
-    node->get_parameter(prefix + "lookahead_gammaq", m_lookahead_gamma);
+    node->get_parameter(prefix + "lookahead_gamma", m_lookahead_gamma);
 
     node->declare_parameter(prefix + "waypoint_x", m_wpt_x);
     node->get_parameter(prefix + "waypoint_x", m_wpt_x);
@@ -194,20 +192,6 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     update_waypoints_server = node->create_service<mvp_msgs::srv::SendWaypoints>(prefix + "update_waypoints",
         std::bind(&PathFollowing::f_cb_srv_update_waypoints, this, _1, _2));
 
-
-    m_toll_client = node->create_client<robot_localization::srv::ToLL>(m_toll_service);
-
-    m_fromll_client = node->create_client<robot_localization::srv::FromLL>(m_fromll_service);
-
-    while (!m_toll_client->wait_for_service(2s)) {
-        RCLCPP_WARN(m_logger, 
-            "service(%s) not available, waiting again...", m_toll_service.c_str());
-    }
-
-    while (!m_fromll_client->wait_for_service(2s)) {
-        RCLCPP_WARN(m_logger, 
-            "service(%s) not available, waiting again...", m_fromll_service.c_str());
-    }
 
     ////////////control DOFs////////////
     BehaviorBase::m_dofs = decltype(m_dofs){
@@ -350,6 +334,7 @@ void PathFollowing::f_next_line_segment() {
     m_line_index++;
     // printf("m_line_index= %d vs length=%d\r\n", m_line_index, length);
     if(m_line_index == length) {
+        RCLCPP_INFO(m_logger, "Done with all waypoints");
         change_state(m_state_done);
         m_line_index = 0;
     }
@@ -391,10 +376,9 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
             const std::shared_ptr<mvp_msgs::srv::GetWaypoints::Response> response)
 {
     
-
     auto length = m_waypoints.polygon.points.size();
     
-    printf("waypoint list size = %d\r\n", length);
+    // printf("waypoint list size = %d\r\n", length);
 
     if (length == 0)
     {
@@ -433,15 +417,12 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
             response->wpt[i].wpt.z = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].z);
         }
 
-        printf("waypoint xyz got\r\n");
         //we need to call the service to convert to lat and lon
         //call the service
-        std::cout << "Converting future waypoints into geopoint" << std::endl;
+        // std::cout << "Converting future waypoints into geopoint" << std::endl;
         //convert the resp.wpt from the waypoint frame id into the ENU (world)
         Eigen::Vector3d p_world;
         try {
-            // printf("tf =%s->%s\r\n", m_enu_frame.c_str(), response->wpt[i].header.frame_id.c_str());
-
             geometry_msgs::msg::TransformStamped tf_wpt_world = m_transform_buffer->lookupTransform(
                     m_enu_frame,
                     response->wpt[i].header.frame_id,
@@ -457,22 +438,19 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
                                 + tf_eigen.translation();
 
 
-            //check to_LL service
-            // robot_localization::srv::ToLL ser;
-            auto srv_req = std::make_shared<robot_localization::srv::ToLL::Request>();
-            srv_req->map_point.x = p_world.x();
-            srv_req->map_point.y = p_world.y();
-            srv_req->map_point.z = p_world.z();
+            //call the helm function to convert to ll
+            geographic_msgs::msg::GeoPoint::SharedPtr ll_point = std::make_shared<geographic_msgs::msg::GeoPoint>();
+            geometry_msgs::msg::Point map_point;
+            map_point.x = p_world.x();
+            map_point.y = p_world.y();
+            map_point.z = p_world.z();
+            dis2ll(map_point, ll_point);
 
-            auto result = m_toll_client->async_send_request(srv_req, 
-                [this, &response, &i](rclcpp::Client<robot_localization::srv::ToLL>::SharedFuture future) {
-                    auto data = future.get();  // Get the service response
-                    // Access the response using the captured index
-                    response->wpt[i].ll_wpt.latitude = data->ll_point.latitude;
-                    response->wpt[i].ll_wpt.longitude = data->ll_point.longitude;
-                    response->wpt[i].ll_wpt.altitude = data->ll_point.altitude;
-                }
-            );
+            // printf("wpt in lla=%lf, %lf, %lf\r\n", ll_point->latitude, ll_point->longitude, ll_point->altitude);
+
+            response->wpt[i].ll_wpt.latitude = ll_point->latitude;
+            response->wpt[i].ll_wpt.longitude = ll_point->longitude;
+            response->wpt[i].ll_wpt.altitude = ll_point->altitude;
         
         } catch(tf2::TransformException &e) {
             RCLCPP_WARN(m_logger, "Can't transform the waypoints into correct frame");
@@ -480,7 +458,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
         }
 
     }
-    printf("waypont query completed\r\n");
+    // printf("waypont query completed\r\n");
 
     return true;
 }
@@ -489,92 +467,99 @@ bool PathFollowing::f_cb_srv_load_waypoint(
         const std::shared_ptr<mvp_msgs::srv::LoadWaypoint::Request> request,
         const std::shared_ptr<mvp_msgs::srv::LoadWaypoint::Response> response)
 {
-    // geometry_msgs::msg::PolygonStamped temp_waypoints;
-    // std::string filename  = waypoint_path + request->file + ".yaml";
+    geometry_msgs::msg::PolygonStamped temp_waypoints;
 
-    // YAML::Node map = YAML::LoadFile(filename);
+    std::string package_directory = ament_index_cpp::get_package_share_directory(m_waypoint_file_package.c_str());
 
-    // bool good_frame = false;
-    // bool good_waypoint = false;
+    std::string filename  = package_directory + "/" + m_waypoint_path + request->file + ".yaml";
 
-    // if(map["frame_id"])
-    // {
-    //     temp_waypoints.header.frame_id = m_ns + "/" + map["frame_id"].as<std::string>();
-    //     good_frame = true;
-    // }
+    std::ifstream file(filename);
+    if(!file.good())
+    {
+        response->success=false;
+        RCLCPP_WARN(m_logger, "waypoint file [%s] not found", filename.c_str());
+        return false;
+    }
 
-    // if(map["waypoints"])
-    // {
-    //     for(uint32_t i = 0; i < map["waypoints"].size() ; i++) {
-    //         std::map<std::string, double> mp;
-    //         for(const auto& key : {"x", "y", "z"})
-    //         {
-    //             mp[key] = map["waypoints"][i][key].as<float>();
-    //         }
+    YAML::Node map = YAML::LoadFile(filename);
 
-    //         geometry_msgs::msg::Point32 gp;
-    //         gp.x = static_cast<float>(mp["x"]);
-    //         gp.y = static_cast<float>(mp["y"]);
-    //         gp.z = static_cast<float>(mp["z"]);
+    bool good_frame = false;
+    bool good_waypoint = false;
 
-    //         temp_waypoints.polygon.points.emplace_back(gp);
+    if(map["frame_id"])
+    {
+        temp_waypoints.header.frame_id = m_ns + "/" + map["frame_id"].as<std::string>();
+        good_frame = true;
+    }
 
-    //         good_waypoint = true;
+    if(map["waypoints"])
+    {
+        for(uint32_t i = 0; i < map["waypoints"].size() ; i++) {
+            std::map<std::string, double> mp;
+            for(const auto& key : {"x", "y", "z"})
+            {
+                mp[key] = map["waypoints"][i][key].as<float>();
+            }
 
-    //     }
-    // }
+            geometry_msgs::msg::Point32 gp;
+            gp.x = static_cast<float>(mp["x"]);
+            gp.y = static_cast<float>(mp["y"]);
+            gp.z = static_cast<float>(mp["z"]);
+
+            temp_waypoints.polygon.points.emplace_back(gp);
+
+            good_waypoint = true;
+
+        }
+    }
 
 
-    // if(map["ll_waypoints"])
-    // {
-    //     for(uint32_t i = 0; i < map["ll_waypoints"].size() ; i++) {
-    //         std::map<std::string, double> mp;
-    //         for(const auto& key : {"lat", "lon", "alt"})
-    //         {
-    //             mp[key] = map["ll_waypoints"][i][key].as<float>();
-    //         }
+    if(map["ll_waypoints"])
+    {
+        for(uint32_t i = 0; i < map["ll_waypoints"].size() ; i++) {
+            std::map<std::string, double> mp;
+            for(const auto& key : {"lat", "lon", "alt"})
+            {
+                mp[key] = map["ll_waypoints"][i][key].as<float>();
+            }
 
-    //         geographic_msgs::msg::GeoPoint geop; 
-    //         geop.latitude = static_cast<float>(mp["lat"]);
-    //         geop.longitude = static_cast<float>(mp["lon"]);
-    //         geop.altitude = static_cast<float>(mp["alt"]);
+            geographic_msgs::msg::GeoPoint geop; 
+            geop.latitude = static_cast<float>(mp["lat"]);
+            geop.longitude = static_cast<float>(mp["lon"]);
+            geop.altitude = static_cast<float>(mp["alt"]);
+            // printf("geo wpt =%lf, %lf, %lf\r\n", geop.latitude, geop.longitude, geop.altitude);
+            //convert into local
+            //call the helm function to convert to ll
+            geographic_msgs::msg::GeoPoint ll_point;
+            geometry_msgs::msg::Point::SharedPtr map_point = std::make_shared<geometry_msgs::msg::Point>();
+            ll_point.latitude = geop.latitude;
+            ll_point.longitude = geop.longitude;
+            ll_point.altitude = geop.altitude;
+            ll2dis(ll_point, map_point);
 
-    //         //convert into lat lon
-    //         auto srv_req = std::make_shared<robot_localization::srv::FromLL::Request>();
-    //         srv_req->ll_point.latitude = geop.latitude;
-    //         srv_req->ll_point.longitude = geop.longitude;
-    //         srv_req->ll_point.altitude = geop.altitude;
+            geometry_msgs::msg::Point32 gp;
+            gp.x = map_point->x;
+            gp.y = map_point->y;
+            gp.z = map_point->z;
+            temp_waypoints.polygon.points.emplace_back(gp);
+            good_waypoint = true;
+        }
 
-    //         geometry_msgs::msg::Point32 gp;
+    }
 
-    //         auto result = m_fromll_client->async_send_request(srv_req, 
-    //             [this, &gp](rclcpp::Client<robot_localization::srv::FromLL>::SharedFuture future) {
-    //                 auto data = future.get();  // Get the service response
-    //                 // Access the response using the captured index
-    //                 gp.x = data->map_point.x;
-    //                 gp.y = data->map_point.y;
-    //                 gp.z = data->map_point.z;
-    //             }
-    //         );
-    //         temp_waypoints.polygon.points.emplace_back(gp);
-    //         good_waypoint = true;
-    //     }
-
-    // }
-
-    // if(good_frame && good_waypoint)
-    // {
-    //     m_waypoints = temp_waypoints;
-    //     printf("waypoint updated from loading file service \r\n");
-    //     m_line_index = 0;
-    //     resume_or_start();
+    if(good_frame && good_waypoint)
+    {
+        m_waypoints = temp_waypoints;
+        // printf("waypoint updated from loading file service \r\n");
+        m_line_index = 0;
+        resume_or_start();
         
-    //     response->success=true;
-    // }
-    // else
-    // {
-    //     response->success=false;
-    // }
+        response->success=true;
+    }
+    else
+    {
+        response->success=false;
+    }
 
     
     return true;
@@ -593,35 +578,45 @@ bool PathFollowing::f_cb_srv_update_waypoints(
         temp_waypoints.header.frame_id = m_frame_id; //set to world by default
         for(const auto& i : request->wpt) {
             
-            //convert into x, y
-            auto srv_req = std::make_shared<robot_localization::srv::FromLL::Request>();
-            srv_req->ll_point.latitude = i.ll_wpt.latitude;
-            srv_req->ll_point.longitude = i.ll_wpt.longitude;
-            srv_req->ll_point.altitude = i.ll_wpt.altitude;
+            geographic_msgs::msg::GeoPoint ll_point;
+            geometry_msgs::msg::Point::SharedPtr map_point = std::make_shared<geometry_msgs::msg::Point>();
+            ll_point.latitude = i.ll_wpt.latitude;
+            ll_point.longitude = i.ll_wpt.longitude;
+            ll_point.altitude = i.ll_wpt.altitude;
+            ll2dis(ll_point, map_point);
 
             geometry_msgs::msg::Point32 gp;
+            gp.x = map_point->x;
+            gp.y = map_point->y;
+            gp.z = map_point->z;
 
-            auto result = m_fromll_client->async_send_request(srv_req, 
-                [this, &gp](rclcpp::Client<robot_localization::srv::FromLL>::SharedFuture future) {
-                    auto data = future.get();  // Get the service response
-                    // Access the response using the captured index
-                    gp.x = data->map_point.x;
-                    gp.y = data->map_point.y;
-                    gp.z = data->map_point.z;
-                }
-            );
             temp_waypoints.polygon.points.emplace_back(gp);
         }
         m_waypoints = temp_waypoints;
-        printf("geopath type waypoint updated from the service \r\n");
+        // printf("geopath type waypoint updated from the service \r\n");
         // printf("m_waypoints size = %d; temp_waypoints = %d\r\n", m_waypoints.polygon.points.size(), temp_waypoints.polygon.points.size());
         m_line_index = 0;
         resume_or_start();
         response->success = true;
         return true;
     }
-    return true;
-
+    else{
+        temp_waypoints.header.frame_id = request->wpt[0].header.frame_id; //
+        for(const auto& i : request->wpt) {
+            geometry_msgs::msg::Point32 gp;
+            gp.x = i.wpt.x;
+            gp.y = i.wpt.y;
+            gp.z = i.wpt.z;
+            temp_waypoints.polygon.points.emplace_back(gp);
+            //tf hanlded in resume_or_start()
+        }
+        m_waypoints = temp_waypoints;
+        // printf("local type waypoint updated from the service \r\n");
+        m_line_index = 0;
+        resume_or_start();
+        response->success = true;
+        return true;
+    }
 }
 
 
@@ -705,7 +700,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     if(Xke > 0 ) {
         // overshoot detected
         // ROS_WARN_THROTTLE(5, "Overshoot detected!");
-        printf("Overshoot Detected!\r\n");
+        RCLCPP_ERROR(m_logger, "Overshoot Detected!");
         // RCLCPP_WARN_THROTTLE(m_logger, *node->get_clock(), 5000, "Overshoot detected!");
         // Look back
         lookahead = -lookahead;
@@ -726,8 +721,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         if((t.seconds() - m_overshoot_timer) > m_overshoot_timeout) {
             // ROS_ERROR_THROTTLE(10, "Overshoot abort!");
             // RCLCPP_WARN_THROTTLE(m_logger, *node->get_clock(), 10000, "Overshoot abort!");
-            printf("Overshoot caused abort!\r\n");
-
+            RCLCPP_ERROR(m_logger, "Overshoot caused abort!");
             change_state(m_state_fail);
             return false;
         }
@@ -758,7 +752,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         // lookahead = m_lookahead_max - (m_lookahead_max - m_lookahead_min)*exp(-m_lookahead_gamma*fabs(Ye));
         lookahead = (m_lookahead_max - m_lookahead_min)*exp(-m_lookahead_gamma*fabs(Ye)) + m_lookahead_min;
 
-        // printf("lookahead distance = %f\r\n", lookahead);
+        // printf("lookahead distance = %lf\r\n", lookahead);
         
         // m_cmd.orientation.z = gamma_p - atan(Ye/lookahead);
 
@@ -768,7 +762,15 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
 
     set_point->velocity.x = m_surge_velocity;
 
-    set_point->orientation.z = gamma_p - atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
+    // double desired_heading = gamma_p - std::atan2( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
+    double desired_heading = gamma_p - atan(Ye/lookahead) - atan(ye_dot*m_beta_gain) - atan(m_sigma*m_yint/lookahead);
+
+
+    // printf("sideslip =%lf \r\n", ye_dot);
+    // printf("desired_heading =%lf\r\n", desired_heading*180.0/3.1415);
+    // printf("cross-track_error =%lf\r\n", Ye);
+
+    set_point->orientation.z = desired_heading;
 
     //Set the direct z set point
     set_point->position.z = m_wpt_second.z;
@@ -780,7 +782,8 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     auto dist = std::sqrt(dx2 * dx2 + dy2*dy2);
     if(dist < m_acceptance_radius ) {
         f_next_line_segment();
-        printf("waypoint_reached\r\n");
+        // printf("waypoint_reached\r\n");
+        RCLCPP_INFO(m_logger, "current waypoints has reached, move to the next one");
         m_overshoot_timer = 0;
     }
 

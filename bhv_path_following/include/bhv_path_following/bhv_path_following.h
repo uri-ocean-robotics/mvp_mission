@@ -41,8 +41,6 @@
 #include "mvp_msgs/srv/send_waypoints.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
-#include "robot_localization/srv/to_ll.hpp"
-#include "robot_localization/srv/from_ll.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace helm {
@@ -130,9 +128,6 @@ private:
     //! @brief update waypoints
     rclcpp::Service<mvp_msgs::srv::SendWaypoints>::SharedPtr update_waypoints_server;
 
-    rclcpp::Client<robot_localization::srv::ToLL>::SharedPtr m_toll_client;
-
-    rclcpp::Client<robot_localization::srv::FromLL>::SharedPtr m_fromll_client;
     ////////variables//////////
     std::string m_frame_id;
 
@@ -142,7 +137,9 @@ private:
 
     std::string m_toll_service;
 
-    std::string waypoint_path;
+    std::string m_waypoint_path;
+
+    std::string m_waypoint_file_package;
 
     std::string m_state_done;
 

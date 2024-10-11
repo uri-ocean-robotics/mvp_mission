@@ -12,6 +12,8 @@
   <depend>rclcpp</depend>
   <depend>pluginlib</depend>
   <depend>mvp_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>geographic_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -14,11 +14,15 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(mvp_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(geographic_msgs REQUIRED)
 
 set(dependencies
   rclcpp
   pluginlib
   mvp_msgs
+  geometry_msgs
+  geographic_msgs
 )
 
 install(DIRECTORY include/
