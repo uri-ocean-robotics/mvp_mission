@@ -28,12 +28,15 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(behavior_interface REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(robot_localization REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 
 ####################################################################
 #####                   setup dependencies                     #####
 ####################################################################
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "/usr/share/cmake/geographiclib/")
+find_package(GeographicLib REQUIRED)
 
 set(library_name helm)
 set(executable_name mvp_helm)
@@ -48,6 +51,7 @@ set(dependencies
   tf2_geometry_msgs
   geometry_msgs
   behavior_interface
+  robot_localization
   pluginlib
 )
 
@@ -73,6 +77,7 @@ ament_target_dependencies(${library_name}
 target_link_libraries( 
   ${library_name}
   ${YAML_CPP_LIBRARIES}
+  ${GeographicLib_LIBRARIES}
 )
 
 # Executable
@@ -82,6 +87,7 @@ add_executable(${executable_name}
 target_link_libraries(${executable_name} 
   ${library_name}
   ${YAML_CPP_LIBRARIES}
+  ${GeographicLib_LIBRARIES}
 )
 ament_target_dependencies(${executable_name}
   ${dependencies}

@@ -49,6 +49,8 @@ namespace helm {
     CONST_STRING CONF_HELM_LOCAL = "local_link";
     CONST_STRING CONF_TF_PREFIX = "tf_prefix";
     CONST_STRING CONF_HELM_FILE = "helm_config_file";
+    CONST_STRING CONF_FROMLL_SRV_NAME = "helm_fromLL_srv_name";
+    CONST_STRING CONF_TOLL_SRV_NAME = "helm_toLL_srv_name";
 
     CONST_STRING CONF_FSM = "finite_state_machine";
     CONST_STRING CONF_FSM_NAME = "state_name";
