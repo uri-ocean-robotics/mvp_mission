@@ -235,61 +235,27 @@ void PathFollowing::f_transform_waypoints(
         } else {
             ps.header.frame_id = in.header.frame_id;
         }
+        // printf("ps header =%s\r\n", ps.header.frame_id.c_str());
         ps.point.x = pt.x;
         ps.point.y = pt.y;
         ps.point.z = pt.z;
-        geometry_msgs::msg::PointStamped t;
+        geometry_msgs::msg::PointStamped transformed_point;
         ps.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now(); // Set to current time
-        // t = m_transform_buffer->transform(ps, target_frame, tf2::durationFromSec(0.5));
-        // printf("point frame = %s\r\n", ps.header.frame_id.c_str());
-
-        geometry_msgs::msg::TransformStamped tf_p2target;
-        try {
-            tf_p2target = m_transform_buffer->lookupTransform(
-                target_frame,
-                ps.header.frame_id,
-                tf2::TimePointZero,   // Use the latest available transform
-                10ms                  // Timeout for lookup
-            );
-
-            // Extract translation and rotation from the transform
-            const geometry_msgs::msg::Vector3 &translation = tf_p2target.transform.translation;
-            const geometry_msgs::msg::Quaternion &rotation = tf_p2target.transform.rotation;
-
-            // Convert geometry_msgs::msg::Quaternion to tf2::Quaternion
-            tf2::Quaternion quat(rotation.x, rotation.y, rotation.z, rotation.w);
-
-            // Convert geometry_msgs::msg::PointStamped point into tf2::Vector3
-            tf2::Vector3 point_in(ps.point.x, ps.point.y, ps.point.z);
-
-            // Create a tf2::Transform from the translation and rotation
-            tf2::Transform transform(quat, tf2::Vector3(translation.x, translation.y, translation.z));
-
-            // Apply the transformation (rotate and translate the point)
-            tf2::Vector3 point_out = transform * point_in;
-
-            geometry_msgs::msg::PointStamped transformed_point;
-            // Store the transformed point in the output message
-            transformed_point.point.x = point_out.x();
-            transformed_point.point.y = point_out.y();
-            transformed_point.point.z = point_out.z();
-
-            // Optionally, set the transformed point's header information
-            transformed_point.header.stamp = ps.header.stamp; // Keep the same timestamp
-            transformed_point.header.frame_id = target_frame;
+        try{
+            transformed_point = m_transform_buffer->transform(ps, target_frame, tf2::durationFromSec(1.0));
             
+
             geometry_msgs::msg::Point32 p;
             p.x = static_cast<float>(transformed_point.point.x);
             p.y = static_cast<float>(transformed_point.point.y);
             p.z = static_cast<float>(transformed_point.point.z);
 
-            tm.polygon.points.emplace_back(p);
-
-        } catch (const tf2::TransformException &ex) {
-            RCLCPP_ERROR(m_logger, "Transform lookup failed: %s", ex.what());
-            continue;
+        tm.polygon.points.emplace_back(p);
         }
-        
+        catch (tf2::TransformException &ex) {
+            auto steady_clock = rclcpp::Clock();
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Could NOT transform waypoints"));
+        }
     }
     *out = tm;
 
@@ -386,6 +352,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
     }
 
     int num = request->count.data;
+    
     if (num == 0)
     {
         num = length - m_line_index+1;
@@ -698,9 +665,11 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     double lookahead = m_lookahead_distance;
 
     if(Xke > 0 ) {
+        auto steady_clock = rclcpp::Clock();
         // overshoot detected
         // ROS_WARN_THROTTLE(5, "Overshoot detected!");
-        RCLCPP_ERROR(m_logger, "Overshoot Detected!");
+        // RCLCPP_ERROR(m_logger, "Overshoot Detected!");
+         RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Overshoot Detected!"));
         // RCLCPP_WARN_THROTTLE(m_logger, *node->get_clock(), 5000, "Overshoot detected!");
         // Look back
         lookahead = -lookahead;
@@ -762,8 +731,8 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
 
     set_point->velocity.x = m_surge_velocity;
 
-    // double desired_heading = gamma_p - std::atan2( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
-    double desired_heading = gamma_p - atan(Ye/lookahead) - atan(ye_dot*m_beta_gain) - atan(m_sigma*m_yint/lookahead);
+    double desired_heading = gamma_p - std::atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
+    // double desired_heading = gamma_p - atan(Ye/lookahead) - atan(ye_dot*m_beta_gain) - atan(m_sigma*m_yint/lookahead);
 
 
     // printf("sideslip =%lf \r\n", ye_dot);

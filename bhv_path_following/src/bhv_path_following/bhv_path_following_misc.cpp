@@ -36,14 +36,7 @@ void PathFollowing::f_visualize_path(bool clear) {
         marker.action = visualization_msgs::msg::Marker::DELETEALL;
     } else {
         marker.action = visualization_msgs::msg::Marker::MODIFY;
-        // for (const auto &i: m_transformed_waypoints.polygon.points) {
-        //     geometry_msgs::msg::Point p;
-        //     p.x = i.x;
-        //     p.y = i.y;
-        //     p.z = i.z;
-        //     marker.points.emplace_back(p);
-        // }
-        // printf("waypoint_size=%d\r\n", m_transformed_waypoints.polygon.points.size());
+        
         for (size_t i = 0; i < m_transformed_waypoints.polygon.points.size(); i++) {
             geometry_msgs::msg::Point p1;
 
