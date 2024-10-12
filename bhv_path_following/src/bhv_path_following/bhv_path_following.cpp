@@ -105,6 +105,15 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "pitch_angle", 0.0);
     node->get_parameter(prefix + "pitch_angle", m_pitch);
 
+    node->declare_parameter(prefix + "pitch_gain", 0.0);
+    node->get_parameter(prefix + "pitch_gain", m_pitch_gain);
+
+    node->declare_parameter(prefix + "pitch_assist_band", 0.0);
+    node->get_parameter(prefix + "pitch_assist_band", m_pitch_assist_band);
+
+    node->declare_parameter(prefix + "max_pitch", 0.0);
+    node->get_parameter(prefix + "max_pitch", m_max_pitch);
+    
     node->declare_parameter(prefix + "sigma", 0.0);
     node->get_parameter(prefix + "sigma", m_sigma);
 
@@ -732,12 +741,19 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     set_point->velocity.x = m_surge_velocity;
 
     double desired_heading = gamma_p - std::atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
-    // double desired_heading = gamma_p - atan(Ye/lookahead) - atan(ye_dot*m_beta_gain) - atan(m_sigma*m_yint/lookahead);
-
-
     // printf("sideslip =%lf \r\n", ye_dot);
     // printf("desired_heading =%lf\r\n", desired_heading*180.0/3.1415);
     // printf("cross-track_error =%lf\r\n", Ye);
+
+    //compute the desired pitch
+    if(fabs(m_wpt_second.z - BehaviorBase::m_process_values.position.z) > m_pitch_assist_band)
+    {
+        m_pitch = -m_pitch_gain * (m_wpt_second.z - BehaviorBase::m_process_values.position.z); //positive error needs a negative pitch in cg_link
+        m_pitch = std::min(std::max(m_pitch, -m_max_pitch), m_max_pitch);
+    }
+    else{
+        m_pitch = 0;
+    }
 
     set_point->orientation.z = desired_heading;
 

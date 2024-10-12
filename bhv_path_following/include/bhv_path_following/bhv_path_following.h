@@ -161,6 +161,12 @@ private:
 
     double m_pitch;
 
+    double m_pitch_gain;
+
+    double m_pitch_assist_band;
+
+    double m_max_pitch;
+
     double m_sigma;
 
     double m_beta_gain;
