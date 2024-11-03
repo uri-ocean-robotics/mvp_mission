@@ -85,13 +85,17 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->get_parameter(prefix + "max_sway", m_max_sway);
 
     // Load  enable/disable control
-    node->declare_parameter(prefix + "ctrl_disable_srv", "controller/disable");
-    node->get_parameter(prefix + "ctrl_disable_srv", m_ctrl_disable);
-    m_ctrl_disable = "/" + m_ns + "/" + m_ctrl_disable;
+    // node->declare_parameter(prefix + "ctrl_disable_srv", "controller/disable");
+    // node->get_parameter(prefix + "ctrl_disable_srv", m_ctrl_disable);
+    // m_ctrl_disable = "/" + m_ns + "/" + m_ctrl_disable;
     
-    node->declare_parameter(prefix + "ctrl_enable_srv", "controller/enable");
-    node->get_parameter(prefix + "ctrl_enable_srv", m_ctrl_enable);
-    m_ctrl_enable = "/" + m_ns + "/" + m_ctrl_enable;
+    // node->declare_parameter(prefix + "ctrl_enable_srv", "controller/enable");
+    // node->get_parameter(prefix + "ctrl_enable_srv", m_ctrl_enable);
+    // m_ctrl_enable = "/" + m_ns + "/" + m_ctrl_enable;
+
+    node->declare_parameter(prefix + "ctrl_set_srv", "controller/set");
+    node->get_parameter(prefix + "ctrl_set_srv", m_ctrl_set_srv);
+    m_ctrl_set_srv = "/" + m_ns + "/" + m_ctrl_set_srv;
 
     node->declare_parameter(prefix + "no_joy_timeout", 3.0);
     node->get_parameter(prefix + "no_joy_timeout", m_no_joy_timeout);
@@ -108,19 +112,29 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
         this, std::placeholders::_1));
 
     // controller srv
-    m_disable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_disable);
+    // m_disable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_disable);
 
-    m_enable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_enable);
+    // m_enable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_enable);
 
-    while (!m_disable_ctrl_client->wait_for_service(2s)) {
+    m_ctrl_set_client = node->create_client<std_srvs::srv::SetBool>(m_ctrl_set_srv);
+
+
+
+    // while (!m_disable_ctrl_client->wait_for_service(2s)) {
+    //     RCLCPP_WARN(m_logger, 
+    //         "service(%s) not available, waiting again...", m_ctrl_disable.c_str());
+    // }
+
+    // while (!m_enable_ctrl_client->wait_for_service(2s)) {
+    //     RCLCPP_WARN(m_logger, 
+    //         "service(%s) not available, waiting again...", m_ctrl_enable.c_str());
+    // }
+
+    while (!m_ctrl_set_client->wait_for_service(2s)) {
         RCLCPP_WARN(m_logger, 
-            "service(%s) not available, waiting again...", m_ctrl_disable.c_str());
+            "service(%s) not available, waiting again...", m_ctrl_set_srv.c_str());
     }
 
-    while (!m_enable_ctrl_client->wait_for_service(2s)) {
-        RCLCPP_WARN(m_logger, 
-            "service(%s) not available, waiting again...", m_ctrl_enable.c_str());
-    }
 
     /*************************************************************************/
     /* Declare the degree of freedoms to be controlled by the behavior */
@@ -193,9 +207,11 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     {
         //! TODO: change the state if failed
 
-        auto request = std::make_shared<std_srvs::srv::Empty::Request>();
+        auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
         
-        auto resp = m_disable_ctrl_client->async_send_request(request);
+        request->data = false;
+
+        auto resp = m_ctrl_set_client->async_send_request(request);
 
         //! TODO: weakptr has no accesss to the node interface, check the result of srv 
 
@@ -208,9 +224,10 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     {
         //! TODO: change the state if failed
 
-        auto request = std::make_shared<std_srvs::srv::Empty::Request>();
+        auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
+        request->data = true;
         
-        auto resp = m_enable_ctrl_client->async_send_request(request);
+        auto resp = m_ctrl_set_client->async_send_request(request);
 
     }
 

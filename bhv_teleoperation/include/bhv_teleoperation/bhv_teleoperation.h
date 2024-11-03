@@ -30,6 +30,7 @@
 #include "std_msgs/msg/float64.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_srvs/srv/empty.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 #include "behavior_interface/behavior_base.h"
 #include "mvp_msgs/msg/control_process.hpp"
@@ -82,9 +83,11 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr m_joy_sub;
 
-    rclcpp::Client<std_srvs::srv::Empty>::SharedPtr m_disable_ctrl_client;
+    // rclcpp::Client<std_srvs::srv::Empty>::SharedPtr m_disable_ctrl_client;
 
-    rclcpp::Client<std_srvs::srv::Empty>::SharedPtr m_enable_ctrl_client;
+    // rclcpp::Client<std_srvs::srv::Empty>::SharedPtr m_enable_ctrl_client;
+
+    rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr m_ctrl_set_client;    
 
     rclcpp::Logger m_logger{rclcpp::get_logger("mvp2_mission_bhv_teleop")};
 
@@ -191,6 +194,8 @@ private:
     std::string m_ctrl_disable;
 
     std::string m_ctrl_enable;
+
+    std::string m_ctrl_set_srv;
 
     /**
         * @brief Value to indicate joystick is enabled or not
