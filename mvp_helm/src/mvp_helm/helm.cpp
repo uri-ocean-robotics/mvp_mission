@@ -259,7 +259,7 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
 bool Helm::f_cb_get_state(const std::shared_ptr<mvp_msgs::srv::GetState::Request> req,
                           const std::shared_ptr<mvp_msgs::srv::GetState::Response> resp) {
 
-    RCLCPP_INFO(this->get_logger(), "get state");
+    // RCLCPP_INFO(this->get_logger(), "get state");
 
     if(req->name.empty()) {
 
@@ -285,7 +285,7 @@ bool Helm::f_cb_get_state(const std::shared_ptr<mvp_msgs::srv::GetState::Request
 
 bool Helm::f_cb_get_states(const std::shared_ptr<mvp_msgs::srv::GetStates::Request> req,
                            const std::shared_ptr<mvp_msgs::srv::GetStates::Response> resp) {
-    RCLCPP_INFO(this->get_logger(), "get states");
+    // RCLCPP_INFO(this->get_logger(), "get states");
 
     for(const auto& i : m_state_machine->get_states()) {
         mvp_msgs::msg::HelmState s;
