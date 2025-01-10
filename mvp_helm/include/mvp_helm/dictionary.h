@@ -23,6 +23,8 @@ namespace helm {
         std::string name;
         std::string control_mode;
         std::vector<std::string> transitions;
+        std::string set_point_world_frame;
+        std::string set_point_child_frame;
     };
 
     struct behavior_sm_state_t{
@@ -57,6 +59,8 @@ namespace helm {
     CONST_STRING CONF_FSM_MODE = "control_mode";
     CONST_STRING CONF_FSM_INITIAL = "initial";
     CONST_STRING CONF_FSM_TRANSITIONS = "transitions";
+    CONST_STRING CONF_FSM_WORLD_FRAME = "set_point_world_frame";
+    CONST_STRING CONF_FSM_CHILD_FRAME = "set_point_child_frame";
 
     CONST_STRING CONF_BHV = "behaviors";
     CONST_STRING CONF_BHV_NAME = "name";
