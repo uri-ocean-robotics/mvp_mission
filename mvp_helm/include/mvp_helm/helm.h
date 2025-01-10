@@ -180,12 +180,12 @@ private:
     /**
       * @brief Local link id (i.e., cg_link)
       */        
-    std::string m_local_link_id;
+    std::string m_child_link_id;
 
     /**
       * @brief Global link id (i.e., world_ned)
       */           
-    std::string m_global_link_id;
+    std::string m_world_link_id;
 
     /**
       * @brief helm file directory
@@ -200,12 +200,12 @@ private:
     /**
       * @brief Global frame_id
       */     
-    std::string m_global_frame;
+    std::string m_world_frame;
 
     /**
       * @brief Local frame_id
       */     
-    std::string m_local_frame;
+    std::string m_child_frame;
       
     /**
       * @brief Parse object

@@ -130,7 +130,7 @@ void Bathtub::transform_setpoint()
     try{
         //get tf from bhv world to helm world
         geometry_msgs::msg::TransformStamped tf_bw_hw = m_transform_buffer->lookupTransform(
-            get_helm_global_link(),
+            get_helm_world_link(),
             bhv_global_link,
             tf2::TimePointZero,
             10ms
@@ -145,7 +145,7 @@ void Bathtub::transform_setpoint()
     }catch (const tf2::TransformException & e) {
             RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in bathtub ") + e.what());
             RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
-                         get_helm_global_link().c_str(), bhv_global_link.c_str(), e.what() ); 
+                         get_helm_world_link().c_str(), bhv_global_link.c_str(), e.what() ); 
           return;
     }
 
@@ -153,7 +153,7 @@ void Bathtub::transform_setpoint()
     try{
         auto tf_1 = m_transform_buffer->lookupTransform(
                 bhv_global_link,
-                get_helm_global_link(),
+                get_helm_world_link(),
                 tf2::TimePointZero,
                 10ms
             );
@@ -173,7 +173,7 @@ void Bathtub::transform_setpoint()
     }catch (const tf2::TransformException & e) {
             RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in bathtub ") + e.what());
             RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
-                         get_helm_global_link().c_str(), bhv_global_link.c_str(), e.what() ); 
+                         get_helm_world_link().c_str(), bhv_global_link.c_str(), e.what() ); 
           return;
     }
 
@@ -218,7 +218,7 @@ bool Bathtub::request_set_point(
         //get tf from bhv world to helm world
         geometry_msgs::msg::TransformStamped tf_hw_bw = m_transform_buffer->lookupTransform(
             bhv_global_link,
-            get_helm_global_link(),
+            get_helm_world_link(),
             tf2::TimePointZero,
             10ms
         );
@@ -284,7 +284,7 @@ bool Bathtub::request_set_point(
         } catch (const tf2::TransformException & e) {
             RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute thruster tf between ") + e.what());
             RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
-                         get_helm_global_link().c_str(), bhv_global_link.c_str(), e.what() ); 
+                         get_helm_world_link().c_str(), bhv_global_link.c_str(), e.what() ); 
           return false;
 
         }

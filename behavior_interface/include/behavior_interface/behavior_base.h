@@ -61,12 +61,12 @@ private:
     /**
      * @brief Global link of helm
      */
-    std::string m_global_link;
+    std::string m_world_link;
 
     /**
      * @brief Local link of helm
      */
-    std::string m_local_link;
+    std::string m_child_link;
 
     /**
      * @brief A string holds the active state name
@@ -217,12 +217,12 @@ protected:
     /**
      * @brief 
      */
-    virtual std::string get_helm_global_link() final { return m_global_link; }
+    virtual std::string get_helm_world_link() final { return m_world_link; }
 
     /**
      * @brief 
      */
-    virtual std::string get_helm_local_link() final { return m_local_link; }
+    virtual std::string get_helm_child_link() final { return m_child_link; }
     
     /**
      * @brief 

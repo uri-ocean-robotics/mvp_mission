@@ -122,10 +122,10 @@ void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::S
     ps.point.x = msg->point.x;
     ps.point.y = msg->point.y;
     ps.point.z = msg->point.z;
-    // printf("target frame = %s\r\n", get_helm_global_link().c_str());
+    // printf("target frame = %s\r\n", get_helm_world_link().c_str());
     // printf("point frame = %s\r\n", ps.header.frame_id.c_str());
     try{
-        point_in_helm_global = m_transform_buffer->transform(ps, get_helm_global_link().c_str(), tf2::durationFromSec(1.0));   
+        point_in_helm_global = m_transform_buffer->transform(ps, get_helm_world_link().c_str(), tf2::durationFromSec(1.0));   
         m_bottom_depth =  point_in_helm_global.point.z;
         // printf("altitude transformed =%lf\n\r", m_bottom_depth);
     }

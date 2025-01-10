@@ -118,15 +118,22 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
     node->get_parameter(prefix + "desired_q", m_desired_value(DOF::Q));
     node->declare_parameter(prefix + "desired_r", 0.0);
     node->get_parameter(prefix + "desired_r", m_desired_value(DOF::R));
-    
+
     std::string node_name = node->get_name();
     std::string ns = node->get_namespace();
     if (!ns.empty() && ns[0] == '/') {
         ns = ns.substr(1);
     }
 
-    bhv_global_link = ns + "/world_ned";
-    bhv_child_link = ns + "/cg_link";
+    std::string global_link, child_link;
+    node->declare_parameter(prefix + "default_bhv_world_link", "world_ned");
+    node->get_parameter(prefix + "default_bhv_world_link", global_link);
+
+    node->declare_parameter(prefix + "default_bhv_child_link", "cg_link");
+    node->get_parameter(prefix + "default_bhv_child_link", child_link);
+    
+    bhv_global_link = ns + "/" + global_link;
+    bhv_child_link = ns + "/" + child_link;
 
     ///topics
     m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("~/"+ prefix + "desired_setpoints", 100, 
@@ -204,7 +211,7 @@ void DirectControl::transform_setpoint()
     try{
         //get tf from bhv world to helm world
         geometry_msgs::msg::TransformStamped tf_bw_hw = m_transform_buffer->lookupTransform(
-            get_helm_global_link(),
+            get_helm_world_link(),
             bhv_global_link,
             tf2::TimePointZero,
             10ms
@@ -222,7 +229,7 @@ void DirectControl::transform_setpoint()
         //step 1 get helm_global to bhv_global
          geometry_msgs::msg::TransformStamped tf_hg_bg = m_transform_buffer->lookupTransform(
             bhv_global_link,
-            get_helm_global_link(),
+            get_helm_world_link(),
             tf2::TimePointZero,
             10ms
         );
@@ -252,13 +259,13 @@ void DirectControl::transform_setpoint()
         
         //computet he bhv_local to helm local
         geometry_msgs::msg::TransformStamped tf_bl_hl = m_transform_buffer->lookupTransform(
-            get_helm_local_link(),
+            get_helm_child_link(),
             bhv_child_link,
             tf2::TimePointZero,
             10ms
         );
 
-        // printf("helm_local = %s, bhv_child = %s\r\n", get_helm_local_link().c_str(), bhv_child_link.c_str());
+        // printf("helm_local = %s, bhv_child = %s\r\n", get_helm_child_link().c_str(), bhv_child_link.c_str());
         auto tf_blhl_eigen = tf2::transformToEigen(tf_bl_hl);
         
         ///velocity
@@ -291,7 +298,7 @@ void DirectControl::transform_setpoint()
     } catch (const tf2::TransformException & e) {
             RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in direct contro: ") + e.what());
             RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
-                         get_helm_global_link().c_str(), bhv_global_link.c_str(), e.what() ); 
+                         get_helm_world_link().c_str(), bhv_global_link.c_str(), e.what() ); 
           return;
 
     }

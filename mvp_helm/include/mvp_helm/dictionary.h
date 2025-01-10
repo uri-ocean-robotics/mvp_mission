@@ -41,14 +41,14 @@ namespace helm {
 
     struct helm_configuration_t{
         double frequency;
-        std::string global_link;
-        std::string local_link;
+        std::string world_link;
+        std::string child_link;
     };
 
     CONST_STRING CONF_HELM = "helm_configuration";
     CONST_STRING CONF_HELM_FREQ = "frequency";
-    CONST_STRING CONF_HELM_GLOBAL = "global_link";
-    CONST_STRING CONF_HELM_LOCAL = "local_link";
+    CONST_STRING CONF_HELM_WORLD_LINK_DEFAULT = "default_world_link";
+    CONST_STRING CONF_HELM_CHILD_LINK_DEFAULT = "default_child_link";
     CONST_STRING CONF_TF_PREFIX = "tf_prefix";
     CONST_STRING CONF_HELM_FILE = "helm_config_file";
     CONST_STRING CONF_FROMLL_SRV_NAME = "helm_fromLL_srv_name";

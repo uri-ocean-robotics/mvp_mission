@@ -278,7 +278,7 @@ void PathFollowing::resume_or_start() {
     geometry_msgs::msg::PolygonStamped poly;
     f_transform_waypoints(
         // m_process_values.header.frame_id,
-        get_helm_global_link(),
+        get_helm_world_link(),
         m_waypoints,
         &m_transformed_waypoints
     );
@@ -331,7 +331,7 @@ void PathFollowing::f_waypoint_cb(const geometry_msgs::msg::PolygonStamped::Shar
             m_waypoints.polygon.points.emplace_back(i);
         }
         //transform the waypoints
-        f_transform_waypoints(get_helm_global_link(), m_waypoints, &m_transformed_waypoints);
+        f_transform_waypoints(get_helm_world_link(), m_waypoints, &m_transformed_waypoints);
 
     }
     else
@@ -380,7 +380,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
         if(i == 0)
         {
             response->wpt[i].header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-            response->wpt[i].header.frame_id = get_helm_global_link();
+            response->wpt[i].header.frame_id = get_helm_world_link();
             response->wpt[i].wpt.x = m_wpt_first.x;
             response->wpt[i].wpt.y = m_wpt_first.y;
             response->wpt[i].wpt.z = m_wpt_first.z;

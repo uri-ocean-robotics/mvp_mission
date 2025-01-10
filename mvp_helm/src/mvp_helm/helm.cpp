@@ -19,12 +19,11 @@ Helm::Helm(const rclcpp::NodeOptions & options)
     this->declare_parameter(CONF_HELM_FREQ, 10.0);
     this->get_parameter(CONF_HELM_FREQ, m_helm_freq);
 
-    this->declare_parameter(CONF_HELM_GLOBAL, "world_ned");
-    this->get_parameter(CONF_HELM_GLOBAL, m_global_link_id);
-    // std::cout<<"global_link: "<<m_global_link_id<<std::endl;
+    this->declare_parameter(CONF_HELM_WORLD_LINK_DEFAULT, "world_ned");
+    this->get_parameter(CONF_HELM_WORLD_LINK_DEFAULT, m_world_link_id);
 
-    this->declare_parameter(CONF_HELM_LOCAL, "cg_link");
-    this->get_parameter(CONF_HELM_LOCAL, m_local_link_id);
+    this->declare_parameter(CONF_HELM_CHILD_LINK_DEFAULT, "cg_link");
+    this->get_parameter(CONF_HELM_CHILD_LINK_DEFAULT, m_child_link_id);
     // std::cout<<"local_link: "<<m_local_link_id<<std::endl;
     
     this->declare_parameter(CONF_HELM_FILE, "helm.yaml");
@@ -35,8 +34,8 @@ Helm::Helm(const rclcpp::NodeOptions & options)
     this->get_parameter(CONF_TF_PREFIX, tf_prefix);
     m_tf_prefix = tf_prefix.empty() ? "" : tf_prefix + "/";
 
-    m_global_frame = m_tf_prefix + m_global_link_id;
-    m_local_frame = m_tf_prefix+ m_local_link_id;
+    m_world_frame = m_tf_prefix + m_world_link_id;
+    m_child_frame = m_tf_prefix+ m_child_link_id;
 }
 
 Helm::~Helm()
@@ -158,9 +157,9 @@ void Helm::f_initialize_behaviors() {
 
         i->get_behavior()->m_helm_frequency = m_helm_freq;
 
-        i->get_behavior()->m_local_link = m_local_frame;
+        i->get_behavior()->m_child_link = m_child_frame;
 
-        i->get_behavior()->m_global_link = m_global_frame;
+        i->get_behavior()->m_world_link = m_world_frame;
     }
 }
 
@@ -361,6 +360,23 @@ void Helm::f_iterate() {
      */
     auto active_state = m_state_machine->get_active_state();
 
+    //update the set point frame if a state has empty setpoint frames, we use the default.
+    std::string state_set_point_world_frame, state_set_point_child_frame;
+    if (active_state.set_point_world_frame.empty()){
+        state_set_point_world_frame = m_world_frame;
+    }
+    else {
+        state_set_point_world_frame = m_tf_prefix+ active_state.set_point_world_frame;
+    }
+
+    if (active_state.set_point_child_frame.empty()){
+        state_set_point_child_frame = m_child_frame;
+    }
+    else{
+        state_set_point_child_frame = m_tf_prefix+ active_state.set_point_child_frame;
+    }
+
+
     if(m_controller_process_values == nullptr) {
         return;
     }
@@ -410,7 +426,12 @@ void Helm::f_iterate() {
          * Update the system state inside behavior
          */
         i->get_behavior()->m_process_values = *m_controller_process_values;
+        
+        i->get_behavior()->m_child_link = state_set_point_child_frame;
 
+        i->get_behavior()->m_world_link = state_set_point_world_frame;
+
+        printf("State setpoint frame=%s, %s\r\n", state_set_point_child_frame.c_str(), state_set_point_world_frame.c_str());
         /*
          * Check if behavior should be active in active state
          */
@@ -485,7 +506,8 @@ void Helm::f_iterate() {
     
     m_set_point_bhv.control_mode = active_state.control_mode;
     m_set_point_bhv.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-    m_set_point_bhv.header.frame_id = m_global_frame;
+    m_set_point_bhv.header.frame_id = state_set_point_world_frame;
+    m_set_point_bhv.child_frame_id = state_set_point_child_frame;
     m_helm_setpoint_bhv->publish(m_set_point_bhv);
     //only publish the set  point when there is a bhv setting the set point
     bool all_empty = std::all_of(m_set_point_bhv.behavior.begin(), m_set_point_bhv.behavior.end(), [](const std::string& s) {
@@ -496,9 +518,9 @@ void Helm::f_iterate() {
     {
         // makeup the message
         msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-        msg.header.frame_id = m_global_frame;
+        msg.header.frame_id = state_set_point_world_frame;
         msg.control_mode = active_state.control_mode;
-        msg.child_frame_id = m_local_frame;
+        msg.child_frame_id = state_set_point_child_frame;
         m_pub_controller_set_point->publish(msg);    
     
     }
