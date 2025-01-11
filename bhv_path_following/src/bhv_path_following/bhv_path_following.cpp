@@ -17,6 +17,18 @@ using namespace std::chrono_literals;
 
 using namespace helm;
 
+/*
+waypoint path following frame logic 
+all calculation is based on NED and cg_link based on SNAME notation
+step 1: new waypoint come in, then we convert it into world ned
+step 2: process value needs to convert into the world_ned and cg_link
+step 3: do all the calculation.
+step 4: convert the setpoint back to the helm state's frame.
+
+*/
+
+
+
 PathFollowing::PathFollowing()
 {
     std::cout << "A message from the path_following" << std::endl;
@@ -69,13 +81,13 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "surge_topic", "update_surge");
     node->get_parameter(prefix + "surge_topic", surge_topic_name);
 
-    node->declare_parameter(prefix + "frame_id", "world");  //default waypoint id
-    node->get_parameter(prefix + "frame_id", m_frame_id);
+    node->declare_parameter(prefix + "waypoint_frame_id", "world");  //default waypoint id
+    node->get_parameter(prefix + "waypoint_frame_id", m_frame_id);
     m_frame_id = m_ns + "/" + m_frame_id;
 
-    node->declare_parameter(prefix + "enu_frame", "world");
-    node->get_parameter(prefix + "enu_frame", m_enu_frame);
-    m_enu_frame = m_ns + "/" + m_enu_frame;
+    // node->declare_parameter(prefix + "enu_frame", "world");
+    // node->get_parameter(prefix + "enu_frame", m_enu_frame);
+    // m_enu_frame = m_ns + "/" + m_enu_frame;
 
     node->declare_parameter(prefix + "waypoint_path", "~/go_to_list");
     node->get_parameter(prefix + "waypoint_path", m_waypoint_path);
@@ -400,7 +412,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
         Eigen::Vector3d p_world;
         try {
             geometry_msgs::msg::TransformStamped tf_wpt_world = m_transform_buffer->lookupTransform(
-                    m_enu_frame,
+                    m_frame_id,
                     response->wpt[i].header.frame_id,
                     tf2::TimePointZero,
                     10ms

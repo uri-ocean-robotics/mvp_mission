@@ -25,6 +25,9 @@
   <exec_depend>behavior_interface</exec_depend>
   <exec_depend>pluginlib</exec_depend>
   <depend>robot_localization</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_eigen</depend>
+
 
   <export>
     <build_type>ament_cmake</build_type>

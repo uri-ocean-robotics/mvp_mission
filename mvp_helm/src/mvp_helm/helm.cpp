@@ -4,6 +4,8 @@
 #include <utility>
 #include "mvp_helm/helm.h"
 #include <GeographicLib/Geodesic.hpp>
+#include "tf2/time.h"
+
 
 using namespace std::chrono_literals;
 
@@ -117,6 +119,10 @@ void Helm::initialize() {
         std::bind(&Helm::f_cb_get_states, this, std::placeholders::_1, std::placeholders::_2)
     );
     
+
+    //setup tf buffer
+    m_transform_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    m_transform_listener = std::make_unique<tf2_ros::TransformListener>(*m_transform_buffer);
 
     /***************************************************************************
      * Initialize state machine
@@ -338,6 +344,89 @@ void Helm::f_ll2dis(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg:
 }
 
 
+void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out,
+                                            std::string target_world_frame, std::string target_child_frame)
+{
+    auto steady_clock = rclcpp::Clock();
+
+    try{
+        //get tf between world
+        geometry_msgs::msg::TransformStamped tf_world = m_transform_buffer->lookupTransform(
+            target_world_frame,
+            in.header.frame_id,
+            tf2::TimePointZero,
+            10ms
+        );
+
+        geometry_msgs::msg::PoseStamped pose_in, pose_out;
+        pose_in.header = in.header;
+        pose_in.pose.position.x = in.position.x;
+        pose_in.pose.position.y = in.position.y;
+        pose_in.pose.position.z = in.position.z;
+
+        tf2::Quaternion q;
+        q.setRPY(in.orientation.x, in.orientation.y, in.orientation.z);
+        pose_in.pose.orientation.x = q.x();
+        pose_in.pose.orientation.y = q.y();
+        pose_in.pose.orientation.z = q.z();
+        pose_in.pose.orientation.w = q.w();
+
+        pose_out.header.frame_id = target_world_frame;
+
+        tf2::doTransform(pose_in, pose_out, tf_world);
+
+        tf2::Quaternion quat;
+        quat.setW(pose_out.pose.orientation.w);
+        quat.setX(pose_out.pose.orientation.x);
+        quat.setY(pose_out.pose.orientation.y);
+        quat.setZ(pose_out.pose.orientation.z);
+
+        //update the output
+        out->position.x = pose_out.pose.position.x;
+        out->position.y = pose_out.pose.position.y;
+        out->position.z = pose_out.pose.position.z;
+
+        tf2::Matrix3x3(quat).getRPY(
+            out->orientation.x,
+            out->orientation.y,
+            out->orientation.z);
+
+    //transform local frame linear velocity only 
+    //angular rate is not converted becasue we won't control it due to potential
+    //singularity problem.
+    geometry_msgs::msg::TransformStamped tf_local = m_transform_buffer->lookupTransform(
+            target_child_frame,
+            in.child_frame_id,
+            tf2::TimePointZero,
+            10ms
+    );
+    
+    auto tf_local_eigen = tf2::transformToEigen(tf_local);
+    Eigen::Vector3d uvw_out;
+
+    ///velocity
+    uvw_out = tf_local_eigen.rotation() *
+                Eigen::Vector3d(in.velocity.x,
+                                in.velocity.y, 
+                                in.velocity.z);
+
+    out->velocity.x = uvw_out.x();
+    out->velocity.y = uvw_out.y();
+    out->velocity.z = uvw_out.z();
+    out->angular_rate.x = in.angular_rate.x;
+    out->angular_rate.y = in.angular_rate.y;
+    out->angular_rate.z = in.angular_rate.z;
+
+
+    } catch (const tf2::TransformException & e) {
+            RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), steady_clock, 10, std::string("Can't compute tf in mvp_helm: ") + e.what());
+            RCLCPP_INFO( this->get_logger(), "mvp_helm transform error:: %s", e.what() ); 
+          return;
+
+    }    
+
+
+}
 
 void Helm::f_helm_loop() {
 
