@@ -431,7 +431,7 @@ void Helm::f_iterate() {
 
         i->get_behavior()->m_world_link = state_set_point_world_frame;
 
-        printf("State setpoint frame=%s, %s\r\n", state_set_point_child_frame.c_str(), state_set_point_world_frame.c_str());
+        // printf("State setpoint frame=%s, %s\r\n", state_set_point_child_frame.c_str(), state_set_point_world_frame.c_str());
         /*
          * Check if behavior should be active in active state
          */
