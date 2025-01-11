@@ -35,6 +35,12 @@
 #include "behavior_interface/behavior_base.h"
 #include "mvp_msgs/msg/control_process.hpp"
 
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2_eigen/tf2_eigen.hpp"
+#include "tf2_ros/transform_listener.h"
+
+#include "Eigen/Dense"
+
 namespace helm {
 
 using namespace std::chrono_literals;  //NOLINT
@@ -91,15 +97,6 @@ private:
 
     rclcpp::Logger m_logger{rclcpp::get_logger("mvp2_mission_bhv_teleop")};
 
-    /**
-        * @brief Desired value for x
-    */
-    double m_desired_x;
-
-    /**
-        * @brief Desired value for y
-    */
-    double m_desired_y;
 
     /**
         * @brief Desired value for z
@@ -132,26 +129,6 @@ private:
     double m_desired_sway;
 
     /**
-        * @brief Desired value for heave
-    */
-    double m_desired_heave;
-
-    /**
-        * @brief Desired value for roll rate
-    */
-    double m_desired_roll_rate;
-
-    /**
-        * @brief Desired value for pitch rate
-    */
-    double m_desired_pitch_rate;
-
-    /**
-        * @brief Desired value for yaw rate
-    */
-    double m_desired_yaw_rate;
-
-    /**
         * @brief teleop yaw increments
     */
     double m_tele_d_yaw;
@@ -176,17 +153,8 @@ private:
         * @brief teleop no joy command timeout
     */
     double m_no_joy_timeout;
+
     double m_last_joy_time;
-
-    /**
-        * @brief max values
-     */
-    double m_max_z;
-    double m_max_roll;
-    double m_max_pitch;
-    double m_max_surge;
-    double m_max_sway;
-
 
     /**
         * @brief for calling controller service
@@ -197,10 +165,21 @@ private:
 
     std::string m_ctrl_set_srv;
 
+    std::string bhv_global_link;
+    std::string bhv_child_link;
+
     /**
         * @brief Value to indicate joystick is enabled or not
         */
     std::atomic<bool> m_use_joy;
+
+    void transform_setpoint();
+
+    //! @brief Transform buffer for TF2
+    std::unique_ptr<tf2_ros::Buffer> m_transform_buffer;
+
+    //! @brief Transform listener for TF2
+    std::unique_ptr<tf2_ros::TransformListener> m_transform_listener;
 
 public:
 

@@ -23,6 +23,7 @@
 
 
 #include "bhv_teleoperation/bhv_teleoperation.h"
+#include "tf2/time.h"
 
 using namespace helm;
 
@@ -42,6 +43,10 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     auto node = m_node.lock();
     m_logger = node->get_logger();
 
+     //setup tf buffer
+    m_transform_buffer = std::make_unique<tf2_ros::Buffer>(node->get_clock());
+    m_transform_listener = std::make_unique<tf2_ros::TransformListener>(*m_transform_buffer);
+
     /*************************************************************************/
     /* Load Parameters for ROS2 */
 
@@ -52,6 +57,17 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     if (!m_ns.empty() && m_ns[0] == '/') {
         m_ns = m_ns.substr(1);
     }
+
+    std::string global_link, child_link;
+    node->declare_parameter(prefix + "default_bhv_world_link", "world_ned");
+    node->get_parameter(prefix + "default_bhv_world_link", global_link);
+
+    node->declare_parameter(prefix + "default_bhv_child_link", "cg_link");
+    node->get_parameter(prefix + "default_bhv_child_link", child_link);
+    
+    bhv_global_link = m_ns + "/" + global_link;
+    bhv_child_link = m_ns + "/" + child_link;
+
     // Load increments in control
     node->declare_parameter(prefix + "tele_s_surge", 1.0);
     node->get_parameter(prefix + "tele_s_surge", m_tele_s_surge);
@@ -67,31 +83,6 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     node->declare_parameter(prefix + "tele_d_depth", 1.0);
     node->get_parameter(prefix + "tele_d_depth", m_tele_d_depth);
-
-    //load max values
-    node->declare_parameter(prefix + "max_z", 100.0);
-    node->get_parameter(prefix + "max_z", m_max_z);
-
-    node->declare_parameter(prefix + "max_roll", M_PI_2);
-    node->get_parameter(prefix + "max_roll", m_max_roll);
-
-    node->declare_parameter(prefix + "max_pitch", M_PI_2);
-    node->get_parameter(prefix + "max_pitch", m_max_pitch);
-
-    node->declare_parameter(prefix + "max_surge", 1.0);
-    node->get_parameter(prefix + "max_surge", m_max_surge);
-
-    node->declare_parameter(prefix + "max_sway", 1.0);
-    node->get_parameter(prefix + "max_sway", m_max_sway);
-
-    // Load  enable/disable control
-    // node->declare_parameter(prefix + "ctrl_disable_srv", "controller/disable");
-    // node->get_parameter(prefix + "ctrl_disable_srv", m_ctrl_disable);
-    // m_ctrl_disable = "/" + m_ns + "/" + m_ctrl_disable;
-    
-    // node->declare_parameter(prefix + "ctrl_enable_srv", "controller/enable");
-    // node->get_parameter(prefix + "ctrl_enable_srv", m_ctrl_enable);
-    // m_ctrl_enable = "/" + m_ns + "/" + m_ctrl_enable;
 
     node->declare_parameter(prefix + "ctrl_set_srv", "controller/set");
     node->get_parameter(prefix + "ctrl_set_srv", m_ctrl_set_srv);
@@ -112,13 +103,7 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
         this, std::placeholders::_1));
 
     // controller srv
-    // m_disable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_disable);
-
-    // m_enable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_enable);
-
     m_ctrl_set_client = node->create_client<std_srvs::srv::SetBool>(m_ctrl_set_srv);
-
-
 
     // while (!m_disable_ctrl_client->wait_for_service(2s)) {
     //     RCLCPP_WARN(m_logger, 
@@ -192,14 +177,6 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         m_desired_z = 
             m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
 
-        //saturation
-        m_desired_roll = std::min(std::max(m_desired_roll, -m_max_roll), m_max_roll);
-        m_desired_pitch = std::min(std::max(m_desired_pitch, -m_max_pitch), m_max_pitch);
-        //no limit for yaw.
-        m_desired_surge = std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
-        m_desired_sway = std::min(std::max(m_desired_sway, -m_max_sway), m_max_sway);
-        m_desired_z = std::min(std::max(m_desired_z, -m_max_z), m_max_z);
-
     }
 
     //use back button to call disable controller service
@@ -251,8 +228,86 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     {
         m_last_joy_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
     }
+
+    transform_setpoint();
 }
 
+void Teleoperation::transform_setpoint()
+{
+     auto steady_clock = rclcpp::Clock();
+    //convert m_desired_value from bhv frames into helm frames
+    
+    //this portion will be later moved into bevhavior_base.hpp so all behvaior can use the same function to do transformation.
+    try{
+        //get tf from bhv world to helm world
+        geometry_msgs::msg::TransformStamped tf_bw_hw = m_transform_buffer->lookupTransform(
+            get_helm_world_link(),
+            bhv_global_link,
+            tf2::TimePointZero,
+            10ms
+        );
+        //transform the xyz set point
+        geometry_msgs::msg::PoseStamped setpoint_pose_bhv, setpoint_pose_helm;
+
+        setpoint_pose_bhv.header.frame_id = bhv_global_link;
+        setpoint_pose_bhv.pose.position.x = 0;
+        setpoint_pose_bhv.pose.position.y = 0;
+        setpoint_pose_bhv.pose.position.z = m_desired_z;
+        
+        tf2::Quaternion q;
+        q.setRPY(m_desired_roll, m_desired_pitch, m_desired_yaw);
+        setpoint_pose_bhv.pose.orientation.x = q.x();
+        setpoint_pose_bhv.pose.orientation.y = q.y();
+        setpoint_pose_bhv.pose.orientation.z = q.z();
+        setpoint_pose_bhv.pose.orientation.w = q.w();
+
+        //convert setpoint pose
+        setpoint_pose_helm.header.frame_id = get_helm_world_link();
+
+        tf2::doTransform(setpoint_pose_bhv, setpoint_pose_helm, tf_bw_hw);
+        tf2::Quaternion quat;
+        quat.setW(setpoint_pose_helm.pose.orientation.w);
+        quat.setX(setpoint_pose_helm.pose.orientation.x);
+        quat.setY(setpoint_pose_helm.pose.orientation.y);
+        quat.setZ(setpoint_pose_helm.pose.orientation.z);
+
+        m_desired_z = setpoint_pose_helm.pose.position.z;
+        tf2::Matrix3x3(quat).getRPY(
+            m_desired_roll,
+            m_desired_pitch,
+            m_desired_yaw
+        );
+        
+        //computet he bhv_local to helm local
+        geometry_msgs::msg::TransformStamped tf_bl_hl = m_transform_buffer->lookupTransform(
+            get_helm_child_link(),
+            bhv_child_link,
+            tf2::TimePointZero,
+            10ms
+        );
+
+        // printf("helm_local = %s, bhv_child = %s\r\n", get_helm_child_link().c_str(), bhv_child_link.c_str());
+        auto tf_blhl_eigen = tf2::transformToEigen(tf_bl_hl);
+
+        Eigen::Vector3d uvw_helm;
+
+        ///velocity
+        uvw_helm = tf_blhl_eigen.rotation() *
+                    Eigen::Vector3d(m_desired_surge,
+                                    m_desired_sway, 
+                                    0.0);
+
+        m_desired_surge = uvw_helm.x();
+        m_desired_sway = uvw_helm.y();
+
+    } catch (const tf2::TransformException & e) {
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in direct contro: ") + e.what());
+            RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
+                         get_helm_world_link().c_str(), bhv_global_link.c_str(), e.what() ); 
+          return;
+
+    }
+}
 
 void Teleoperation::activated() {
     /**
