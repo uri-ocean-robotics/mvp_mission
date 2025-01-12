@@ -215,7 +215,7 @@ protected:
     virtual auto transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out,
                                             std::string target_world_frame, std::string target_child_frame) -> void final
     {
-        return f_transform_control_process_msg(pose_in, pose_out, target_world_frame, target_child_frame);
+        return f_transform_control_process_msg(in, out, target_world_frame, target_child_frame);
     }
     /**
      * @brief 

@@ -350,6 +350,9 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
     auto steady_clock = rclcpp::Clock();
 
     try{
+        //////////////////////////////////////////
+        //////////////transforming pose///////////
+        //////////////////////////////////////////
         //get tf between world
         geometry_msgs::msg::TransformStamped tf_world = m_transform_buffer->lookupTransform(
             target_world_frame,
@@ -391,9 +394,11 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
             out->orientation.y,
             out->orientation.z);
 
+    //////////////////////////////////////////
+    //////////////transforming velocity///////
+    //////////////////////////////////////////
     //transform local frame linear velocity only 
-    //angular rate is not converted becasue we won't control it due to potential
-    //singularity problem.
+    //linear velocity
     geometry_msgs::msg::TransformStamped tf_local = m_transform_buffer->lookupTransform(
             target_child_frame,
             in.child_frame_id,
@@ -404,7 +409,6 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
     auto tf_local_eigen = tf2::transformToEigen(tf_local);
     Eigen::Vector3d uvw_out;
 
-    ///velocity
     uvw_out = tf_local_eigen.rotation() *
                 Eigen::Vector3d(in.velocity.x,
                                 in.velocity.y, 
@@ -413,9 +417,39 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
     out->velocity.x = uvw_out.x();
     out->velocity.y = uvw_out.y();
     out->velocity.z = uvw_out.z();
-    out->angular_rate.x = in.angular_rate.x;
-    out->angular_rate.y = in.angular_rate.y;
-    out->angular_rate.z = in.angular_rate.z;
+
+    //angular velocity
+    Eigen::Vector3d pqr_in;
+    pqr_in.x() = in.angular_rate.x;
+    pqr_in.y() = in.angular_rate.y;
+    pqr_in.z() = in.angular_rate.z;
+
+    quat.setW(tf_local.transform.rotation.w);
+    quat.setX(tf_local.transform.rotation.x);
+    quat.setY(tf_local.transform.rotation.y);
+    quat.setZ(tf_local.transform.rotation.z);
+
+    Eigen::Vector3d orientation;
+    tf2::Matrix3x3(quat).getRPY(orientation.x(), orientation.y(), orientation.z());
+
+    Eigen::Matrix3d transform = Eigen::Matrix3d::Zero();
+
+    // 85 < pitch < 95, -95 < pitch < -85 
+    transform(0,0) = 1.0;
+    transform(0,1) = sin(orientation.x()) * tan(orientation.y());
+    transform(0,2) = cos(orientation.x()) * tan(orientation.y());
+    transform(1,0) = 0.0;
+    transform(1,1) = cos(orientation.x());
+    transform(1,2) = -sin(orientation.x());
+    transform(2,0) = 0.0;
+    transform(2,1) = sin(orientation.x()) / (cos(orientation.y()) + 0.0001); //add a some number to avoid ambiguity
+    transform(2,2) = cos(orientation.x()) / (cos(orientation.y()) + 0.0001);
+
+    Eigen::Vector3d pqr_out = transform * pqr_in;
+
+    out->angular_rate.x = pqr_out.x();
+    out->angular_rate.y = pqr_out.y();
+    out->angular_rate.z = pqr_out.z();
 
 
     } catch (const tf2::TransformException & e) {
