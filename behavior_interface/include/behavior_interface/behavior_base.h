@@ -89,8 +89,10 @@ private:
 
     std::function<void(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point)> f_dis2ll;
     std::function<void(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg::Point::SharedPtr map_point)> f_ll2dis;
-    std::function<void(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out,
-                                            std::string target_world_frame, std::string target_child_frame)>f_transform_control_process_msg;
+    std::function<void(mvp_msgs::msg::ControlProcess in, 
+                   mvp_msgs::msg::ControlProcess::SharedPtr out, 
+                   std::string target_world_frame, 
+                   std::string target_child_frame)> f_transform_control_process_msg;
 
     void f_set_active_state(const std::string& state) {
         m_active_state = state;
@@ -212,8 +214,7 @@ protected:
          return f_ll2dis(ll_point, map_point);
     }
 
-    virtual auto transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out,
-                                            std::string target_world_frame, std::string target_child_frame) -> void final
+    virtual auto transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out, std::string target_world_frame, std::string target_child_frame) -> void final
     {
         return f_transform_control_process_msg(in, out, target_world_frame, target_child_frame);
     }

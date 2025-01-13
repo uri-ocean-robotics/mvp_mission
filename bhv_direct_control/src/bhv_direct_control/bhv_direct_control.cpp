@@ -144,10 +144,13 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
 
 void DirectControl::m_setpoint_callback(const mvp_msgs::msg::ControlProcess::SharedPtr msg)
 {
-    // mvp_msgs::msg::ControlProcess::SharedPtr temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
-    auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    
+    mvp_msgs::msg::ControlProcess::SharedPtr temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    // auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    // mvp_msgs::msg::ControlProcess data =*msg;
     transform_control_process_msg(*msg, temp_setpoint, get_helm_world_link(), get_helm_child_link());
     m_bhv_setpoint = *temp_setpoint;
+    
 
 }
 

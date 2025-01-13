@@ -164,9 +164,11 @@ private:
     void f_ll2dis(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg::Point::SharedPtr map_point);
 
     void f_dis2ll(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point);
-    
-    void f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out,
-                                            std::string target_world_frame, std::string target_child_frame);
+
+    void f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, 
+                                     mvp_msgs::msg::ControlProcess::SharedPtr out, 
+                                     std::string target_world_frame, 
+                                     std::string target_child_frame);
 
      //! @brief Transform buffer for TF2
     std::unique_ptr<tf2_ros::Buffer> m_transform_buffer;

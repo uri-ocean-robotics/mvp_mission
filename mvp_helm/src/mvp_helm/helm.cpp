@@ -161,6 +161,11 @@ void Helm::f_initialize_behaviors() {
 
         i->get_behavior()-> f_ll2dis = std::bind(&Helm::f_ll2dis, this, std::placeholders::_1, std::placeholders::_2);
 
+        i->get_behavior()-> f_transform_control_process_msg = std::bind(&Helm::f_transform_control_process_msg, 
+                                                this, 
+                                                std::placeholders::_1, std::placeholders::_2,
+                                                std::placeholders::_3, std::placeholders::_4);
+
         i->get_behavior()->m_helm_frequency = m_helm_freq;
 
         i->get_behavior()->m_child_link = m_child_frame;
@@ -350,6 +355,8 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
     auto steady_clock = rclcpp::Clock();
 
     try{
+        // printf("transforming frame from %s to %s\r\n", in.header.frame_id.c_str(), target_world_frame.c_str());
+        // printf("transforming frame from %s to %s\r\n", in.child_frame_id.c_str(), target_child_frame.c_str());
         //////////////////////////////////////////
         //////////////transforming pose///////////
         //////////////////////////////////////////
@@ -459,7 +466,10 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
     out->angular_rate.x = pqr_out.x();
     out->angular_rate.y = pqr_out.y();
     out->angular_rate.z = pqr_out.z();
+    out->header.frame_id = target_world_frame;
+    out->child_frame_id = target_child_frame;
 
+    
 
     } catch (const tf2::TransformException & e) {
             RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), steady_clock, 10, std::string("Can't compute tf in mvp_helm: ") + e.what());

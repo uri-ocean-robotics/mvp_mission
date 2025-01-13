@@ -187,21 +187,21 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     /* Setup ROS2 sub/pub/srv/... */
     ///Pubs & subs
     m_update_waypoint_sub = node->create_subscription<geometry_msgs::msg::PolygonStamped>(
-                                                    "~/" + update_topic_name, 10, 
+                                                    "~/" + prefix + update_topic_name, 10, 
                                                     [this](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
                                                         this->f_waypoint_cb(msg, false);
                                                         });
 
    
     m_append_waypoint_sub = node->create_subscription<geometry_msgs::msg::PolygonStamped>(
-                                                    "~/" + append_topic_name, 10, 
+                                                    "~/" + prefix + append_topic_name, 10, 
                                                     [this](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
                                                         this->f_waypoint_cb(msg, true);
                                                         });
 
 
     m_update_surge_sub = node->create_subscription<std_msgs::msg::Float64>(
-                                                    "~/" + surge_topic_name, 10, 
+                                                    "~/" + prefix + surge_topic_name, 10, 
                                                     std::bind(&PathFollowing::f_surge_cb, 
                                                                 this,_1));
 
