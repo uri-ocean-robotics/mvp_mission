@@ -372,6 +372,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
             const std::shared_ptr<mvp_msgs::srv::GetWaypoints::Request> request,
             const std::shared_ptr<mvp_msgs::srv::GetWaypoints::Response> response)
 {
+    std::cout << "get waypoint list service called!" << std::endl;
     
     auto length = m_waypoints.polygon.points.size();
     
@@ -380,6 +381,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
     if (length == 0)
     {
         RCLCPP_WARN(m_logger, "No waypoint programmed");
+        return false;
     }
 
     int num = request->count.data;
@@ -568,6 +570,7 @@ bool PathFollowing::f_cb_srv_update_waypoints(
         const std::shared_ptr<mvp_msgs::srv::SendWaypoints::Request> request,
         const std::shared_ptr<mvp_msgs::srv::SendWaypoints::Response> response)
 {
+    std::cout << "path update serivce called" << std::endl;
     geometry_msgs::msg::PolygonStamped temp_waypoints;
      //for latlon type
     if(strcmp(request->type.c_str(), "geopath") == 0)
