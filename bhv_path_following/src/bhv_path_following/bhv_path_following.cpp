@@ -72,6 +72,16 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
 
 
     //topic and frame params
+    std::string global_link, child_link;
+    node->declare_parameter(prefix + "default_bhv_world_link", "world_ned");
+    node->get_parameter(prefix + "default_bhv_world_link", global_link);
+
+    node->declare_parameter(prefix + "default_bhv_child_link", "cg_link");
+    node->get_parameter(prefix + "default_bhv_child_link", child_link);
+    
+    m_bhv_setpoint.header.frame_id = m_ns + "/" + global_link;
+    m_bhv_setpoint.child_frame_id = m_ns + "/" + child_link;
+
     node->declare_parameter(prefix + "update_topic", "update_waypoints");
     node->get_parameter(prefix + "update_topic", update_topic_name);
 
@@ -81,13 +91,10 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "surge_topic", "update_surge");
     node->get_parameter(prefix + "surge_topic", surge_topic_name);
 
-    node->declare_parameter(prefix + "waypoint_frame_id", "world");  //default waypoint id
-    node->get_parameter(prefix + "waypoint_frame_id", m_frame_id);
-    m_frame_id = m_ns + "/" + m_frame_id;
-
+    //the frame for converting lat lon and local
     // node->declare_parameter(prefix + "enu_frame", "world");
     // node->get_parameter(prefix + "enu_frame", m_enu_frame);
-    // m_enu_frame = m_ns + "/" + m_enu_frame;
+    m_enu_frame = m_ns + "/" + "world";
 
     node->declare_parameter(prefix + "waypoint_path", "~/go_to_list");
     node->get_parameter(prefix + "waypoint_path", m_waypoint_path);
@@ -112,10 +119,10 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->get_parameter(prefix + "overshoot_timeout", m_overshoot_timeout);
 
     node->declare_parameter(prefix + "surge_velocity", 1.0);
-    node->get_parameter(prefix + "surge_velocity", m_surge_velocity);
+    node->get_parameter(prefix + "surge_velocity", m_bhv_setpoint.velocity.x);
 
     node->declare_parameter(prefix + "pitch_angle", 0.0);
-    node->get_parameter(prefix + "pitch_angle", m_pitch);
+    node->get_parameter(prefix + "pitch_angle", m_bhv_setpoint.orientation.y);
 
     node->declare_parameter(prefix + "pitch_gain", 0.0);
     node->get_parameter(prefix + "pitch_gain", m_pitch_gain);
@@ -166,8 +173,8 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
             point.z = m_wpt_z[i];
             m_waypoints.polygon.points.push_back(point);
         }
-        m_waypoints.header.frame_id = m_frame_id;
-        printf("###Waypoint loaded properly, %s \r\n", m_frame_id.c_str());
+        m_waypoints.header.frame_id = m_bhv_setpoint.header.frame_id;
+        printf("###Waypoint loaded properly, %s \r\n", m_bhv_setpoint.header.frame_id.c_str());
         
     } 
     else 
@@ -233,7 +240,7 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
 
 void PathFollowing::f_surge_cb(const std_msgs::msg::Float64::SharedPtr m)
 {
-    m_surge_velocity = m->data;
+    m_bhv_setpoint.velocity.x = m->data;
 
 }
 
@@ -283,24 +290,27 @@ void PathFollowing::f_transform_waypoints(
 
 }
 
-
 void PathFollowing::resume_or_start() {
     
-    // Transform all the points into controller's frame
+    // Transform all the points into bhv frame
     geometry_msgs::msg::PolygonStamped poly;
     f_transform_waypoints(
-        // m_process_values.header.frame_id,
-        get_helm_world_link(),
+        m_bhv_setpoint.header.frame_id,
         m_waypoints,
         &m_transformed_waypoints
     );
-    // Push robots position as the first point
+
+    // convert m_process value into the behavior frame
+    auto temp_pose = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    transform_control_process_msg(BehaviorBase::m_process_values, temp_pose, 
+                                  m_bhv_setpoint.header.frame_id, m_bhv_setpoint.child_frame_id);
+    
+    
     geometry_msgs::msg::Point32 p;
-    p.x = static_cast<float>(m_process_values.position.x);
-    p.y = static_cast<float>(m_process_values.position.y);
+    p.x = static_cast<float>(temp_pose->position.x);
+    p.y = static_cast<float>(temp_pose->position.y);
     // p.z = static_cast<float>(m_process_values.position.z);
     m_wpt_first = p;
-
 
     // Select second waypoint to be the next point in the way point list
     m_wpt_second = m_transformed_waypoints.polygon.points[
@@ -343,7 +353,7 @@ void PathFollowing::f_waypoint_cb(const geometry_msgs::msg::PolygonStamped::Shar
             m_waypoints.polygon.points.emplace_back(i);
         }
         //transform the waypoints
-        f_transform_waypoints(get_helm_world_link(), m_waypoints, &m_transformed_waypoints);
+        f_transform_waypoints(m_bhv_setpoint.header.frame_id, m_waypoints, &m_transformed_waypoints);
 
     }
     else
@@ -392,17 +402,17 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
         if(i == 0)
         {
             response->wpt[i].header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-            response->wpt[i].header.frame_id = get_helm_world_link();
+            response->wpt[i].header.frame_id = m_bhv_setpoint.header.frame_id;
             response->wpt[i].wpt.x = m_wpt_first.x;
             response->wpt[i].wpt.y = m_wpt_first.y;
             response->wpt[i].wpt.z = m_wpt_first.z;
         }
         else{
             response->wpt[i].header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-            response->wpt[i].header.frame_id = m_waypoints.header.frame_id;
-            response->wpt[i].wpt.x = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].x);
-            response->wpt[i].wpt.y = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].y);
-            response->wpt[i].wpt.z = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].z);
+            response->wpt[i].header.frame_id = m_transformed_waypoints.header.frame_id;
+            response->wpt[i].wpt.x = static_cast<double>(m_transformed_waypoints.polygon.points[m_line_index + i-1].x);
+            response->wpt[i].wpt.y = static_cast<double>(m_transformed_waypoints.polygon.points[m_line_index + i-1].y);
+            response->wpt[i].wpt.z = static_cast<double>(m_transformed_waypoints.polygon.points[m_line_index + i-1].z);
         }
 
         //we need to call the service to convert to lat and lon
@@ -412,7 +422,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
         Eigen::Vector3d p_world;
         try {
             geometry_msgs::msg::TransformStamped tf_wpt_world = m_transform_buffer->lookupTransform(
-                    m_frame_id,
+                    m_enu_frame,
                     response->wpt[i].header.frame_id,
                     tf2::TimePointZero,
                     10ms
@@ -563,7 +573,7 @@ bool PathFollowing::f_cb_srv_update_waypoints(
     if(strcmp(request->type.c_str(), "geopath") == 0)
     {
         // printf("updating waypoints \r\n");
-        temp_waypoints.header.frame_id = m_frame_id; //set to world by default
+        temp_waypoints.header.frame_id = m_enu_frame; //set to world 
         for(const auto& i : request->wpt) {
             
             geographic_msgs::msg::GeoPoint ll_point;
@@ -660,9 +670,17 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     f_visualize_path();
     f_visualize_segment();
 
-     // Acquire vehicle position from the controller process
-    double x = BehaviorBase::m_process_values.position.x;
-    double y = BehaviorBase::m_process_values.position.y;
+     // Acquire vehicle position from the controller process and transform it to bhv frame
+    auto temp_pose = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    transform_control_process_msg(BehaviorBase::m_process_values, temp_pose, 
+                                  m_bhv_setpoint.header.frame_id, m_bhv_setpoint.child_frame_id);
+     
+    double x = temp_pose->position.x;
+    double y = temp_pose->position.y;
+    double u = temp_pose->velocity.x;
+    double v = temp_pose->velocity.y;
+    double yaw = temp_pose->orientation.z;
+
     double dx1 = x - m_wpt_first.x;
     double dy1 = y - m_wpt_first.y;
     double dx2 = x - m_wpt_second.x;
@@ -725,15 +743,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
 
 
     // Calculate the vehicle's cross-track velocity for sideslip compenstation
-    // double beta = 0;
-    double u = BehaviorBase::m_process_values.velocity.x;
-    double v = BehaviorBase::m_process_values.velocity.y;
-    double yaw = BehaviorBase::m_process_values.orientation.z;
-
     double ye_dot = -u * sin(-yaw+gamma_p) + v * cos(-yaw + gamma_p);
-
-    
-
     // set the heading for line of sight
     // m_cmd.orientation.z = gamma_p - atan( (Ye + m_sigma*m_yint)/ lookahead   + ye_dot*m_beta_gain);
     if(m_lookahead_adaptive)
@@ -748,31 +758,31 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
 
     }
     /// compute desired set point now
-    // set the surge velocity
 
-    set_point->velocity.x = m_surge_velocity;
-
-    double desired_heading = gamma_p - std::atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
+    double m_desired_heading = gamma_p - std::atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
     // printf("sideslip =%lf \r\n", ye_dot);
     // printf("desired_heading =%lf\r\n", desired_heading*180.0/3.1415);
     // printf("cross-track_error =%lf\r\n", Ye);
 
     //compute the desired pitch
-    if(fabs(m_wpt_second.z - BehaviorBase::m_process_values.position.z) > m_pitch_assist_band)
+    if(fabs(m_wpt_second.z - temp_pose->position.z) > m_pitch_assist_band)
     {
-        m_pitch = -m_pitch_gain * (m_wpt_second.z - BehaviorBase::m_process_values.position.z); //positive error needs a negative pitch in cg_link
+        m_pitch = -m_pitch_gain * (m_wpt_second.z - temp_pose->position.z); //positive error needs a negative pitch in cg_link
         m_pitch = std::min(std::max(m_pitch, -m_max_pitch), m_max_pitch);
     }
     else{
         m_pitch = 0;
     }
 
-    set_point->orientation.z = desired_heading;
+    //u is already updated in the callback;
+    m_bhv_setpoint.orientation.y = m_pitch;
+    m_bhv_setpoint.position.z = m_wpt_second.z;
+    m_bhv_setpoint.orientation.z = m_desired_heading;
 
-    //Set the direct z set point
-    set_point->position.z = m_wpt_second.z;
+    auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    transform_control_process_msg(m_bhv_setpoint, temp_setpoint, get_helm_world_link(), get_helm_child_link());
 
-    set_point->orientation.y = m_pitch;
+    *set_point = *temp_setpoint;
 
     // check the acceptance radius
     

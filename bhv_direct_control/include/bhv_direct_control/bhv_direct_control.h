@@ -113,14 +113,9 @@ private:
     std::string bhv_child_link;
 
     /**
-        * @brief Max value for each DOF
+        * @brief Desired value for each DOF based on bhv frame
     */
-        Eigen::VectorXd m_max;
-
-    /**
-        * @brief Desired value for each DOF
-    */
-    Eigen::VectorXd m_desired_value;
+    mvp_msgs::msg::ControlProcess m_bhv_setpoint; 
 
     //! @brief Transform buffer for TF2
     std::unique_ptr<tf2_ros::Buffer> m_transform_buffer;

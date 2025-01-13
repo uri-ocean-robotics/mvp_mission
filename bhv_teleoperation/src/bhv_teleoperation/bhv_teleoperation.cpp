@@ -65,8 +65,8 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "default_bhv_child_link", "cg_link");
     node->get_parameter(prefix + "default_bhv_child_link", child_link);
     
-    bhv_global_link = m_ns + "/" + global_link;
-    bhv_child_link = m_ns + "/" + child_link;
+    m_bhv_setpoint.header.frame_id = m_ns + "/" + global_link;
+    m_bhv_setpoint.child_frame_id = m_ns + "/" + child_link;
 
     // Load increments in control
     node->declare_parameter(prefix + "tele_s_surge", 1.0);
@@ -138,12 +138,12 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
 
     /////initialize the desired pose first
-    m_desired_roll = 0;
-    m_desired_pitch = 0;
-    m_desired_yaw = 0;
-    m_desired_z = 0;
-    m_desired_surge = 0;
-    m_desired_sway = 0;
+    m_bhv_setpoint.orientation.x = 0;
+    m_bhv_setpoint.orientation.y = 0;
+    m_bhv_setpoint.orientation.z = 0;
+    m_bhv_setpoint.position.z = 0;
+    m_bhv_setpoint.velocity.x = 0;
+    m_bhv_setpoint.velocity.y = 0;
 }
 
 //tele op is good for control surge, pitch, depth and  heading
@@ -153,29 +153,29 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if(msg->buttons[4]==1 && m_use_joy)
     {
         //left axis up and down
-        m_desired_surge = msg->axes[1] * m_tele_s_surge;
+        m_bhv_setpoint.velocity.x = msg->axes[1] * m_tele_s_surge;
 
         //left axis up and down 
-        m_desired_sway = msg->axes[0] * m_tele_s_sway; 
+        m_bhv_setpoint.velocity.y = msg->axes[0] * m_tele_s_sway; 
 
         //X button decrease heading B button increase heading
-        m_desired_yaw = 
-            m_desired_yaw + m_tele_d_yaw/180*M_PI * 
-            (-msg->buttons[0] + msg->buttons[2]); 
+        m_bhv_setpoint.orientation.z = m_bhv_setpoint.orientation.z 
+                                        + m_tele_d_yaw/180*M_PI * 
+                                        (-msg->buttons[0] + msg->buttons[2]); 
         
         //wrap yaw into -pi to pi.
-        m_desired_yaw = 
-            (fmod(m_desired_yaw + std::copysign(M_PI, m_desired_yaw), 2*M_PI) 
-            - std::copysign(M_PI, m_desired_yaw));        
+        m_bhv_setpoint.orientation.z = 
+            (fmod(m_bhv_setpoint.orientation.z + std::copysign(M_PI, m_bhv_setpoint.orientation.z), 2*M_PI) 
+            - std::copysign(M_PI, m_bhv_setpoint.orientation.z));        
 
         //Y->decrease A->increase
-        m_desired_pitch = 
-            m_desired_pitch + m_tele_d_pitch/180*M_PI * 
+        m_bhv_setpoint.orientation.y = 
+            m_bhv_setpoint.orientation.y + m_tele_d_pitch/180*M_PI * 
             (-msg->buttons[3] + msg->buttons[1]); 
 
         //RB depth decrease, RT depth increase
-        m_desired_z = 
-            m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
+        m_bhv_setpoint.position.z = 
+            m_bhv_setpoint.position.z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
 
     }
 
@@ -213,12 +213,12 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if(msg->buttons[6]==1)
     {
         // first time enable joystick and record vehicle pose
-        m_desired_pitch = 0;
-        m_desired_roll = 0;
-        m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
-        m_desired_z = BehaviorBase::m_process_values.position.z;
-        m_desired_surge = 0;
-        m_desired_sway = 0;
+        m_bhv_setpoint.orientation.x = 0;
+        m_bhv_setpoint.orientation.y = 0;
+        m_bhv_setpoint.orientation.z = BehaviorBase::m_process_values.orientation.z;
+        m_bhv_setpoint.position.z = BehaviorBase::m_process_values.position.z;
+        m_bhv_setpoint.velocity.x = 0;
+        m_bhv_setpoint.velocity.y = 0;
         m_use_joy = true;
         RCLCPP_WARN(m_logger, "teleop enabled !");
     }
@@ -229,84 +229,13 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         m_last_joy_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
     }
 
-    transform_setpoint();
-}
-
-void Teleoperation::transform_setpoint()
-{
-     auto steady_clock = rclcpp::Clock();
-    //convert m_desired_value from bhv frames into helm frames
+    //transform the setpoint.
+    auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
     
-    //this portion will be later moved into bevhavior_base.hpp so all behvaior can use the same function to do transformation.
-    try{
-        //get tf from bhv world to helm world
-        geometry_msgs::msg::TransformStamped tf_bw_hw = m_transform_buffer->lookupTransform(
-            get_helm_world_link(),
-            bhv_global_link,
-            tf2::TimePointZero,
-            10ms
-        );
-        //transform the xyz set point
-        geometry_msgs::msg::PoseStamped setpoint_pose_bhv, setpoint_pose_helm;
+    transform_control_process_msg(m_bhv_setpoint, temp_setpoint, get_helm_world_link(), get_helm_child_link());
+    
+    m_bhv_setpoint = *temp_setpoint;
 
-        setpoint_pose_bhv.header.frame_id = bhv_global_link;
-        setpoint_pose_bhv.pose.position.x = 0;
-        setpoint_pose_bhv.pose.position.y = 0;
-        setpoint_pose_bhv.pose.position.z = m_desired_z;
-        
-        tf2::Quaternion q;
-        q.setRPY(m_desired_roll, m_desired_pitch, m_desired_yaw);
-        setpoint_pose_bhv.pose.orientation.x = q.x();
-        setpoint_pose_bhv.pose.orientation.y = q.y();
-        setpoint_pose_bhv.pose.orientation.z = q.z();
-        setpoint_pose_bhv.pose.orientation.w = q.w();
-
-        //convert setpoint pose
-        setpoint_pose_helm.header.frame_id = get_helm_world_link();
-
-        tf2::doTransform(setpoint_pose_bhv, setpoint_pose_helm, tf_bw_hw);
-        tf2::Quaternion quat;
-        quat.setW(setpoint_pose_helm.pose.orientation.w);
-        quat.setX(setpoint_pose_helm.pose.orientation.x);
-        quat.setY(setpoint_pose_helm.pose.orientation.y);
-        quat.setZ(setpoint_pose_helm.pose.orientation.z);
-
-        m_desired_z = setpoint_pose_helm.pose.position.z;
-        tf2::Matrix3x3(quat).getRPY(
-            m_desired_roll,
-            m_desired_pitch,
-            m_desired_yaw
-        );
-        
-        //computet he bhv_local to helm local
-        geometry_msgs::msg::TransformStamped tf_bl_hl = m_transform_buffer->lookupTransform(
-            get_helm_child_link(),
-            bhv_child_link,
-            tf2::TimePointZero,
-            10ms
-        );
-
-        // printf("helm_local = %s, bhv_child = %s\r\n", get_helm_child_link().c_str(), bhv_child_link.c_str());
-        auto tf_blhl_eigen = tf2::transformToEigen(tf_bl_hl);
-
-        Eigen::Vector3d uvw_helm;
-
-        ///velocity
-        uvw_helm = tf_blhl_eigen.rotation() *
-                    Eigen::Vector3d(m_desired_surge,
-                                    m_desired_sway, 
-                                    0.0);
-
-        m_desired_surge = uvw_helm.x();
-        m_desired_sway = uvw_helm.y();
-
-    } catch (const tf2::TransformException & e) {
-            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in direct contro: ") + e.what());
-            RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
-                         get_helm_world_link().c_str(), bhv_global_link.c_str(), e.what() ); 
-          return;
-
-    }
 }
 
 void Teleoperation::activated() {
@@ -355,18 +284,8 @@ bool Teleoperation::request_set_point(
 
     //set point /heder/frame_id and child frame id will be the same as the helm setting (not additional setting here).
     // Set Position
-    set_point->position.z = m_desired_z;
-
-    // Set orientation
-    set_point->orientation.x = m_desired_roll;
-    set_point->orientation.y = m_desired_pitch;
-    set_point->orientation.z = m_desired_yaw;
-
-    // Set velocity
-    set_point->velocity.x = m_desired_surge;
-    set_point->velocity.y = m_desired_sway;
+    *set_point = m_bhv_setpoint;
    
-
     return true;
 }
 

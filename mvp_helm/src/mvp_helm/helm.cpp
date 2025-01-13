@@ -434,16 +434,25 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
 
     Eigen::Matrix3d transform = Eigen::Matrix3d::Zero();
 
-    // 85 < pitch < 95, -95 < pitch < -85 
+    double cosy = cos(orientation.y());
+    double tany = tan(orientation.y());
+
+    //saturation to avoid singularity
+    if(cosy >-0.0001 && cosy <0.0001){
+        cosy = 0.0001;
+    }
+
+    tany = std::min(std::max(tany, -1000.0), 1000.0);
+
     transform(0,0) = 1.0;
-    transform(0,1) = sin(orientation.x()) * tan(orientation.y());
-    transform(0,2) = cos(orientation.x()) * tan(orientation.y());
+    transform(0,1) = sin(orientation.x()) * tany;
+    transform(0,2) = cos(orientation.x()) * tany;
     transform(1,0) = 0.0;
     transform(1,1) = cos(orientation.x());
     transform(1,2) = -sin(orientation.x());
     transform(2,0) = 0.0;
-    transform(2,1) = sin(orientation.x()) / (cos(orientation.y()) + 0.0001); //add a some number to avoid ambiguity
-    transform(2,2) = cos(orientation.x()) / (cos(orientation.y()) + 0.0001);
+    transform(2,1) = sin(orientation.x()) / cosy; //add a some number to avoid ambiguity
+    transform(2,2) = cos(orientation.x()) / cosy;
 
     Eigen::Vector3d pqr_out = transform * pqr_in;
 

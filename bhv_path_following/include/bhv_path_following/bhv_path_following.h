@@ -149,6 +149,12 @@ private:
 
     std::string m_ns;
 
+    std::string bhv_global_link;
+
+    std::string bhv_child_link;
+
+    mvp_msgs::msg::ControlProcess m_bhv_setpoint; 
+
     double m_acceptance_radius;
 
     double m_lookahead_distance;

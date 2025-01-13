@@ -97,37 +97,6 @@ private:
 
     rclcpp::Logger m_logger{rclcpp::get_logger("mvp2_mission_bhv_teleop")};
 
-
-    /**
-        * @brief Desired value for z
-    */
-    double m_desired_z;
-
-    /**
-        * @brief Desired value for roll
-    */
-    double m_desired_roll;
-
-    /**
-        * @brief Desired value for pitch
-    */
-    double m_desired_pitch;
-
-    /**
-        * @brief Desired value for yaw
-    */
-    double m_desired_yaw;
-
-    /**
-        * @brief Desired value for surge
-    */
-    double m_desired_surge;
-
-    /**
-        * @brief Desired value for sway
-    */
-    double m_desired_sway;
-
     /**
         * @brief teleop yaw increments
     */
@@ -166,7 +135,11 @@ private:
     std::string m_ctrl_set_srv;
 
     std::string bhv_global_link;
+
     std::string bhv_child_link;
+
+    mvp_msgs::msg::ControlProcess m_bhv_setpoint; 
+
 
     /**
         * @brief Value to indicate joystick is enabled or not

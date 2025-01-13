@@ -56,33 +56,36 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
     m_transform_listener = std::make_unique<tf2_ros::TransformListener>(*m_transform_buffer);
 
     //use array instead of 12 variables
-    m_max = Eigen::VectorXd::Zero(SETPOINT_DOF_LENGTH); //12 DOF
-    //use array instead of 12 variables
-    m_desired_value = Eigen::VectorXd::Zero(SETPOINT_DOF_LENGTH);  //12 DOF
-
     std::string prefix = get_name() + "/";
 
     //load initial desired values
     node->declare_parameter(prefix + "desired_x", 0.0);
-    node->get_parameter(prefix + "desired_x", m_desired_value(DOF::X));
+    node->get_parameter(prefix + "desired_x", m_bhv_setpoint.position.x);
     node->declare_parameter(prefix + "desired_y", 0.0);
-    node->get_parameter(prefix + "desired_y", m_desired_value(DOF::Y));
+    node->get_parameter(prefix + "desired_y", m_bhv_setpoint.position.y);
     node->declare_parameter(prefix + "desired_z", 0.0);
-    node->get_parameter(prefix + "desired_z", m_desired_value(DOF::Z));
+    node->get_parameter(prefix + "desired_z", m_bhv_setpoint.position.z);
     
     node->declare_parameter(prefix + "desired_roll", 0.0);
-    node->get_parameter(prefix + "desired_roll", m_desired_value(DOF::ROLL));
+    node->get_parameter(prefix + "desired_roll", m_bhv_setpoint.orientation.x);
     node->declare_parameter(prefix + "desired_pitch", 0.0);
-    node->get_parameter(prefix + "desired_pitch", m_desired_value(DOF::PITCH));
+    node->get_parameter(prefix + "desired_pitch", m_bhv_setpoint.orientation.y);
     node->declare_parameter(prefix + "desired_yaw", 0.0);
-    node->get_parameter(prefix + "desired_yaw", m_desired_value(DOF::YAW));
+    node->get_parameter(prefix + "desired_yaw", m_bhv_setpoint.orientation.z);
     
     node->declare_parameter(prefix + "desired_u", 0.0);
-    node->get_parameter(prefix + "desired_u", m_desired_value(DOF::U));
+    node->get_parameter(prefix + "desired_u", m_bhv_setpoint.velocity.x);
     node->declare_parameter(prefix + "desired_v", 0.0);
-    node->get_parameter(prefix + "desired_v", m_desired_value(DOF::V));
+    node->get_parameter(prefix + "desired_v", m_bhv_setpoint.velocity.y);
     node->declare_parameter(prefix + "desired_w", 0.0);
-    node->get_parameter(prefix + "desired_w", m_desired_value(DOF::W));
+    node->get_parameter(prefix + "desired_w", m_bhv_setpoint.velocity.z);
+
+    node->declare_parameter(prefix + "desired_p", 0.0);
+    node->get_parameter(prefix + "desired_p", m_bhv_setpoint.angular_rate.x);
+    node->declare_parameter(prefix + "desired_q", 0.0);
+    node->get_parameter(prefix + "desired_q", m_bhv_setpoint.angular_rate.y);
+    node->declare_parameter(prefix + "desired_r", 0.0);
+    node->get_parameter(prefix + "desired_r", m_bhv_setpoint.angular_rate.z);
 
     std::string node_name = node->get_name();
     std::string ns = node->get_namespace();
@@ -91,6 +94,7 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
     }
 
     std::string global_link, child_link;
+    //define the frames that all calculation will be based on 
     node->declare_parameter(prefix + "default_bhv_world_link", "world_ned");
     node->get_parameter(prefix + "default_bhv_world_link", global_link);
 
@@ -99,6 +103,10 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
     
     bhv_global_link = ns + "/" + global_link;
     bhv_child_link = ns + "/" + child_link;
+
+    m_bhv_setpoint.header.frame_id = bhv_global_link;
+    m_bhv_setpoint.child_frame_id = bhv_child_link;
+
 
     ///topics
     m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("~/"+ prefix + "desired_setpoints", 100, 
@@ -136,110 +144,13 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
 
 void DirectControl::m_setpoint_callback(const mvp_msgs::msg::ControlProcess::SharedPtr msg)
 {
-    //saturation
-    bhv_global_link = msg->header.frame_id;
-    bhv_child_link = msg->child_frame_id;
-    ///linear velocity
-    m_desired_value(DOF::U) = msg->velocity.x;
-    m_desired_value(DOF::V) = msg->velocity.y;
-    m_desired_value(DOF::W) = msg->velocity.z;
-
-    //Position
-    m_desired_value(DOF::X) = msg->position.x;
-    m_desired_value(DOF::Y) = msg->position.y;
-    m_desired_value(DOF::Z) = msg->position.z;
-
-    //euler angle
-    m_desired_value(DOF::ROLL) = msg->orientation.x;
-    m_desired_value(DOF::PITCH) = msg->orientation.y;
-    m_desired_value(DOF::YAW) = msg->orientation.z;
-    
-    transform_setpoint();
+    // mvp_msgs::msg::ControlProcess::SharedPtr temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    transform_control_process_msg(*msg, temp_setpoint, get_helm_world_link(), get_helm_child_link());
+    m_bhv_setpoint = *temp_setpoint;
 
 }
 
-
-void DirectControl::transform_setpoint()
-{
-    auto steady_clock = rclcpp::Clock();
-    //convert m_desired_value from bhv frames into helm frames
-    
-    //this portion will be later moved into bevhavior_base.hpp so all behvaior can use the same function to do transformation.
-    try{
-        //get tf from bhv world to helm world
-        geometry_msgs::msg::TransformStamped tf_bw_hw = m_transform_buffer->lookupTransform(
-            get_helm_world_link(),
-            bhv_global_link,
-            tf2::TimePointZero,
-            10ms
-        );
-        //transform the xyz set point
-        geometry_msgs::msg::PoseStamped setpoint_pose_bhv, setpoint_pose_helm;
-
-        setpoint_pose_bhv.header.frame_id = bhv_global_link;
-        setpoint_pose_bhv.pose.position.x = m_desired_value(DOF::X);
-        setpoint_pose_bhv.pose.position.y = m_desired_value(DOF::Y);
-        setpoint_pose_bhv.pose.position.z = m_desired_value(DOF::Z);
-        
-        tf2::Quaternion q;
-        q.setRPY(m_desired_value(DOF::ROLL), m_desired_value(DOF::PITCH), m_desired_value(DOF::YAW));
-        setpoint_pose_bhv.pose.orientation.x = q.x();
-        setpoint_pose_bhv.pose.orientation.y = q.y();
-        setpoint_pose_bhv.pose.orientation.z = q.z();
-        setpoint_pose_bhv.pose.orientation.w = q.w();
-
-        //convert setpoint pose
-        setpoint_pose_helm.header.frame_id = get_helm_world_link();
-
-        tf2::doTransform(setpoint_pose_bhv, setpoint_pose_helm, tf_bw_hw);
-        tf2::Quaternion quat;
-        quat.setW(setpoint_pose_helm.pose.orientation.w);
-        quat.setX(setpoint_pose_helm.pose.orientation.x);
-        quat.setY(setpoint_pose_helm.pose.orientation.y);
-        quat.setZ(setpoint_pose_helm.pose.orientation.z);
-
-        m_desired_value(DOF::X) = setpoint_pose_helm.pose.position.x;
-        m_desired_value(DOF::Y) = setpoint_pose_helm.pose.position.y;
-        m_desired_value(DOF::Z) = setpoint_pose_helm.pose.position.z;
-
-        tf2::Matrix3x3(quat).getRPY(
-            m_desired_value(DOF::ROLL),
-            m_desired_value(DOF::PITCH),
-            m_desired_value(DOF::YAW)
-        );
-        
-        //computet he bhv_local to helm local
-        geometry_msgs::msg::TransformStamped tf_bl_hl = m_transform_buffer->lookupTransform(
-            get_helm_child_link(),
-            bhv_child_link,
-            tf2::TimePointZero,
-            10ms
-        );
-
-        // printf("helm_local = %s, bhv_child = %s\r\n", get_helm_child_link().c_str(), bhv_child_link.c_str());
-        auto tf_blhl_eigen = tf2::transformToEigen(tf_bl_hl);
-
-        Eigen::Vector3d uvw_helm;
-
-        ///velocity
-        uvw_helm = tf_blhl_eigen.rotation() *
-                    Eigen::Vector3d(m_desired_value(DOF::U),
-                                    m_desired_value(DOF::V), 
-                                    m_desired_value(DOF::W));
-
-        m_desired_value(DOF::U) = uvw_helm.x();
-        m_desired_value(DOF::V) = uvw_helm.y();
-        m_desired_value(DOF::W) = uvw_helm.z();
-
-    } catch (const tf2::TransformException & e) {
-            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Can't compute tf in direct contro: ") + e.what());
-            RCLCPP_INFO( m_logger, "Could not transform %s to %s: %s",
-                         get_helm_world_link().c_str(), bhv_global_link.c_str(), e.what() ); 
-          return;
-
-    }
-
-}
 
 void DirectControl::activated() 
 {
@@ -256,21 +167,7 @@ void DirectControl::disabled()
 bool DirectControl::request_set_point(
     mvp_msgs::msg::ControlProcess *set_point) 
 {
-    
-    set_point->position.x = m_desired_value(DOF::X);
-    set_point->position.y = m_desired_value(DOF::Y);
-    set_point->position.z = m_desired_value(DOF::Z);
-
-    // printf("set_point z = %lf\r\n", set_point->position.z);
-    // Set orientation
-    set_point->orientation.x = m_desired_value(DOF::ROLL);
-    set_point->orientation.y = m_desired_value(DOF::PITCH);
-    set_point->orientation.z = m_desired_value(DOF::YAW);
-
-    // Set velocity
-    set_point->velocity.x = m_desired_value(DOF::U);
-    set_point->velocity.y = m_desired_value(DOF::V);
-    set_point->velocity.z = m_desired_value(DOF::W);
+    *set_point = m_bhv_setpoint;
 
     return true;
 }
