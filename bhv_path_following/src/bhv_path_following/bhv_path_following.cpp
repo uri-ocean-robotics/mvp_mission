@@ -309,7 +309,7 @@ void PathFollowing::resume_or_start() {
     geometry_msgs::msg::Point32 p;
     p.x = static_cast<float>(temp_pose->position.x);
     p.y = static_cast<float>(temp_pose->position.y);
-    // p.z = static_cast<float>(m_process_values.position.z);
+    p.z = static_cast<float>(temp_pose->position.z);
     m_wpt_first = p;
 
     // Select second waypoint to be the next point in the way point list
