@@ -85,6 +85,9 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "altitude_tracking_mode", m_altitude_mode);
     node->get_parameter(prefix + "altitude_tracking_mode", m_altitude_mode);
 
+    node->declare_parameter(prefix + "no_altitude_state", "start");
+    node->get_parameter(prefix + "no_altitude_state", m_state_done);
+
     node->declare_parameter(prefix + "pitch_gain", 0.0);
     node->get_parameter(prefix + "pitch_gain", m_pitch_gain);
 
@@ -93,6 +96,10 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
 
     node->declare_parameter(prefix + "max_pitch", 0.0);
     node->get_parameter(prefix + "max_pitch", m_max_pitch);
+
+    node->declare_parameter(prefix + "no_altitude_timeout", 5.0);
+    node->get_parameter(prefix + "no_altitude_timeout", m_no_altitude_timeout);
+
 
     std::string m_altitude_measurement_topic;
     std::string m_desired_altitude_topic;
@@ -145,6 +152,7 @@ void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::S
         point_in_bhv_global = m_transform_buffer->transform(*msg, m_bhv_setpoint.header.frame_id.c_str(), 1000ms);   
         m_bottom_depth =  point_in_bhv_global.point.z;
         // printf("altitude transformed =%lf\n\r", m_bottom_depth);
+        m_last_altitude_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
     }
 
     catch (tf2::TransformException &ex) {
@@ -174,6 +182,16 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
 
     double c_depth;
     double m_d_pitch;
+    auto steady_clock = rclcpp::Clock();
+
+    if(rclcpp::Clock(RCL_ROS_TIME).now().seconds()-m_last_altitude_time > m_no_altitude_timeout)
+    {
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1, std::string("no altitude timeout trigged"));
+
+        //reserved for change state//
+        change_state(m_state_done);
+        return false;
+    }
 
     switch(m_altitude_mode)
     {
@@ -181,7 +199,7 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
             if(m_depth > m_bottom_depth - m_desired_altitude){
                 c_depth = m_bottom_depth - m_desired_altitude;
                 // printf("altitude safety depth =%lf\n\r", set_point->position.z);
-                auto steady_clock = rclcpp::Clock();
+                
                 RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1, std::string("minimum altitude exceeded"));
             }
             else{

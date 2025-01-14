@@ -128,6 +128,13 @@ private:
     rclcpp::Logger m_logger{rclcpp::get_logger("mvp2_mission_bhv_direct_control")};
 
 
+
+    double m_last_altitude_time;
+
+    double m_no_altitude_timeout;
+
+    std::string m_state_done;
+
     
 public:
 
