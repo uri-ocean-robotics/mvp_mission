@@ -109,7 +109,7 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
 
 
     ///topics
-    m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("~/"+ prefix + "desired_setpoints", 100, 
+    m_setpoint_sub = node->create_subscription<mvp_msgs::msg::ControlProcess>("~/"+ prefix + "desired_setpoints", 10, 
                                                                 std::bind(&DirectControl::m_setpoint_callback, 
                                                                 this, _1));
 
