@@ -175,7 +175,11 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
         }
         m_waypoints.header.frame_id = m_bhv_setpoint.header.frame_id;
         printf("###Waypoint loaded properly, %s \r\n", m_bhv_setpoint.header.frame_id.c_str());
-        
+        //initialize the first waypoin, this will be updated when survey begin
+        m_wpt_first.x = 0;
+        m_wpt_first.y = 0;
+        m_wpt_first.z = 0;
+        m_line_index = 0;
     } 
     else 
     {
@@ -234,6 +238,7 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
  
     printf("####### path following initialization\r\n");
 
+    // resume_or_start();
     
 }
 
@@ -372,7 +377,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
             const std::shared_ptr<mvp_msgs::srv::GetWaypoints::Request> request,
             const std::shared_ptr<mvp_msgs::srv::GetWaypoints::Response> response)
 {
-    std::cout << "get waypoint list service called!" << std::endl;
+    // std::cout << "get waypoint list service called!" << std::endl;
     
     auto length = m_waypoints.polygon.points.size();
     
@@ -381,7 +386,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
     if (length == 0)
     {
         RCLCPP_WARN(m_logger, "No waypoint programmed");
-        return false;
+        // return false;
     }
 
     int num = request->count.data;
@@ -391,10 +396,13 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
         num = length - m_line_index+1;
     }
 
+
     //resize the num variable if it is larger than the actual lenght of the waypoint
     if (num > length) {
         num = length+1;
+        RCLCPP_WARN(m_logger, "Request count exceeded waypoint count [%d]", num);
     }
+
 
     response->wpt.resize(num);
 
@@ -411,12 +419,11 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
         }
         else{
             response->wpt[i].header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-            response->wpt[i].header.frame_id = m_transformed_waypoints.header.frame_id;
-            response->wpt[i].wpt.x = static_cast<double>(m_transformed_waypoints.polygon.points[m_line_index + i-1].x);
-            response->wpt[i].wpt.y = static_cast<double>(m_transformed_waypoints.polygon.points[m_line_index + i-1].y);
-            response->wpt[i].wpt.z = static_cast<double>(m_transformed_waypoints.polygon.points[m_line_index + i-1].z);
+            response->wpt[i].header.frame_id = m_waypoints.header.frame_id;
+            response->wpt[i].wpt.x = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].x);
+            response->wpt[i].wpt.y = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].y);
+            response->wpt[i].wpt.z = static_cast<double>(m_waypoints.polygon.points[m_line_index + i-1].z);
         }
-
         //we need to call the service to convert to lat and lon
         //call the service
         // std::cout << "Converting future waypoints into geopoint" << std::endl;

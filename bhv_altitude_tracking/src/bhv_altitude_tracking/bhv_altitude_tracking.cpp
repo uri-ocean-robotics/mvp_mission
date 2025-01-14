@@ -148,8 +148,8 @@ void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::S
     }
 
     catch (tf2::TransformException &ex) {
-        // RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Could NOT transform dvl altitude into bottom depth"));
-        RCLCPP_ERROR(m_logger, "Transform failed: %s", ex.what());
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1, std::string("altitude_tracking warning") + ex.what());
+        // RCLCPP_ERROR(m_logger, "Transform failed: %s", ex.what());
     }
 }
 
@@ -182,7 +182,7 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
                 c_depth = m_bottom_depth - m_desired_altitude;
                 // printf("altitude safety depth =%lf\n\r", set_point->position.z);
                 auto steady_clock = rclcpp::Clock();
-                RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("minimum altitude exceeded"));
+                RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1, std::string("minimum altitude exceeded"));
             }
             else{
                 return false;
