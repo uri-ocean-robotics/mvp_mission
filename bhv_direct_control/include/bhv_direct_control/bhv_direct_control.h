@@ -29,6 +29,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float64.hpp"
 #include "std_srvs/srv/empty.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 
 #include "behavior_interface/behavior_base.h"
 #include "mvp_msgs/msg/control_process.hpp"
@@ -99,7 +100,7 @@ private:
     /**
     * @brief angular velocity transformation matrix
         */
-    Eigen::MatrixXd f_angular_velocity_transform(const Eigen::VectorXd& orientation);
+    // Eigen::MatrixXd f_angular_velocity_transform(const Eigen::VectorXd& orientation);
 
     /**
         * @brief global link id
@@ -112,14 +113,9 @@ private:
     std::string bhv_child_link;
 
     /**
-        * @brief Max value for each DOF
+        * @brief Desired value for each DOF based on bhv frame
     */
-        Eigen::VectorXd m_max;
-
-    /**
-        * @brief Desired value for each DOF
-    */
-    Eigen::VectorXd m_desired_value;
+    mvp_msgs::msg::ControlProcess m_bhv_setpoint; 
 
     //! @brief Transform buffer for TF2
     std::unique_ptr<tf2_ros::Buffer> m_transform_buffer;

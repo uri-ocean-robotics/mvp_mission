@@ -23,6 +23,8 @@ namespace helm {
         std::string name;
         std::string control_mode;
         std::vector<std::string> transitions;
+        std::string set_point_world_frame;
+        std::string set_point_child_frame;
     };
 
     struct behavior_sm_state_t{
@@ -39,14 +41,14 @@ namespace helm {
 
     struct helm_configuration_t{
         double frequency;
-        std::string global_link;
-        std::string local_link;
+        std::string world_link;
+        std::string child_link;
     };
 
     CONST_STRING CONF_HELM = "helm_configuration";
     CONST_STRING CONF_HELM_FREQ = "frequency";
-    CONST_STRING CONF_HELM_GLOBAL = "global_link";
-    CONST_STRING CONF_HELM_LOCAL = "local_link";
+    CONST_STRING CONF_HELM_WORLD_LINK_DEFAULT = "default_world_link";
+    CONST_STRING CONF_HELM_CHILD_LINK_DEFAULT = "default_child_link";
     CONST_STRING CONF_TF_PREFIX = "tf_prefix";
     CONST_STRING CONF_HELM_FILE = "helm_config_file";
     CONST_STRING CONF_FROMLL_SRV_NAME = "helm_fromLL_srv_name";
@@ -57,6 +59,8 @@ namespace helm {
     CONST_STRING CONF_FSM_MODE = "control_mode";
     CONST_STRING CONF_FSM_INITIAL = "initial";
     CONST_STRING CONF_FSM_TRANSITIONS = "transitions";
+    CONST_STRING CONF_FSM_WORLD_FRAME = "set_point_world_frame";
+    CONST_STRING CONF_FSM_CHILD_FRAME = "set_point_child_frame";
 
     CONST_STRING CONF_BHV = "behaviors";
     CONST_STRING CONF_BHV_NAME = "name";

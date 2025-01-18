@@ -61,12 +61,12 @@ private:
     /**
      * @brief Global link of helm
      */
-    std::string m_global_link;
+    std::string m_world_link;
 
     /**
      * @brief Local link of helm
      */
-    std::string m_local_link;
+    std::string m_child_link;
 
     /**
      * @brief A string holds the active state name
@@ -89,6 +89,10 @@ private:
 
     std::function<void(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point)> f_dis2ll;
     std::function<void(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg::Point::SharedPtr map_point)> f_ll2dis;
+    std::function<void(mvp_msgs::msg::ControlProcess in, 
+                   mvp_msgs::msg::ControlProcess::SharedPtr out, 
+                   std::string target_world_frame, 
+                   std::string target_child_frame)> f_transform_control_process_msg;
 
     void f_set_active_state(const std::string& state) {
         m_active_state = state;
@@ -209,6 +213,11 @@ protected:
     {
          return f_ll2dis(ll_point, map_point);
     }
+
+    virtual auto transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out, std::string target_world_frame, std::string target_child_frame) -> void final
+    {
+        return f_transform_control_process_msg(in, out, target_world_frame, target_child_frame);
+    }
     /**
      * @brief 
      */
@@ -217,12 +226,12 @@ protected:
     /**
      * @brief 
      */
-    virtual std::string get_helm_global_link() final { return m_global_link; }
+    virtual std::string get_helm_world_link() final { return m_world_link; }
 
     /**
      * @brief 
      */
-    virtual std::string get_helm_local_link() final { return m_local_link; }
+    virtual std::string get_helm_child_link() final { return m_child_link; }
     
     /**
      * @brief 

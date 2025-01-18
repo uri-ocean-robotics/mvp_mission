@@ -84,8 +84,6 @@ private:
 
     double m_bottom_depth = 1000;
 
-    double m_pitch;
-
     double m_pitch_gain;
 
     double m_pitch_assist_band;
@@ -93,12 +91,28 @@ private:
     double m_max_pitch;
 
     int m_altitude_mode;  //-1: disabled, 0: safety_mode, 1:continuous
+    
+    /**
+        * @brief global link id
+    */
+    std::string bhv_global_link;
 
+    /**
+        * @brief local link id
+    */
+    std::string bhv_child_link;
+
+    /**
+        * @brief Desired value for each DOF based on bhv frame
+    */
+    
+    mvp_msgs::msg::ControlProcess m_bhv_setpoint; 
     //altitude topic from dvl
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr m_altitude_sub;
 
     //allowing user to change desired altitude on-the-fly
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr m_desired_altitude_sub;
+    
     
     void f_m_altitude_cb(const geometry_msgs::msg::PointStamped::SharedPtr msg);
 
@@ -113,6 +127,13 @@ private:
 
     rclcpp::Logger m_logger{rclcpp::get_logger("mvp2_mission_bhv_direct_control")};
 
+
+
+    double m_last_altitude_time;
+
+    double m_no_altitude_timeout;
+
+    std::string m_state_done;
 
     
 public:

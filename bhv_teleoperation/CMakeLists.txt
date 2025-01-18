@@ -28,6 +28,8 @@ find_package(behavior_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 ####################################################################
 #####                   setup dependencies                     #####
@@ -44,6 +46,8 @@ set(dependencies
   pluginlib
   sensor_msgs
   std_srvs
+  tf2_ros
+  tf2_eigen
 )
 
 ####################################################################

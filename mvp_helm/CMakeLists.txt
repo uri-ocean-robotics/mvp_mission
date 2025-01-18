@@ -30,7 +30,9 @@ find_package(behavior_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(robot_localization REQUIRED)
 find_package(yaml-cpp REQUIRED)
-
+find_package(tf2_ros REQUIRED)
+find_package(tf2_eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 ####################################################################
 #####                   setup dependencies                     #####
@@ -49,6 +51,8 @@ set(dependencies
   nav_msgs
   tf2
   tf2_geometry_msgs
+  tf2_ros
+  tf2_eigen
   geometry_msgs
   behavior_interface
   robot_localization

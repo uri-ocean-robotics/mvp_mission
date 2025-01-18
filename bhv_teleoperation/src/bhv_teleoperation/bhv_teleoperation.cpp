@@ -23,6 +23,7 @@
 
 
 #include "bhv_teleoperation/bhv_teleoperation.h"
+#include "tf2/time.h"
 
 using namespace helm;
 
@@ -42,6 +43,10 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     auto node = m_node.lock();
     m_logger = node->get_logger();
 
+     //setup tf buffer
+    m_transform_buffer = std::make_unique<tf2_ros::Buffer>(node->get_clock());
+    m_transform_listener = std::make_unique<tf2_ros::TransformListener>(*m_transform_buffer);
+
     /*************************************************************************/
     /* Load Parameters for ROS2 */
 
@@ -52,6 +57,17 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     if (!m_ns.empty() && m_ns[0] == '/') {
         m_ns = m_ns.substr(1);
     }
+
+    std::string global_link, child_link;
+    node->declare_parameter(prefix + "default_bhv_world_link", "world_ned");
+    node->get_parameter(prefix + "default_bhv_world_link", global_link);
+
+    node->declare_parameter(prefix + "default_bhv_child_link", "cg_link");
+    node->get_parameter(prefix + "default_bhv_child_link", child_link);
+    
+    m_bhv_setpoint.header.frame_id = m_ns + "/" + global_link;
+    m_bhv_setpoint.child_frame_id = m_ns + "/" + child_link;
+
     // Load increments in control
     node->declare_parameter(prefix + "tele_s_surge", 1.0);
     node->get_parameter(prefix + "tele_s_surge", m_tele_s_surge);
@@ -67,31 +83,6 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     node->declare_parameter(prefix + "tele_d_depth", 1.0);
     node->get_parameter(prefix + "tele_d_depth", m_tele_d_depth);
-
-    //load max values
-    node->declare_parameter(prefix + "max_z", 100.0);
-    node->get_parameter(prefix + "max_z", m_max_z);
-
-    node->declare_parameter(prefix + "max_roll", M_PI_2);
-    node->get_parameter(prefix + "max_roll", m_max_roll);
-
-    node->declare_parameter(prefix + "max_pitch", M_PI_2);
-    node->get_parameter(prefix + "max_pitch", m_max_pitch);
-
-    node->declare_parameter(prefix + "max_surge", 1.0);
-    node->get_parameter(prefix + "max_surge", m_max_surge);
-
-    node->declare_parameter(prefix + "max_sway", 1.0);
-    node->get_parameter(prefix + "max_sway", m_max_sway);
-
-    // Load  enable/disable control
-    // node->declare_parameter(prefix + "ctrl_disable_srv", "controller/disable");
-    // node->get_parameter(prefix + "ctrl_disable_srv", m_ctrl_disable);
-    // m_ctrl_disable = "/" + m_ns + "/" + m_ctrl_disable;
-    
-    // node->declare_parameter(prefix + "ctrl_enable_srv", "controller/enable");
-    // node->get_parameter(prefix + "ctrl_enable_srv", m_ctrl_enable);
-    // m_ctrl_enable = "/" + m_ns + "/" + m_ctrl_enable;
 
     node->declare_parameter(prefix + "ctrl_set_srv", "controller/set");
     node->get_parameter(prefix + "ctrl_set_srv", m_ctrl_set_srv);
@@ -112,13 +103,7 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
         this, std::placeholders::_1));
 
     // controller srv
-    // m_disable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_disable);
-
-    // m_enable_ctrl_client = node->create_client<std_srvs::srv::Empty>(m_ctrl_enable);
-
     m_ctrl_set_client = node->create_client<std_srvs::srv::SetBool>(m_ctrl_set_srv);
-
-
 
     // while (!m_disable_ctrl_client->wait_for_service(2s)) {
     //     RCLCPP_WARN(m_logger, 
@@ -153,12 +138,12 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
 
     /////initialize the desired pose first
-    m_desired_roll = 0;
-    m_desired_pitch = 0;
-    m_desired_yaw = 0;
-    m_desired_z = 0;
-    m_desired_surge = 0;
-    m_desired_sway = 0;
+    m_bhv_setpoint.orientation.x = 0;
+    m_bhv_setpoint.orientation.y = 0;
+    m_bhv_setpoint.orientation.z = 0;
+    m_bhv_setpoint.position.z = 0;
+    m_bhv_setpoint.velocity.x = 0;
+    m_bhv_setpoint.velocity.y = 0;
 }
 
 //tele op is good for control surge, pitch, depth and  heading
@@ -168,37 +153,29 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if(msg->buttons[4]==1 && m_use_joy)
     {
         //left axis up and down
-        m_desired_surge = msg->axes[1] * m_tele_s_surge;
+        m_bhv_setpoint.velocity.x = msg->axes[1] * m_tele_s_surge;
 
         //left axis up and down 
-        m_desired_sway = msg->axes[0] * m_tele_s_sway; 
+        m_bhv_setpoint.velocity.y = msg->axes[0] * m_tele_s_sway; 
 
         //X button decrease heading B button increase heading
-        m_desired_yaw = 
-            m_desired_yaw + m_tele_d_yaw/180*M_PI * 
-            (-msg->buttons[0] + msg->buttons[2]); 
+        m_bhv_setpoint.orientation.z = m_bhv_setpoint.orientation.z 
+                                        + m_tele_d_yaw/180*M_PI * 
+                                        (-msg->buttons[0] + msg->buttons[2]); 
         
         //wrap yaw into -pi to pi.
-        m_desired_yaw = 
-            (fmod(m_desired_yaw + std::copysign(M_PI, m_desired_yaw), 2*M_PI) 
-            - std::copysign(M_PI, m_desired_yaw));        
+        m_bhv_setpoint.orientation.z = 
+            (fmod(m_bhv_setpoint.orientation.z + std::copysign(M_PI, m_bhv_setpoint.orientation.z), 2*M_PI) 
+            - std::copysign(M_PI, m_bhv_setpoint.orientation.z));        
 
         //Y->decrease A->increase
-        m_desired_pitch = 
-            m_desired_pitch + m_tele_d_pitch/180*M_PI * 
+        m_bhv_setpoint.orientation.y = 
+            m_bhv_setpoint.orientation.y + m_tele_d_pitch/180*M_PI * 
             (-msg->buttons[3] + msg->buttons[1]); 
 
         //RB depth decrease, RT depth increase
-        m_desired_z = 
-            m_desired_z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
-
-        //saturation
-        m_desired_roll = std::min(std::max(m_desired_roll, -m_max_roll), m_max_roll);
-        m_desired_pitch = std::min(std::max(m_desired_pitch, -m_max_pitch), m_max_pitch);
-        //no limit for yaw.
-        m_desired_surge = std::min(std::max(m_desired_surge, -m_max_surge), m_max_surge);
-        m_desired_sway = std::min(std::max(m_desired_sway, -m_max_sway), m_max_sway);
-        m_desired_z = std::min(std::max(m_desired_z, -m_max_z), m_max_z);
+        m_bhv_setpoint.position.z = 
+            m_bhv_setpoint.position.z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
 
     }
 
@@ -236,12 +213,12 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if(msg->buttons[6]==1)
     {
         // first time enable joystick and record vehicle pose
-        m_desired_pitch = 0;
-        m_desired_roll = 0;
-        m_desired_yaw = BehaviorBase::m_process_values.orientation.z;
-        m_desired_z = BehaviorBase::m_process_values.position.z;
-        m_desired_surge = 0;
-        m_desired_sway = 0;
+        m_bhv_setpoint.orientation.x = 0;
+        m_bhv_setpoint.orientation.y = 0;
+        m_bhv_setpoint.orientation.z = BehaviorBase::m_process_values.orientation.z;
+        m_bhv_setpoint.position.z = BehaviorBase::m_process_values.position.z;
+        m_bhv_setpoint.velocity.x = 0;
+        m_bhv_setpoint.velocity.y = 0;
         m_use_joy = true;
         RCLCPP_WARN(m_logger, "teleop enabled !");
     }
@@ -251,8 +228,15 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     {
         m_last_joy_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
     }
-}
 
+    //transform the setpoint.
+    auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
+    
+    transform_control_process_msg(m_bhv_setpoint, temp_setpoint, get_helm_world_link(), get_helm_child_link());
+    
+    m_bhv_setpoint = *temp_setpoint;
+
+}
 
 void Teleoperation::activated() {
     /**
@@ -300,18 +284,8 @@ bool Teleoperation::request_set_point(
 
     //set point /heder/frame_id and child frame id will be the same as the helm setting (not additional setting here).
     // Set Position
-    set_point->position.z = m_desired_z;
-
-    // Set orientation
-    set_point->orientation.x = m_desired_roll;
-    set_point->orientation.y = m_desired_pitch;
-    set_point->orientation.z = m_desired_yaw;
-
-    // Set velocity
-    set_point->velocity.x = m_desired_surge;
-    set_point->velocity.y = m_desired_sway;
+    *set_point = m_bhv_setpoint;
    
-
     return true;
 }
 

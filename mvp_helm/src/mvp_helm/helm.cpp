@@ -4,6 +4,8 @@
 #include <utility>
 #include "mvp_helm/helm.h"
 #include <GeographicLib/Geodesic.hpp>
+#include "tf2/time.h"
+
 
 using namespace std::chrono_literals;
 
@@ -19,12 +21,11 @@ Helm::Helm(const rclcpp::NodeOptions & options)
     this->declare_parameter(CONF_HELM_FREQ, 10.0);
     this->get_parameter(CONF_HELM_FREQ, m_helm_freq);
 
-    this->declare_parameter(CONF_HELM_GLOBAL, "world_ned");
-    this->get_parameter(CONF_HELM_GLOBAL, m_global_link_id);
-    // std::cout<<"global_link: "<<m_global_link_id<<std::endl;
+    this->declare_parameter(CONF_HELM_WORLD_LINK_DEFAULT, "world_ned");
+    this->get_parameter(CONF_HELM_WORLD_LINK_DEFAULT, m_world_link_id);
 
-    this->declare_parameter(CONF_HELM_LOCAL, "cg_link");
-    this->get_parameter(CONF_HELM_LOCAL, m_local_link_id);
+    this->declare_parameter(CONF_HELM_CHILD_LINK_DEFAULT, "cg_link");
+    this->get_parameter(CONF_HELM_CHILD_LINK_DEFAULT, m_child_link_id);
     // std::cout<<"local_link: "<<m_local_link_id<<std::endl;
     
     this->declare_parameter(CONF_HELM_FILE, "helm.yaml");
@@ -35,8 +36,8 @@ Helm::Helm(const rclcpp::NodeOptions & options)
     this->get_parameter(CONF_TF_PREFIX, tf_prefix);
     m_tf_prefix = tf_prefix.empty() ? "" : tf_prefix + "/";
 
-    m_global_frame = m_tf_prefix + m_global_link_id;
-    m_local_frame = m_tf_prefix+ m_local_link_id;
+    m_world_frame = m_tf_prefix + m_world_link_id;
+    m_child_frame = m_tf_prefix+ m_child_link_id;
 }
 
 Helm::~Helm()
@@ -119,6 +120,10 @@ void Helm::initialize() {
     );
     
 
+    //setup tf buffer
+    m_transform_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    m_transform_listener = std::make_unique<tf2_ros::TransformListener>(*m_transform_buffer);
+
     /***************************************************************************
      * Initialize state machine
      */
@@ -156,11 +161,16 @@ void Helm::f_initialize_behaviors() {
 
         i->get_behavior()-> f_ll2dis = std::bind(&Helm::f_ll2dis, this, std::placeholders::_1, std::placeholders::_2);
 
+        i->get_behavior()-> f_transform_control_process_msg = std::bind(&Helm::f_transform_control_process_msg, 
+                                                this, 
+                                                std::placeholders::_1, std::placeholders::_2,
+                                                std::placeholders::_3, std::placeholders::_4);
+
         i->get_behavior()->m_helm_frequency = m_helm_freq;
 
-        i->get_behavior()->m_local_link = m_local_frame;
+        i->get_behavior()->m_child_link = m_child_frame;
 
-        i->get_behavior()->m_global_link = m_global_frame;
+        i->get_behavior()->m_world_link = m_world_frame;
     }
 }
 
@@ -339,6 +349,137 @@ void Helm::f_ll2dis(geographic_msgs::msg::GeoPoint ll_point, geometry_msgs::msg:
 }
 
 
+void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp_msgs::msg::ControlProcess::SharedPtr out,
+                                            std::string target_world_frame, std::string target_child_frame)
+{
+    auto steady_clock = rclcpp::Clock();
+
+    try{
+        // printf("transforming frame from %s to %s\r\n", in.header.frame_id.c_str(), target_world_frame.c_str());
+        // printf("transforming frame from %s to %s\r\n", in.child_frame_id.c_str(), target_child_frame.c_str());
+        //////////////////////////////////////////
+        //////////////transforming pose///////////
+        //////////////////////////////////////////
+        //get tf between world
+        geometry_msgs::msg::TransformStamped tf_world = m_transform_buffer->lookupTransform(
+            target_world_frame,
+            in.header.frame_id,
+            tf2::TimePointZero,
+            10ms
+        );
+
+        geometry_msgs::msg::PoseStamped pose_in, pose_out;
+        pose_in.header = in.header;
+        pose_in.pose.position.x = in.position.x;
+        pose_in.pose.position.y = in.position.y;
+        pose_in.pose.position.z = in.position.z;
+
+        tf2::Quaternion q;
+        q.setRPY(in.orientation.x, in.orientation.y, in.orientation.z);
+        pose_in.pose.orientation.x = q.x();
+        pose_in.pose.orientation.y = q.y();
+        pose_in.pose.orientation.z = q.z();
+        pose_in.pose.orientation.w = q.w();
+
+        pose_out.header.frame_id = target_world_frame;
+
+        tf2::doTransform(pose_in, pose_out, tf_world);
+
+        tf2::Quaternion quat;
+        quat.setW(pose_out.pose.orientation.w);
+        quat.setX(pose_out.pose.orientation.x);
+        quat.setY(pose_out.pose.orientation.y);
+        quat.setZ(pose_out.pose.orientation.z);
+
+        //update the output
+        out->position.x = pose_out.pose.position.x;
+        out->position.y = pose_out.pose.position.y;
+        out->position.z = pose_out.pose.position.z;
+
+        tf2::Matrix3x3(quat).getRPY(
+            out->orientation.x,
+            out->orientation.y,
+            out->orientation.z);
+
+    //////////////////////////////////////////
+    //////////////transforming velocity///////
+    //////////////////////////////////////////
+    //transform local frame linear velocity only 
+    //linear velocity
+    geometry_msgs::msg::TransformStamped tf_local = m_transform_buffer->lookupTransform(
+            target_child_frame,
+            in.child_frame_id,
+            tf2::TimePointZero,
+            10ms
+    );
+    
+    auto tf_local_eigen = tf2::transformToEigen(tf_local);
+    Eigen::Vector3d uvw_out;
+
+    uvw_out = tf_local_eigen.rotation() *
+                Eigen::Vector3d(in.velocity.x,
+                                in.velocity.y, 
+                                in.velocity.z);
+
+    out->velocity.x = uvw_out.x();
+    out->velocity.y = uvw_out.y();
+    out->velocity.z = uvw_out.z();
+
+    //angular velocity
+    Eigen::Vector3d pqr_in;
+    pqr_in.x() = in.angular_rate.x;
+    pqr_in.y() = in.angular_rate.y;
+    pqr_in.z() = in.angular_rate.z;
+
+    quat.setW(tf_local.transform.rotation.w);
+    quat.setX(tf_local.transform.rotation.x);
+    quat.setY(tf_local.transform.rotation.y);
+    quat.setZ(tf_local.transform.rotation.z);
+
+    Eigen::Vector3d orientation;
+    tf2::Matrix3x3(quat).getRPY(orientation.x(), orientation.y(), orientation.z());
+
+    Eigen::Matrix3d transform = Eigen::Matrix3d::Zero();
+
+    double cosy = cos(orientation.y());
+    double tany = tan(orientation.y());
+
+    //saturation to avoid singularity
+    if(cosy >-0.0001 && cosy <0.0001){
+        cosy = 0.0001;
+    }
+
+    tany = std::min(std::max(tany, -1000.0), 1000.0);
+
+    transform(0,0) = 1.0;
+    transform(0,1) = sin(orientation.x()) * tany;
+    transform(0,2) = cos(orientation.x()) * tany;
+    transform(1,0) = 0.0;
+    transform(1,1) = cos(orientation.x());
+    transform(1,2) = -sin(orientation.x());
+    transform(2,0) = 0.0;
+    transform(2,1) = sin(orientation.x()) / cosy; //add a some number to avoid ambiguity
+    transform(2,2) = cos(orientation.x()) / cosy;
+
+    Eigen::Vector3d pqr_out = transform * pqr_in;
+
+    out->angular_rate.x = pqr_out.x();
+    out->angular_rate.y = pqr_out.y();
+    out->angular_rate.z = pqr_out.z();
+    out->header.frame_id = target_world_frame;
+    out->child_frame_id = target_child_frame;
+
+    
+
+    } catch (const tf2::TransformException & e) {
+            RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), steady_clock, 10, std::string("Can't compute tf in mvp_helm: ") + e.what());
+            RCLCPP_INFO( this->get_logger(), "mvp_helm transform error:: %s", e.what() ); 
+          return;
+
+    }    
+
+
+}
 
 void Helm::f_helm_loop() {
 
@@ -360,6 +501,23 @@ void Helm::f_iterate() {
      * respective mode to that state.
      */
     auto active_state = m_state_machine->get_active_state();
+
+    //update the set point frame if a state has empty setpoint frames, we use the default.
+    std::string state_set_point_world_frame, state_set_point_child_frame;
+    if (active_state.set_point_world_frame.empty()){
+        state_set_point_world_frame = m_world_frame;
+    }
+    else {
+        state_set_point_world_frame = m_tf_prefix+ active_state.set_point_world_frame;
+    }
+
+    if (active_state.set_point_child_frame.empty()){
+        state_set_point_child_frame = m_child_frame;
+    }
+    else{
+        state_set_point_child_frame = m_tf_prefix+ active_state.set_point_child_frame;
+    }
+
 
     if(m_controller_process_values == nullptr) {
         return;
@@ -410,7 +568,12 @@ void Helm::f_iterate() {
          * Update the system state inside behavior
          */
         i->get_behavior()->m_process_values = *m_controller_process_values;
+        
+        i->get_behavior()->m_child_link = state_set_point_child_frame;
 
+        i->get_behavior()->m_world_link = state_set_point_world_frame;
+
+        // printf("State setpoint frame=%s, %s\r\n", state_set_point_child_frame.c_str(), state_set_point_world_frame.c_str());
         /*
          * Check if behavior should be active in active state
          */
@@ -485,7 +648,8 @@ void Helm::f_iterate() {
     
     m_set_point_bhv.control_mode = active_state.control_mode;
     m_set_point_bhv.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-    m_set_point_bhv.header.frame_id = m_global_frame;
+    m_set_point_bhv.header.frame_id = state_set_point_world_frame;
+    m_set_point_bhv.child_frame_id = state_set_point_child_frame;
     m_helm_setpoint_bhv->publish(m_set_point_bhv);
     //only publish the set  point when there is a bhv setting the set point
     bool all_empty = std::all_of(m_set_point_bhv.behavior.begin(), m_set_point_bhv.behavior.end(), [](const std::string& s) {
@@ -496,9 +660,9 @@ void Helm::f_iterate() {
     {
         // makeup the message
         msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-        msg.header.frame_id = m_global_frame;
+        msg.header.frame_id = state_set_point_world_frame;
         msg.control_mode = active_state.control_mode;
-        msg.child_frame_id = m_local_frame;
+        msg.child_frame_id = state_set_point_child_frame;
         m_pub_controller_set_point->publish(msg);    
     
     }

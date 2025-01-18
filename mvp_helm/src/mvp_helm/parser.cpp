@@ -76,7 +76,20 @@ void Parser::f_parse_sm_components()
             std::vector<std::string> transitions;
             transitions = map[CONF_FSM][state_name][CONF_FSM_TRANSITIONS].as<std::vector<std::string>>();
 
-            m_op_sm_component({initial, state_name, control_mode, transitions});
+            //world_frame and child frame for setpoints
+            std::string set_point_world_frame = "";
+            if (map[CONF_FSM][state_name][CONF_FSM_WORLD_FRAME])
+            {
+                set_point_world_frame = map[CONF_FSM][state_name][CONF_FSM_WORLD_FRAME].as<std::string>();
+            }
+
+            std::string set_point_child_frame = "";
+            if (map[CONF_FSM][state_name][CONF_FSM_WORLD_FRAME])
+            {
+            set_point_child_frame = map[CONF_FSM][state_name][CONF_FSM_CHILD_FRAME].as<std::string>();
+            }
+
+            m_op_sm_component({initial, state_name, control_mode, transitions, set_point_world_frame, set_point_child_frame});
 
             // RCLCPP_INFO(m_logger, "initial=%d, state_name =%s, control_mode=%s", initial, state_name.c_str(), control_mode.c_str());
             // RCLCPP_INFO(m_logger, "transitions");
