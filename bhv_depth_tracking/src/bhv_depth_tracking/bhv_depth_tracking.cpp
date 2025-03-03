@@ -177,6 +177,10 @@ void DepthTracking::m_depth_tracking_callback(const std_msgs::msg::Float32MultiA
     m_depth_index = 0;
     m_depth_tracking_enabled = true;
     m_depth_initial_timeout = true;
+    m_depth_holding_flag = false;
+
+    printf("depth tracking param: %lf, %lf,%lf\r\n", 
+        c_depth_list[m_depth_index], c_depth_time_list[m_depth_index], c_pitch_list[m_depth_index]);    
 }
 
 
