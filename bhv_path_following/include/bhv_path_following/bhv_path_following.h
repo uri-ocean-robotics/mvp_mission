@@ -183,6 +183,10 @@ private:
 
     double m_yint;
 
+    double m_turning_surge_velocity;
+
+    double m_turning_angle_sector;
+
     int m_line_index;
 
     geometry_msgs::msg::Point32 m_wpt_first;

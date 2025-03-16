@@ -119,7 +119,13 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->get_parameter(prefix + "overshoot_timeout", m_overshoot_timeout);
 
     node->declare_parameter(prefix + "surge_velocity", 1.0);
-    node->get_parameter(prefix + "surge_velocity", m_bhv_setpoint.velocity.x);
+    node->get_parameter(prefix + "surge_velocity", m_surge_velocity);
+
+    node->declare_parameter(prefix + "turning_surge_velocity", m_surge_velocity);
+    node->get_parameter(prefix + "turning_surge_velocity", m_turning_surge_velocity);
+    
+    node->declare_parameter(prefix + "turning_angle_sector", 3.15);
+    node->get_parameter(prefix + "turning_angle_sector", m_turning_angle_sector);
 
     node->declare_parameter(prefix + "pitch_angle", 0.0);
     node->get_parameter(prefix + "pitch_angle", m_bhv_setpoint.orientation.y);
@@ -245,7 +251,7 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
 
 void PathFollowing::f_surge_cb(const std_msgs::msg::Float64::SharedPtr m)
 {
-    m_bhv_setpoint.velocity.x = m->data;
+    m_surge_velocity = m->data;
 
 }
 
@@ -783,6 +789,20 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     else{
         m_pitch = 0;
     }
+
+    //turning surge velocity
+    double relative_ang = gamma_p - yaw;
+    double diff = std::fabs(fmod(relative_ang + std::copysign(M_PI,relative_ang), 2*M_PI) 
+                - std::copysign(M_PI,relative_ang) );
+
+    if(diff > m_turning_angle_sector)
+    {
+        m_bhv_setpoint.velocity.x = m_turning_surge_velocity;
+    }
+    else{
+        m_bhv_setpoint.velocity.x = m_surge_velocity;
+    }
+
 
     //u is already updated in the callback;
     m_bhv_setpoint.orientation.y = m_pitch;
