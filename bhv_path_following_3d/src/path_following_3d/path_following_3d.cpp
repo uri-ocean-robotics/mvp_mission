@@ -103,6 +103,10 @@ void PathFollowing3D::initialize() {
     // Meter/Seconds
     m_pnh->param<double>("surge_velocity", m_surge_velocity, 0.5);
 
+    m_pnh->param<double>("turning_surge_velocity", m_turning_surge_velocity, m_surge_velocity);
+
+    m_pnh->param<double>("turning_angle_sector", m_turning_angle_sector, 3.15);
+
     //radians, desired pitch
     m_pnh->param<double>("pitch_angle", m_pitch, 0.0);
 
@@ -122,8 +126,6 @@ void PathFollowing3D::initialize() {
     m_pnh->param<double>("lookahead_min", m_lookahead_min, 1.0);
 
     m_pnh->param<double>("lookahead_gamma", m_lookahead_gamma, 0.01);
-
-    
 
     m_pnh->param<bool>("lookahead_adaptive_flag", m_lookahead_adaptive, false);
 
@@ -769,8 +771,19 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
 
     /// compute desired set point now
     // set the surge velocity
+    //compute the angle between gamma_p and  current heading
     m_cmd.velocity.x = m_surge_velocity;
+    //checking if it in the turnning sector.
+    double relative_heading = gamma_p - yaw;
+    double diff = std::fabs(fmod(relative_heading + std::copysign(M_PI,relative_heading), 2*M_PI) 
+                - std::copysign(M_PI,relative_heading) );
 
+    // printf("relative angle is %lf\r\n", diff);
+    if(diff > m_turning_angle_sector)
+    {
+        m_cmd.velocity.x = m_turning_surge_velocity;
+    }
+    // printf("surge velocity = %lf\r\n", m_cmd.velocity.x);
     // set the heading for line of sight
     // m_cmd.orientation.z = gamma_p - atan( (Ye + m_sigma*m_yint)/ lookahead   + ye_dot*m_beta_gain);
     if(m_lookahead_adaptive)

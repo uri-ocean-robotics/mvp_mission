@@ -171,6 +171,10 @@ namespace helm {
          * @brief Surge velocity for the behavior
          */
         double m_surge_velocity;
+
+        double m_turning_surge_velocity;
+
+        double m_turning_angle_sector;
         
         /**
          * @brief Desired pitch
