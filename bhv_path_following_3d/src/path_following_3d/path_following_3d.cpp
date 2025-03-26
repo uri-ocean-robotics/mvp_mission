@@ -730,11 +730,15 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
         ROS_WARN_THROTTLE(5, "Overshoot detected!");
 
         // Look back
-        lookahead = -lookahead;
+        // lookahead = -lookahead;
 
         // we are at the opposite side now
+        // flip the line angle
         gamma_p = gamma_p + M_PI;
+        //compute cross-track error based on the end of the line waypoint
+        Ye = -dx2 * sin(gamma_p) + dy2 * cos(gamma_p);
 
+        
         // record the time
         auto t = ros::Time::now();
 
@@ -800,9 +804,16 @@ bool PathFollowing3D::request_set_point(mvp_msgs::ControlProcess *set_point) {
     
     m_cmd.orientation.z = gamma_p - atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
 
+    if (m_cmd.orientation.z>M_PI)
+    {
+        m_cmd.orientation.z = m_cmd.orientation.z - 2*M_PI;
+    }
+    if(m_cmd.orientation.z<-M_PI)
+    {
+        m_cmd.orientation.z = m_cmd.orientation.z + 2*M_PI;
+    }
 
-
-   
+    // printf("gamma_p =%lf, e = %lf, c_yaw=%lf\r\n", gamma_p, Ye, m_cmd.orientation.z);
 
     // check the acceptance radius
     
