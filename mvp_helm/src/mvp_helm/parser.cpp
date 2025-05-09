@@ -86,17 +86,51 @@ void Parser::f_parse_sm_components()
             std::string set_point_child_frame = "";
             if (map[CONF_FSM][state_name][CONF_FSM_WORLD_FRAME])
             {
-            set_point_child_frame = map[CONF_FSM][state_name][CONF_FSM_CHILD_FRAME].as<std::string>();
+                set_point_child_frame = map[CONF_FSM][state_name][CONF_FSM_CHILD_FRAME].as<std::string>();
             }
 
-            m_op_sm_component({initial, state_name, control_mode, transitions, set_point_world_frame, set_point_child_frame});
+            //check state manager related
+            double timeout = std::numeric_limits<double>::infinity();
+            if(map[CONF_FSM][state_name]["timeout"])
+            {
+                timeout = map[CONF_FSM][state_name]["timeout"].as<double>();
+            }
+            else 
+            {
+                RCLCPP_WARN(m_logger, "no timeout defined for state:%s, use inf for now", state_name.c_str());
+            }
 
-            // RCLCPP_INFO(m_logger, "initial=%d, state_name =%s, control_mode=%s", initial, state_name.c_str(), control_mode.c_str());
+            std::string transition_state = "start";
+            if(map[CONF_FSM][state_name]["transition_state"])
+            {
+                transition_state = map[CONF_FSM][state_name]["transition_state"].as<std::string>();
+            }
+            else 
+            {
+                RCLCPP_WARN(m_logger, "no transition_state defined for state:%s, use 'start' for now", state_name.c_str());
+            }
+
+            //create the component
+            m_op_sm_component({
+                initial, 
+                state_name, 
+                control_mode, 
+                transitions, 
+                set_point_world_frame, 
+                set_point_child_frame,
+                timeout,
+                transition_state
+            });
+
+            //! DEBUG: check the FSM parsing
+            // RCLCPP_INFO(m_logger, "initial=%d, FSM =%s, control_mode=%s", 
+            //     initial, state_name.c_str(), control_mode.c_str());
             // RCLCPP_INFO(m_logger, "transitions");
             // for(const auto& v : transitions){
-            //     printf("v:%s \n", v.c_str());
-            //     RCLCPP_INFO(m_logger, "v:%s", v.c_str());
+            //     RCLCPP_INFO(m_logger, "  to:%s", v.c_str());
             // }
+            // RCLCPP_INFO(m_logger, "timeout=%f, transition_state =%s", 
+            //     timeout, transition_state.c_str());            
         }
     }  
     else

@@ -5,8 +5,8 @@
 #include <memory>
 #include <vector>
 #include <thread>
+#include <atomic>
 #include "rclcpp/rclcpp.hpp"
-
 
 #include "pluginlib/class_loader.hpp"
 #include "pluginlib/class_list_macros.hpp"
@@ -137,6 +137,9 @@ private:
     rclcpp::Publisher<mvp_msgs::msg::SetpointBehavior>::SharedPtr 
         m_helm_setpoint_bhv;
 
+    //! @brief Timer callback to monitor the state
+    rclcpp::TimerBase::SharedPtr m_state_manager_timer_;
+
     /**
       * @brief Topic callback for state
       * @param msg
@@ -144,6 +147,8 @@ private:
     void f_cb_controller_process(
         const mvp_msgs::msg::ControlProcess::SharedPtr msg);
 
+
+    void f_cb_state_manager();
 
     bool f_cb_change_state(
         const std::shared_ptr<mvp_msgs::srv::ChangeState::Request> req,
@@ -238,7 +243,12 @@ private:
     /**
       * @brief State Machine object
       */
-    StateMachine::Ptr m_state_machine;    
+    StateMachine::Ptr m_state_machine;  
+    
+    /**
+      * @brief Current state started time
+      */
+     std::atomic<double> m_state_start;     
 };
 
 } // namespace helm
