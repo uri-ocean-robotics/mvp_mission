@@ -25,8 +25,8 @@ namespace helm {
         std::vector<std::string> transitions;
         std::string set_point_world_frame;
         std::string set_point_child_frame;
-        double timeout;
-        std::string transition_state;
+        double max_duration;
+        std::string exit_state;
     };
 
     struct behavior_sm_state_t{
@@ -63,8 +63,8 @@ namespace helm {
     CONST_STRING CONF_FSM_TRANSITIONS = "transitions";
     CONST_STRING CONF_FSM_WORLD_FRAME = "set_point_world_frame";
     CONST_STRING CONF_FSM_CHILD_FRAME = "set_point_child_frame";
-    CONST_STRING CONF_FSM_TIMEOUT = "timeout";
-    CONST_STRING CONF_FSM_TRANSITION_STATE = "transition_state";
+    CONST_STRING CONF_FSM_TIMEOUT = "max_duration";
+    CONST_STRING CONF_FSM_TRANSITION_STATE = "exit_state";
 
     CONST_STRING CONF_BHV = "behaviors";
     CONST_STRING CONF_BHV_NAME = "name";

@@ -189,19 +189,19 @@ void Helm::f_cb_state_manager() {
     }
     
     auto curr_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
-    auto time_left = m_state_machine->get_active_state().timeout - (curr_time - m_state_start.load());
+    auto time_left = m_state_machine->get_active_state().max_duration - (curr_time - m_state_start.load());
 
     //! Send warning if state will timeout
     if(time_left <= 10.0) {
-        RCLCPP_WARN(this->get_logger(), "State:%s only has %.2f seconds left, timeout:%.2f seconds", 
+        RCLCPP_WARN(this->get_logger(), "State:%s only has %.2f seconds left, max_duration:%.2f seconds", 
             m_state_machine->get_active_state().name.c_str(), 
             time_left, 
-            m_state_machine->get_active_state().timeout);
+            m_state_machine->get_active_state().max_duration);
     }
 
     //! Check if this state duration is exceed the max timeout
     if(time_left <= 0.0) {
-        auto next_state = m_state_machine->get_active_state().transition_state;
+        auto next_state = m_state_machine->get_active_state().exit_state;
         f_change_state(next_state);
     }
 }
@@ -272,7 +272,6 @@ void Helm::f_cb_datum(const geographic_msgs::msg::GeoPoint::SharedPtr msg)
 
 bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::Request> req,
                              const std::shared_ptr<mvp_msgs::srv::ChangeState::Response> resp) {
-    RCLCPP_INFO(this->get_logger(), "change state");
 
     if(f_change_state(req->state)) {
 
@@ -282,8 +281,8 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
         resp->state.name = s.name;
         resp->state.mode = s.control_mode;
         resp->state.transitions = s.transitions;
-        resp->state.timeout = s.timeout;
-        resp->state.transition_state = s.transition_state;
+        resp->state.max_duration = s.max_duration;
+        resp->state.exit_state = s.exit_state;
         resp->status = true;
         std_msgs::msg::String caller;
         caller.data=req->caller;
@@ -295,8 +294,8 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
     resp->state.name = m_state_machine->get_active_state().name;
     resp->state.mode = m_state_machine->get_active_state().control_mode;
     resp->state.transitions = m_state_machine->get_active_state().transitions;
-    resp->state.timeout = m_state_machine->get_active_state().timeout;
-    resp->state.transition_state = m_state_machine->get_active_state().transition_state;
+    resp->state.max_duration = m_state_machine->get_active_state().max_duration;
+    resp->state.exit_state = m_state_machine->get_active_state().exit_state;
     resp->status = false;
 
     return true;
@@ -313,8 +312,8 @@ bool Helm::f_cb_get_state(const std::shared_ptr<mvp_msgs::srv::GetState::Request
         resp->state.mode = m_state_machine->get_active_state().control_mode;
         resp->state.transitions =
             m_state_machine->get_active_state().transitions;
-        resp->state.timeout = m_state_machine->get_active_state().timeout;
-        resp->state.transition_state = m_state_machine->get_active_state().transition_state;
+        resp->state.max_duration = m_state_machine->get_active_state().max_duration;
+        resp->state.exit_state = m_state_machine->get_active_state().exit_state;
 
         return true;
     }
@@ -325,8 +324,8 @@ bool Helm::f_cb_get_state(const std::shared_ptr<mvp_msgs::srv::GetState::Request
         resp->state.name = s.name;
         resp->state.mode = s.control_mode;
         resp->state.transitions = s.transitions;
-        resp->state.timeout = s.timeout;
-        resp->state.transition_state = s.transition_state;
+        resp->state.max_duration = s.max_duration;
+        resp->state.exit_state = s.exit_state;
 
         return true;
     }
@@ -342,8 +341,8 @@ bool Helm::f_cb_get_states(const std::shared_ptr<mvp_msgs::srv::GetStates::Reque
         s.mode = i.control_mode;
         s.name = i.name;
         s.transitions = i.transitions;
-        s.timeout = i.timeout;
-        s.transition_state = i.transition_state;
+        s.max_duration = i.max_duration;
+        s.exit_state = i.exit_state;
 
         resp->states.emplace_back(s);
     }
@@ -357,8 +356,11 @@ bool Helm::f_change_state(const std::string& name) {
     
     //! Mark the new state started time
     if(is_succ) {
-        RCLCPP_INFO(this->get_logger(), "state changed to: '%s'", name.c_str());
+        RCLCPP_INFO(this->get_logger(), "state changed to: [%s]", name.c_str());
         m_state_start = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+    }
+    else {
+        RCLCPP_WARN(this->get_logger(), "failed to change state [%s]", name.c_str());
     }
 
     return is_succ;
