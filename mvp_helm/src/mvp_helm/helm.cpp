@@ -13,7 +13,7 @@ namespace helm
 {
 
 Helm::Helm(const rclcpp::NodeOptions & options)
-: NodeWrapper("mvp_helm", "", options)
+: NodeWrapper("mvp_helm", "", options), m_state_start(0.0)
 {
     RCLCPP_INFO(get_logger(), "helm constructor");
 
@@ -26,7 +26,6 @@ Helm::Helm(const rclcpp::NodeOptions & options)
 
     this->declare_parameter(CONF_HELM_CHILD_LINK_DEFAULT, "cg_link");
     this->get_parameter(CONF_HELM_CHILD_LINK_DEFAULT, m_child_link_id);
-    // std::cout<<"local_link: "<<m_local_link_id<<std::endl;
     
     this->declare_parameter(CONF_HELM_FILE, "helm.yaml");
     this->get_parameter(CONF_HELM_FILE, m_helm_config_file);
@@ -119,6 +118,11 @@ void Helm::initialize() {
         std::bind(&Helm::f_cb_get_states, this, std::placeholders::_1, std::placeholders::_2)
     );
     
+    /***************************************************************************
+     * Initialize ros timer callback for state manager
+     */    
+    m_state_manager_timer_ = this->create_wall_timer(
+        1s, std::bind(&Helm::f_cb_state_manager, this));
 
     //setup tf buffer
     m_transform_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -143,7 +147,7 @@ void Helm::initialize() {
      * setup behavior management thread
      */
     m_controller_worker = std::thread([this] { f_helm_loop(); });
-    m_controller_worker.detach();    
+    m_controller_worker.detach();   
 }
 
 void Helm::f_initialize_behaviors() {
@@ -171,6 +175,34 @@ void Helm::f_initialize_behaviors() {
         i->get_behavior()->m_child_link = m_child_frame;
 
         i->get_behavior()->m_world_link = m_world_frame;
+    }
+
+    //! Mark the first state started time
+    m_state_start = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+}
+
+void Helm::f_cb_state_manager() {
+    
+    //! In case the state are not initialized when the timer is ready
+    if(m_state_start.load() == 0) {
+        return;
+    }
+    
+    auto curr_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+    auto time_left = m_state_machine->get_active_state().max_duration - (curr_time - m_state_start.load());
+
+    //! Send warning if state will timeout
+    if(time_left <= 10.0) {
+        RCLCPP_WARN(this->get_logger(), "State:%s only has %.2f seconds left, max_duration:%.2f seconds", 
+            m_state_machine->get_active_state().name.c_str(), 
+            time_left, 
+            m_state_machine->get_active_state().max_duration);
+    }
+
+    //! Check if this state duration is exceed the max timeout
+    if(time_left <= 0.0) {
+        auto next_state = m_state_machine->get_active_state().exit_state;
+        f_change_state(next_state);
     }
 }
 
@@ -222,7 +254,7 @@ void Helm::f_generate_behaviors(const behavior_component_t& component) {
 
 void Helm::f_generate_sm_states(const sm_state_t& state) {
 
-    RCLCPP_INFO(get_logger(), "Test: generate state machines: name=%s", state.name.c_str());
+    // RCLCPP_INFO(get_logger(), "Test: generate state machines: name=%s", state.name.c_str());
 
     m_state_machine->append_state(state);
 }
@@ -240,7 +272,6 @@ void Helm::f_cb_datum(const geographic_msgs::msg::GeoPoint::SharedPtr msg)
 
 bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::Request> req,
                              const std::shared_ptr<mvp_msgs::srv::ChangeState::Response> resp) {
-    RCLCPP_INFO(this->get_logger(), "change state");
 
     if(f_change_state(req->state)) {
 
@@ -250,6 +281,8 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
         resp->state.name = s.name;
         resp->state.mode = s.control_mode;
         resp->state.transitions = s.transitions;
+        resp->state.max_duration = s.max_duration;
+        resp->state.exit_state = s.exit_state;
         resp->status = true;
         std_msgs::msg::String caller;
         caller.data=req->caller;
@@ -261,6 +294,8 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
     resp->state.name = m_state_machine->get_active_state().name;
     resp->state.mode = m_state_machine->get_active_state().control_mode;
     resp->state.transitions = m_state_machine->get_active_state().transitions;
+    resp->state.max_duration = m_state_machine->get_active_state().max_duration;
+    resp->state.exit_state = m_state_machine->get_active_state().exit_state;
     resp->status = false;
 
     return true;
@@ -277,6 +312,8 @@ bool Helm::f_cb_get_state(const std::shared_ptr<mvp_msgs::srv::GetState::Request
         resp->state.mode = m_state_machine->get_active_state().control_mode;
         resp->state.transitions =
             m_state_machine->get_active_state().transitions;
+        resp->state.max_duration = m_state_machine->get_active_state().max_duration;
+        resp->state.exit_state = m_state_machine->get_active_state().exit_state;
 
         return true;
     }
@@ -287,6 +324,8 @@ bool Helm::f_cb_get_state(const std::shared_ptr<mvp_msgs::srv::GetState::Request
         resp->state.name = s.name;
         resp->state.mode = s.control_mode;
         resp->state.transitions = s.transitions;
+        resp->state.max_duration = s.max_duration;
+        resp->state.exit_state = s.exit_state;
 
         return true;
     }
@@ -302,6 +341,8 @@ bool Helm::f_cb_get_states(const std::shared_ptr<mvp_msgs::srv::GetStates::Reque
         s.mode = i.control_mode;
         s.name = i.name;
         s.transitions = i.transitions;
+        s.max_duration = i.max_duration;
+        s.exit_state = i.exit_state;
 
         resp->states.emplace_back(s);
     }
@@ -310,9 +351,19 @@ bool Helm::f_cb_get_states(const std::shared_ptr<mvp_msgs::srv::GetStates::Reque
 }
 
 bool Helm::f_change_state(const std::string& name) {
-    RCLCPP_INFO(this->get_logger(), "state changed to: '%s'", name.c_str());
+    
+    bool is_succ = m_state_machine->translate_to(name);
+    
+    //! Mark the new state started time
+    if(is_succ) {
+        RCLCPP_INFO(this->get_logger(), "state changed to: [%s]", name.c_str());
+        m_state_start = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+    }
+    else {
+        RCLCPP_WARN(this->get_logger(), "failed to change state [%s]", name.c_str());
+    }
 
-    return m_state_machine->translate_to(name);
+    return is_succ;
 }
 
 void Helm::f_dis2ll(geometry_msgs::msg::Point map_point, geographic_msgs::msg::GeoPoint::SharedPtr ll_point)

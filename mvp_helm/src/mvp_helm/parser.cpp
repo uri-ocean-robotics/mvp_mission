@@ -86,17 +86,51 @@ void Parser::f_parse_sm_components()
             std::string set_point_child_frame = "";
             if (map[CONF_FSM][state_name][CONF_FSM_WORLD_FRAME])
             {
-            set_point_child_frame = map[CONF_FSM][state_name][CONF_FSM_CHILD_FRAME].as<std::string>();
+                set_point_child_frame = map[CONF_FSM][state_name][CONF_FSM_CHILD_FRAME].as<std::string>();
             }
 
-            m_op_sm_component({initial, state_name, control_mode, transitions, set_point_world_frame, set_point_child_frame});
+            //check state manager related
+            double max_duration = std::numeric_limits<double>::infinity();
+            if(map[CONF_FSM][state_name]["max_duration"])
+            {
+                max_duration = map[CONF_FSM][state_name]["max_duration"].as<double>();
+            }
+            else 
+            {
+                RCLCPP_WARN(m_logger, "[max_duration] is not defined for state:[%s], use [inf] for now", state_name.c_str());
+            }
 
-            // RCLCPP_INFO(m_logger, "initial=%d, state_name =%s, control_mode=%s", initial, state_name.c_str(), control_mode.c_str());
+            std::string exit_state = "start";
+            if(map[CONF_FSM][state_name]["exit_state"])
+            {
+                exit_state = map[CONF_FSM][state_name]["exit_state"].as<std::string>();
+            }
+            else 
+            {
+                RCLCPP_WARN(m_logger, "[exit_state] is not defined for state:[%s], use [start] for now", state_name.c_str());
+            }
+
+            //create the component
+            m_op_sm_component({
+                initial, 
+                state_name, 
+                control_mode, 
+                transitions, 
+                set_point_world_frame, 
+                set_point_child_frame,
+                max_duration,
+                exit_state
+            });
+
+            //! DEBUG: check the FSM parsing
+            // RCLCPP_INFO(m_logger, "initial=%d, FSM =%s, control_mode=%s", 
+            //     initial, state_name.c_str(), control_mode.c_str());
             // RCLCPP_INFO(m_logger, "transitions");
             // for(const auto& v : transitions){
-            //     printf("v:%s \n", v.c_str());
-            //     RCLCPP_INFO(m_logger, "v:%s", v.c_str());
+            //     RCLCPP_INFO(m_logger, "  to:%s", v.c_str());
             // }
+            // RCLCPP_INFO(m_logger, "max_duration=%f, exit_state =%s", 
+            //     max_duration, exit_state.c_str());            
         }
     }  
     else
