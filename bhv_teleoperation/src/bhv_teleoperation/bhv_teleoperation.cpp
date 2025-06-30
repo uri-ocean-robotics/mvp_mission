@@ -84,6 +84,9 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "tele_d_depth", 1.0);
     node->get_parameter(prefix + "tele_d_depth", m_tele_d_depth);
 
+    node->declare_parameter(prefix + "tele_desired_roll", 0.0);
+    node->get_parameter(prefix + "tele_desired_roll", m_tele_c_roll);
+
     node->declare_parameter(prefix + "ctrl_set_srv", "controller/set");
     node->get_parameter(prefix + "ctrl_set_srv", m_ctrl_set_srv);
     m_ctrl_set_srv = "/" + m_ns + "/" + m_ctrl_set_srv;
@@ -138,7 +141,7 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
 
     /////initialize the desired pose first
-    m_bhv_setpoint.orientation.x = 0;
+    m_bhv_setpoint.orientation.x = m_tele_c_roll;
     m_bhv_setpoint.orientation.y = 0;
     m_bhv_setpoint.orientation.z = 0;
     m_bhv_setpoint.position.z = 0;
@@ -213,7 +216,7 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     if(msg->buttons[6]==1)
     {
         // first time enable joystick and record vehicle pose
-        m_bhv_setpoint.orientation.x = 0;
+        m_bhv_setpoint.orientation.x = m_tele_c_roll;
         m_bhv_setpoint.orientation.y = 0;
         m_bhv_setpoint.orientation.z = BehaviorBase::m_process_values.orientation.z;
         m_bhv_setpoint.position.z = BehaviorBase::m_process_values.position.z;
@@ -233,8 +236,8 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
     
     transform_control_process_msg(m_bhv_setpoint, temp_setpoint, get_helm_world_link(), get_helm_child_link());
-    
     m_bhv_setpoint = *temp_setpoint;
+    // printf("after = %lf\r\n", m_bhv_setpoint.orientation.x);
 
 }
 
@@ -285,6 +288,7 @@ bool Teleoperation::request_set_point(
     //set point /heder/frame_id and child frame id will be the same as the helm setting (not additional setting here).
     // Set Position
     *set_point = m_bhv_setpoint;
+    // printf("bhv=%lf\r\n", set_point->orientation.x);
    
     return true;
 }

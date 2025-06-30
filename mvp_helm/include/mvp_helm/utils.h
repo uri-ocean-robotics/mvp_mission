@@ -44,7 +44,8 @@ namespace helm {
             a[mvp_msgs::msg::ControlMode::DOF_X] = msg->position.x;
             a[mvp_msgs::msg::ControlMode::DOF_Y] = msg->position.y;
             a[mvp_msgs::msg::ControlMode::DOF_Z] = msg->position.z;
-
+            a[mvp_msgs::msg::ControlMode::DOF_ROLL] = msg->orientation.x;
+            
             a[mvp_msgs::msg::ControlMode::DOF_PITCH] = msg->orientation.y;
             a[mvp_msgs::msg::ControlMode::DOF_YAW] = msg->orientation.z;
 

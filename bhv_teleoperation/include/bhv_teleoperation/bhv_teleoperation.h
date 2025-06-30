@@ -119,6 +119,11 @@ private:
     */
     double m_tele_s_sway;
     /**
+        * @brief teleop desied roll angle
+    */
+    double m_tele_c_roll;
+
+    /**
         * @brief teleop no joy command timeout
     */
     double m_no_joy_timeout;
