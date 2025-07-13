@@ -1,0 +1,9 @@
+<class_libraries>
+	<library path="mvp_bhv_surfacing">
+	  <class name="helm/Surfacing" 
+	  		 type="helm::Surfacing" 
+			 base_class_type="helm::BehaviorBase">
+	    <description></description>
+	  </class>
+	</library>
+</class_libraries>
