@@ -254,7 +254,7 @@ void PathFollowing::f_surge_cb(const std_msgs::msg::Float64::SharedPtr m)
 
 }
 
-void PathFollowing::f_transform_waypoints(
+bool PathFollowing::f_transform_waypoints(
         const std::string &target_frame,
         const geometry_msgs::msg::PolygonStamped &in,
         geometry_msgs::msg::PolygonStamped *out)
@@ -293,23 +293,21 @@ void PathFollowing::f_transform_waypoints(
         catch (tf2::TransformException &ex) {
             auto steady_clock = rclcpp::Clock();
             RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Could NOT transform waypoints"));
+            return false;
         }
     }
     *out = tm;
 
+    return true;
 
 }
 
-void PathFollowing::resume_or_start() {
+bool PathFollowing::resume_or_start() {
     
     // Transform all the points into bhv frame
     geometry_msgs::msg::PolygonStamped poly;
-    f_transform_waypoints(
-        m_bhv_setpoint.header.frame_id,
-        m_waypoints,
-        &m_transformed_waypoints
-    );
-
+   if( f_transform_waypoints(m_bhv_setpoint.header.frame_id,m_waypoints,&m_transformed_waypoints))
+    {
     // convert m_process value into the behavior frame
     auto temp_pose = std::make_shared<mvp_msgs::msg::ControlProcess>();
     transform_control_process_msg(BehaviorBase::m_process_values, temp_pose, 
@@ -326,6 +324,14 @@ void PathFollowing::resume_or_start() {
     m_wpt_second = m_transformed_waypoints.polygon.points[
         m_line_index % m_transformed_waypoints.polygon.points.size()
     ];
+
+    m_surge_velocity = m_wpt_u[0];
+    }
+    else{
+        return false;
+    }
+
+    return true;
 
 }
 
@@ -383,7 +389,12 @@ void PathFollowing::f_waypoint_cb(const mvp_msgs::msg::Waypoints::SharedPtr m)
         // printf("geopath type waypoint updated from the service \r\n");
         // printf("m_waypoints size = %d; temp_waypoints = %d\r\n", m_waypoints.polygon.points.size(), temp_waypoints.polygon.points.size());
         m_line_index = 0;
-        resume_or_start();
+        if(!resume_or_start())
+        {
+            RCLCPP_WARN(m_logger, "Waypoint transform error, check frame_id");
+
+            return;
+        }
     }
     else{
         temp_waypoints.header.frame_id = m->wpt[0].header.frame_id; //
@@ -400,7 +411,11 @@ void PathFollowing::f_waypoint_cb(const mvp_msgs::msg::Waypoints::SharedPtr m)
         m_wpt_u = temp_wpt_u;
         // printf("local type waypoint updated from the service \r\n");
         m_line_index = 0;
-        resume_or_start();
+        if(!resume_or_start())
+        {
+            RCLCPP_WARN(m_logger, "Waypoint transform error, check frame_id");
+            return;
+        }
     }
 
 }
@@ -520,6 +535,8 @@ bool PathFollowing::f_cb_srv_load_waypoint(
     {
         response->success=false;
         RCLCPP_WARN(m_logger, "waypoint file [%s] not found", filename.c_str());
+        response->success=false;
+
         return false;
     }
 
@@ -538,7 +555,7 @@ bool PathFollowing::f_cb_srv_load_waypoint(
     {
         for(uint32_t i = 0; i < map["waypoints"].size() ; i++) {
             std::map<std::string, double> mp;
-            for(const auto& key : {"x", "y", "z"})
+            for(const auto& key : {"x", "y", "z", "u"})
             {
                 mp[key] = map["waypoints"][i][key].as<float>();
             }
@@ -562,7 +579,7 @@ bool PathFollowing::f_cb_srv_load_waypoint(
     {
         for(uint32_t i = 0; i < map["ll_waypoints"].size() ; i++) {
             std::map<std::string, double> mp;
-            for(const auto& key : {"lat", "lon", "alt"})
+            for(const auto& key : {"lat", "lon", "alt", "u"})
             {
                 mp[key] = map["ll_waypoints"][i][key].as<float>();
             }
@@ -601,9 +618,15 @@ bool PathFollowing::f_cb_srv_load_waypoint(
         m_wpt_u = temp_wpt_u;
         // printf("waypoint updated from loading file service \r\n");
         m_line_index = 0;
-        resume_or_start();
+        if(resume_or_start())
+        {
+            response->success=true;
+        }
+        else{
+             response->success=false;
+        }
         
-        response->success=true;
+       
     }
     else
     {
@@ -649,9 +672,16 @@ bool PathFollowing::f_cb_srv_update_waypoints(
         // printf("geopath type waypoint updated from the service \r\n");
         // printf("m_waypoints size = %d; temp_waypoints = %d\r\n", m_waypoints.polygon.points.size(), temp_waypoints.polygon.points.size());
         m_line_index = 0;
-        resume_or_start();
-        response->success = true;
-        return true;
+        if(resume_or_start())
+        {
+            response->success = true;
+            return true;
+        }
+        else{
+            response->success = false;
+            return false;
+        }
+
     }
     else{
         temp_waypoints.header.frame_id = request->wpt[0].header.frame_id; //
@@ -668,9 +698,15 @@ bool PathFollowing::f_cb_srv_update_waypoints(
         m_wpt_u = temp_wpt_u;
         // printf("local type waypoint updated from the service \r\n");
         m_line_index = 0;
-        resume_or_start();
-        response->success = true;
-        return true;
+        if(resume_or_start())
+        {
+            response->success = true;
+            return true;
+        }
+        else{
+            response->success = false;
+            return false;
+        }
     }
 }
 
@@ -849,6 +885,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     m_bhv_setpoint.orientation.y = m_pitch;
     m_bhv_setpoint.position.z = m_wpt_second.z;
     m_bhv_setpoint.orientation.z = m_desired_heading;
+    // printf("%lf,%lf\r\n", m_bhv_setpoint.velocity.x, m_wpt_second.z);
 
     auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
     transform_control_process_msg(m_bhv_setpoint, temp_setpoint, get_helm_world_link(), get_helm_child_link());

@@ -228,12 +228,12 @@ private:
             const std::shared_ptr<mvp_msgs::srv::SendWaypoints::Response> response);
     
 
-    void f_transform_waypoints(
+    bool f_transform_waypoints(
         const std::string &target_frame,
         const geometry_msgs::msg::PolygonStamped &in,
         geometry_msgs::msg::PolygonStamped *out);
 
-    void resume_or_start();
+    bool resume_or_start();
 
     void f_next_line_segment();
 
