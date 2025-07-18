@@ -59,15 +59,15 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     }
 
     std::string global_link, child_link;
-    // node->declare_parameter(prefix + "default_bhv_world_link", "world_ned");
-    // node->get_parameter(prefix + "default_bhv_world_link", global_link);
+    node->declare_parameter(prefix + "default_bhv_world_link", "world_ned");
+    node->get_parameter(prefix + "default_bhv_world_link", global_link);
 
-    // node->declare_parameter(prefix + "default_bhv_child_link", "cg_link");
-    // node->get_parameter(prefix + "default_bhv_child_link", child_link);
+    node->declare_parameter(prefix + "default_bhv_child_link", "cg_link");
+    node->get_parameter(prefix + "default_bhv_child_link", child_link);
     
     //always the same as the helm
-    m_bhv_setpoint.header.frame_id = get_helm_world_link();
-    m_bhv_setpoint.child_frame_id = get_helm_child_link();
+    m_bhv_setpoint.header.frame_id = m_ns + "/" + global_link;
+    m_bhv_setpoint.child_frame_id = m_ns + "/" + child_link;
 
     // Load increments in control
 
@@ -94,7 +94,9 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->get_parameter(prefix + "ctrl_set_srv", m_ctrl_set_srv);
     m_ctrl_set_srv = "/" + m_ns + "/" + m_ctrl_set_srv;
 
-
+    m_gps_fix_subscriber = node->create_subscription<sensor_msgs::msg::NavSatFix>("gps/fix", 10, 
+                                                            std::bind(&Surfacing::f_cb_gps_fix, 
+                                                            this, std::placeholders::_1));
     /*************************************************************************/
     /* Setup ROS2 sub/pub/srv/... */
     m_dive_trigger_srv = node->create_service<std_srvs::srv::Trigger>(
@@ -119,7 +121,7 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
 
 
     /////initialize the desired pose first
-    m_bhv_setpoint.position.z = 0;
+    m_bhv_setpoint.position.z = c_surfacing_depth;
 }
 
 void Surfacing::activated() {
@@ -170,7 +172,8 @@ void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
             if (m_gps_flag == false)
             {
                 m_first_gps_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
-                m_bhv_setpoint.position.z = 0;  //record the current depth for the next time
+                m_bhv_setpoint.position.z = c_surfacing_depth;  //record the current depth for the next time
+                printf("initial GPS obtained \r\n");
             }
 
             m_gps_flag = true;
@@ -183,17 +186,19 @@ void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 bool Surfacing::request_set_point(
     mvp_msgs::msg::ControlProcess *set_point) {
     
-    if(m_last_gps_time - m_first_gps_time > u_surfacing_duration  && m_set_point_pub)
+    if( (m_last_gps_time - m_first_gps_time > u_surfacing_duration)  && m_gps_flag && m_set_point_pub)
     {
         m_set_point_pub = false;  //duration has exceeded and i will not set depth
+        printf("surfacing duration has exceeded\r\n");
     }
 
     double m_current_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
 
-    if(m_current_time - m_last_gps_time > u_submerged_period_with_no_gps)
+    if(m_current_time - m_last_gps_time > u_submerged_period_with_no_gps && !m_set_point_pub)
     {
         m_set_point_pub = true;
         m_gps_flag = false; //set to false so we can get the first gps time.
+        printf("surfacing request triggered\r\n");
     }
 
 
