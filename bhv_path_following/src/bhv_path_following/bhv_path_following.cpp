@@ -445,7 +445,7 @@ bool PathFollowing::f_cb_srv_get_next_waypoints(
 
 
     //resize the num variable if it is larger than the actual lenght of the waypoint
-    if (num > length) {
+    if (num > length+1) {
         num = length+1;
         RCLCPP_WARN(m_logger, "Request count exceeded waypoint count [%d]", num);
     }
