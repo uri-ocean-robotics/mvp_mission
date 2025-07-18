@@ -100,7 +100,7 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     /*************************************************************************/
     /* Setup ROS2 sub/pub/srv/... */
     m_dive_trigger_srv = node->create_service<std_srvs::srv::Trigger>(
-            prefix + "stop_surfacing",
+            "~/" + prefix + "stop_surfacing",
             std::bind(&Surfacing::f_dive_trigger, this, std::placeholders::_1, std::placeholders::_2));
     // controller srv
     m_ctrl_set_client = node->create_client<std_srvs::srv::SetBool>(m_ctrl_set_srv);
@@ -160,8 +160,11 @@ void Surfacing::disabled() {
 void Surfacing::f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
-
-
+    m_gps_flag = true;
+    m_set_point_pub = false;
+    m_last_gps_time =  rclcpp::Clock(RCL_ROS_TIME).now().seconds(); //use current time as the last gps time for timing the surfacing
+    response->success = true;
+    response->message = "dive triggered";
 }
 
 void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
