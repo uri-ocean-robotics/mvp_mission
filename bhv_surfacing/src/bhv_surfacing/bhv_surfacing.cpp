@@ -89,14 +89,48 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "surfacing_at_start", false);
     node->get_parameter(prefix + "surfacing_at_start", m_set_point_pub);
 
+    node->declare_parameter(prefix + "no_imu_timeout", 3600.0);
+    node->get_parameter(prefix + "no_imu_timeout", u_no_imu_timeout);
+
+    node->declare_parameter(prefix + "no_dvl_timeout", 3600.0);
+    node->get_parameter(prefix + "no_dvl_timeout", u_no_imu_timeout);
+
+    node->declare_parameter(prefix + "navigation_fail_state", "");
+    node->get_parameter(prefix + "navigation_fail_state", u_navigation_fail_state);
 
     node->declare_parameter(prefix + "ctrl_set_srv", "controller/set");
+
     node->get_parameter(prefix + "ctrl_set_srv", m_ctrl_set_srv);
+    
     m_ctrl_set_srv = "/" + m_ns + "/" + m_ctrl_set_srv;
 
-    m_gps_fix_subscriber = node->create_subscription<sensor_msgs::msg::NavSatFix>("gps/fix", 10, 
+    std::string m_gps_fix_topic;
+    node->declare_parameter(prefix + "gps_fix_topic", "gps/fix");
+    node->get_parameter(prefix + "gps_fix_topic", m_gps_fix_topic);
+
+    std::string m_dvl_topic;
+    node->declare_parameter(prefix + "dvl_topic", "dvl/data");
+    node->get_parameter(prefix + "dvl_topic", m_dvl_topic);
+
+    std::string m_imu_topic;
+    node->declare_parameter(prefix + "imu_topic", "imu/data");
+    node->get_parameter(prefix + "imu_topic", m_imu_topic);
+
+    m_gps_fix_subscriber = node->create_subscription<sensor_msgs::msg::NavSatFix>(m_gps_fix_topic, 10, 
                                                             std::bind(&Surfacing::f_cb_gps_fix, 
                                                             this, std::placeholders::_1));
+
+
+    m_imu_sub = node->create_subscription<sensor_msgs::msg::Imu>(m_imu_topic,10,
+                                                            std::bind(&Surfacing::f_cb_imu, 
+                                                            this, std::placeholders::_1));
+
+    m_dvl_sub = node->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(m_dvl_topic, 10,
+                                                            std::bind(&Surfacing::f_cb_dvl, 
+                                                            this, std::placeholders::_1));
+
+    m_surfacing_flag_pub = node->create_publisher<std_msgs::msg::Int8MultiArray>(prefix + "surfacing_flags", 0);
+
     /*************************************************************************/
     /* Setup ROS2 sub/pub/srv/... */
     m_dive_trigger_srv = node->create_service<std_srvs::srv::Trigger>(
@@ -122,6 +156,10 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     /////initialize the desired pose first
     m_bhv_setpoint.position.z = c_surfacing_depth;
+
+    //no_gps_timeout_flag, no_dvl_timeout, no_imu_timeout, no_coomm_timeout
+    m_surfacing_flag.data = {0, 0, 0, 0};  // Fill with your int8_t values
+
 }
 
 void Surfacing::activated() {
@@ -137,10 +175,16 @@ void Surfacing::activated() {
     std::cout << "surfacing behavior: is activated!" << std::endl;
     std::cout << "No GPS surfacing condition:"<< u_submerged_period_with_no_gps << std::endl;
     std::cout << "No Comm surfacing condition:"<< u_submerged_period_with_no_comm << std::endl;
+    std::cout << "No IMU time condition:"<< u_no_imu_timeout << std::endl;
+    std::cout << "No DVL time condition:"<< u_no_dvl_timeout << std::endl;
     std::cout << "Surfacing condition: "<< u_surfacing_duration << std::endl;
 
     m_active_flag = true;
-    
+
+    m_last_dvl_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+
+    m_last_imu_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+
 }
 
 void Surfacing::disabled() {
@@ -167,6 +211,19 @@ void Surfacing::f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Req
     response->message = "dive triggered";
 }
 
+void Surfacing::f_cb_imu(const sensor_msgs::msg::Imu::SharedPtr msg)
+{
+    m_last_imu_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+    m_surfacing_flag.data[2] = 0;  
+}
+
+void Surfacing::f_cb_dvl(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg)
+{
+    m_last_dvl_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+    m_surfacing_flag.data[1] = 0;  
+
+}
+
 void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 {
 
@@ -179,7 +236,7 @@ void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
                 printf("initial GPS obtained \r\n");
             }
 
-            m_gps_flag = true;
+            m_gps_flag = true;     
             // c_surfacing_depth = BehaviorBase::m_process_values.position.z;
             m_last_gps_time =  rclcpp::Clock(RCL_ROS_TIME).now().seconds();
         }
@@ -189,9 +246,12 @@ void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 bool Surfacing::request_set_point(
     mvp_msgs::msg::ControlProcess *set_point) {
     
+    m_surfacing_flag_pub->publish(m_surfacing_flag);
+
     if( (m_last_gps_time - m_first_gps_time > u_surfacing_duration)  && m_gps_flag && m_set_point_pub)
     {
         m_set_point_pub = false;  //duration has exceeded and i will not set depth
+        m_surfacing_flag.data[0] = 0;  
         printf("surfacing duration has exceeded\r\n");
     }
 
@@ -199,9 +259,27 @@ bool Surfacing::request_set_point(
 
     if(m_current_time - m_last_gps_time > u_submerged_period_with_no_gps && !m_set_point_pub)
     {
+        m_surfacing_flag.data[0] = 1;  
         m_set_point_pub = true;
         m_gps_flag = false; //set to false so we can get the first gps time.
         printf("surfacing request triggered\r\n");
+    }
+
+    if(m_current_time - m_last_imu_time > u_no_imu_timeout)
+    {
+        m_surfacing_flag.data[2] = 1;  
+
+        change_state(u_navigation_fail_state);
+        return false;
+
+    }
+
+    if(m_current_time - m_last_dvl_time > u_no_dvl_timeout)
+    {
+        m_surfacing_flag.data[1] = 1;  
+        change_state(u_navigation_fail_state);
+        return false;
+
     }
 
 

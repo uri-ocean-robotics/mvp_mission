@@ -28,7 +28,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float64.hpp"
+#include "std_msgs/msg/int8_multi_array.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
+#include "sensor_msgs/msg/imu.hpp"
+#include "geometry_msgs/msg/twist_with_covariance_stamped.hpp"
+
 #include "std_srvs/srv/empty.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 #include "std_srvs/srv/trigger.hpp"
@@ -97,6 +101,16 @@ private:
 
     double u_submerged_period_with_no_comm;  //the timeout for triggering the surfacing
 
+    double m_last_imu_time;
+
+    double m_last_dvl_time;
+
+    double u_no_imu_timeout;
+
+    double u_no_dvl_timeout;
+
+    std::string u_navigation_fail_state;
+
     double u_surfacing_duration; //how long it will stay at the surface
 
     double c_surfacing_depth; //the surfacing depth
@@ -104,6 +118,10 @@ private:
     bool u_floating_to_surface_flag; //floating to surface? 
 
     bool m_gps_flag = false;
+
+    bool m_imu_flag = true;
+
+    bool m_dvl_flag= true;
 
     bool m_comm_flag = false;
 
@@ -113,9 +131,22 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr m_gps_fix_subscriber;
 
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr m_imu_sub;
+
+    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr m_dvl_sub;
+
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr m_dive_trigger_srv;
 
+    rclcpp::Publisher<std_msgs::msg::Int8MultiArray>::SharedPtr m_surfacing_flag_pub;
+
+    std_msgs::msg::Int8MultiArray m_surfacing_flag;
+
     void f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
+
+    void f_cb_imu(const sensor_msgs::msg::Imu::SharedPtr msg);
+
+    void f_cb_dvl(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+
 
     void f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
