@@ -93,7 +93,7 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->get_parameter(prefix + "no_imu_timeout", u_no_imu_timeout);
 
     node->declare_parameter(prefix + "no_dvl_timeout", 3600.0);
-    node->get_parameter(prefix + "no_dvl_timeout", u_no_imu_timeout);
+    node->get_parameter(prefix + "no_dvl_timeout", u_no_dvl_timeout);
 
     node->declare_parameter(prefix + "navigation_fail_state", "");
     node->get_parameter(prefix + "navigation_fail_state", u_navigation_fail_state);
