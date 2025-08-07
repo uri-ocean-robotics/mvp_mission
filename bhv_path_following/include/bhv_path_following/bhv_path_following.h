@@ -41,6 +41,8 @@
 #include "mvp_msgs/srv/get_waypoints.hpp"
 #include "mvp_msgs/srv/load_waypoint.hpp"
 #include "mvp_msgs/srv/send_waypoints.hpp"
+#include "mvp_msgs/msg/waypoints.hpp"
+
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include "yaml-cpp/yaml.h"
@@ -96,7 +98,7 @@ private:
     /**
         * @brief Trivial update waypoint subscriber
     */
-    rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr m_update_waypoint_sub;
+    rclcpp::Subscription<mvp_msgs::msg::Waypoints>::SharedPtr m_update_waypoint_sub;
 
     /**
         * @brief Trivial append waypoint subscriber
@@ -187,6 +189,9 @@ private:
 
     double m_turning_angle_sector;
 
+    std::vector<double> m_wpt_u;
+
+
     int m_line_index;
 
     geometry_msgs::msg::Point32 m_wpt_first;
@@ -205,7 +210,7 @@ private:
 
 
     // /////////callbacks
-    void f_waypoint_cb(const geometry_msgs::msg::PolygonStamped::SharedPtr m, bool append);
+    void f_waypoint_cb(const mvp_msgs::msg::Waypoints::SharedPtr m);
 
     void f_surge_cb(const std_msgs::msg::Float64::SharedPtr m);
 
@@ -223,12 +228,12 @@ private:
             const std::shared_ptr<mvp_msgs::srv::SendWaypoints::Response> response);
     
 
-    void f_transform_waypoints(
+    bool f_transform_waypoints(
         const std::string &target_frame,
         const geometry_msgs::msg::PolygonStamped &in,
         geometry_msgs::msg::PolygonStamped *out);
 
-    void resume_or_start();
+    bool resume_or_start();
 
     void f_next_line_segment();
 
