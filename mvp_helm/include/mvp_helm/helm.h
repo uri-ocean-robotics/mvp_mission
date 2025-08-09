@@ -17,6 +17,7 @@
 #include "mvp_msgs/msg/control_modes.hpp"
 #include "mvp_msgs/msg/control_process.hpp"
 #include "mvp_msgs/msg/setpoint_behavior.hpp"
+#include "mvp_msgs/msg/helm_state.hpp"
 
 
 #include "mvp_msgs/srv/get_control_modes.hpp"
@@ -123,6 +124,8 @@ private:
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr 
         m_helm_state_change_caller;
 
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr
+        m_helm_state_publisher;
 
     rclcpp::Service<mvp_msgs::srv::ChangeState>::SharedPtr 
         m_change_state_srv;

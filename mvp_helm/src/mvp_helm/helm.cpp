@@ -73,30 +73,34 @@ void Helm::initialize() {
      */
     m_sub_controller_process_values = this->create_subscription<mvp_msgs::msg::ControlProcess>(
         "controller/process/value",
-        100,
+        10,
         std::bind(&Helm::f_cb_controller_process, this, std::placeholders::_1)
     );
 
     m_datum_sub = this->create_subscription<geographic_msgs::msg::GeoPoint>(
         "datum",
-        100,
+        10,
         std::bind(&Helm::f_cb_datum, this, std::placeholders::_1)
     );
 
     m_pub_controller_set_point = this->create_publisher<mvp_msgs::msg::ControlProcess>(
         "controller/process/set_point",
-        100
+        10
     );
 
     m_helm_state_change_caller = this->create_publisher<std_msgs::msg::String>(
         "mvp_helm/change_state_caller",
-        100
+        10
     );
     
+    m_helm_state_publisher = this->create_publisher<std_msgs::msg::String>(
+        "mvp_helm/current_helm_state",
+        10
+    );
 
     m_helm_setpoint_bhv = this->create_publisher<mvp_msgs::msg::SetpointBehavior>(
         "mvp_helm/setpoint_bhv",
-        100
+        10
     );
 
     /***************************************************************************
@@ -288,6 +292,9 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
         caller.data=req->caller;
         m_helm_state_change_caller->publish(caller);
 
+        std_msgs::msg::String c_state;
+        c_state.data = resp->state.name;
+        m_helm_state_publisher->publish(c_state);
         return true;
     }
 
