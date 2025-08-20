@@ -109,6 +109,8 @@ private:
 
     double u_no_dvl_timeout;
 
+    double u_dvl_acceptable_var;
+
     std::string u_navigation_fail_state;
 
     double u_surfacing_duration; //how long it will stay at the surface

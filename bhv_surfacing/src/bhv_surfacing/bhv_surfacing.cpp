@@ -95,6 +95,9 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "no_dvl_timeout", 3600.0);
     node->get_parameter(prefix + "no_dvl_timeout", u_no_dvl_timeout);
 
+    node->declare_parameter(prefix + "dvlacceptable_var", 10.0);
+    node->get_parameter(prefix + "dvl_acceptable_var", u_dvl_acceptable_var);
+
     node->declare_parameter(prefix + "navigation_fail_state", "");
     node->get_parameter(prefix + "navigation_fail_state", u_navigation_fail_state);
 
@@ -219,9 +222,13 @@ void Surfacing::f_cb_imu(const sensor_msgs::msg::Imu::SharedPtr msg)
 
 void Surfacing::f_cb_dvl(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg)
 {
-    m_last_dvl_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
-    m_surfacing_flag.data[1] = 0;  
-
+    if(msg->twist.covariance[0]<u_dvl_acceptable_var && 
+      msg->twist.covariance[7]<u_dvl_acceptable_var && 
+      msg->twist.covariance[14]<u_dvl_acceptable_var)
+    {
+        m_last_dvl_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+        m_surfacing_flag.data[1] = 0;  
+    }
 }
 
 void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
