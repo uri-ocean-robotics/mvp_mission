@@ -95,7 +95,7 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "no_dvl_timeout", 3600.0);
     node->get_parameter(prefix + "no_dvl_timeout", u_no_dvl_timeout);
 
-    node->declare_parameter(prefix + "dvlacceptable_var", 10.0);
+    node->declare_parameter(prefix + "dvl_acceptable_var", 10.0);
     node->get_parameter(prefix + "dvl_acceptable_var", u_dvl_acceptable_var);
 
     node->declare_parameter(prefix + "navigation_fail_state", "");
@@ -272,21 +272,25 @@ bool Surfacing::request_set_point(
         printf("surfacing request triggered\r\n");
     }
 
-    if(m_current_time - m_last_imu_time > u_no_imu_timeout)
+    if(m_active_flag)
     {
-        m_surfacing_flag.data[2] = 1;  
+        if(m_current_time - m_last_imu_time > u_no_imu_timeout)
+        {
+            m_surfacing_flag.data[2] = 1;  
+            printf("IMU \r\n");
+            change_state(u_navigation_fail_state);
+            return false;
 
-        change_state(u_navigation_fail_state);
-        return false;
+        }
 
-    }
+        if(m_current_time - m_last_dvl_time > u_no_dvl_timeout)
+        {
+            m_surfacing_flag.data[1] = 1;  
+            printf("DVL \r\n");
+            change_state(u_navigation_fail_state);
+            return false;
 
-    if(m_current_time - m_last_dvl_time > u_no_dvl_timeout)
-    {
-        m_surfacing_flag.data[1] = 1;  
-        change_state(u_navigation_fail_state);
-        return false;
-
+        }
     }
 
 
