@@ -156,7 +156,7 @@ void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::S
     }
 
     catch (tf2::TransformException &ex) {
-        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1, std::string("altitude_tracking warning") + ex.what());
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("altitude_tracking warning") + ex.what());
         // RCLCPP_ERROR(m_logger, "Transform failed: %s", ex.what());
     }
 }
@@ -186,7 +186,7 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
 
     if(rclcpp::Clock(RCL_ROS_TIME).now().seconds()-m_last_altitude_time > m_no_altitude_timeout)
     {
-        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1, std::string("no altitude timeout trigged"));
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("no altitude timeout trigged"));
 
         //reserved for change state//
         change_state(m_state_done);
@@ -200,7 +200,7 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
                 c_depth = m_bottom_depth - m_desired_altitude;
                 // printf("altitude safety depth =%lf\n\r", set_point->position.z);
                 
-                RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1, std::string("minimum altitude exceeded"));
+                RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("minimum altitude exceeded"));
             }
             else{
                 return false;

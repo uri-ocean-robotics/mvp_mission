@@ -277,7 +277,7 @@ bool Surfacing::request_set_point(
         if(m_current_time - m_last_imu_time > u_no_imu_timeout)
         {
             m_surfacing_flag.data[2] = 1;  
-            printf("IMU \r\n");
+            printf("No IMU triggered state change \r\n");
             change_state(u_navigation_fail_state);
             return false;
 
@@ -286,7 +286,7 @@ bool Surfacing::request_set_point(
         if(m_current_time - m_last_dvl_time > u_no_dvl_timeout)
         {
             m_surfacing_flag.data[1] = 1;  
-            printf("DVL \r\n");
+            printf("DVL triggered state change \r\n");
             change_state(u_navigation_fail_state);
             return false;
 

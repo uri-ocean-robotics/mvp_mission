@@ -292,7 +292,7 @@ bool PathFollowing::f_transform_waypoints(
         }
         catch (tf2::TransformException &ex) {
             auto steady_clock = rclcpp::Clock();
-            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Could NOT transform waypoints"));
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Could NOT transform waypoints"));
             return false;
         }
     }
@@ -801,7 +801,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         // overshoot detected
         // ROS_WARN_THROTTLE(5, "Overshoot detected!");
         // RCLCPP_ERROR(m_logger, "Overshoot Detected!");
-         RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 10, std::string("Overshoot Detected!"));
+         RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Overshoot Detected!"));
         // RCLCPP_WARN_THROTTLE(m_logger, *node->get_clock(), 5000, "Overshoot detected!");
         // Look back
         lookahead = -lookahead;

@@ -530,7 +530,7 @@ void Helm::f_transform_control_process_msg(mvp_msgs::msg::ControlProcess in, mvp
     
 
     } catch (const tf2::TransformException & e) {
-            RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), steady_clock, 10, std::string("Can't compute tf in mvp_helm: ") + e.what());
+            RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), steady_clock, 1000, std::string("Can't compute tf in mvp_helm: ") + e.what());
             RCLCPP_INFO( this->get_logger(), "mvp_helm transform error:: %s", e.what() ); 
           return;
 
@@ -592,7 +592,7 @@ void Helm::f_iterate() {
     
     if(active_mode == std::end(m_controller_modes.modes)) {
         RCLCPP_WARN_STREAM_THROTTLE(
-            this->get_logger(), steady_clock, 10,
+            this->get_logger(), steady_clock, 1000,
             "Active mode '" << active_state.control_mode << "' can not be found in low"
             " level controller configuration! Helm is skipping.");
         return;
