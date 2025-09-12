@@ -230,7 +230,7 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
     }
 
 
-    m_bhv_setpoint.orientation.y = m_pitch + m_d_pitch;
+    m_bhv_setpoint.orientation.y = 0 + m_d_pitch;
     m_bhv_setpoint.position.z = c_depth;
     auto temp_setpoint = std::make_shared<mvp_msgs::msg::ControlProcess>();
     transform_control_process_msg(m_bhv_setpoint, temp_setpoint, get_helm_world_link(), get_helm_child_link());
