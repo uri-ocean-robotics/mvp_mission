@@ -219,6 +219,9 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
 
     m_trajectory_segment_publisher = node->create_publisher<visualization_msgs::msg::Marker>(prefix + "segment", 0);
 
+    m_bhv_debug_publisher = node->create_publisher<std_msgs::msg::Float32MultiArray>(prefix + "debugging_data", 0);
+
+
     /////services////////////
     get_next_waypoints_server = node->create_service<mvp_msgs::srv::GetWaypoints>(prefix + "get_next_waypoints",
         std::bind(&PathFollowing::f_cb_srv_get_next_waypoints, this, _1, _2));
@@ -829,10 +832,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
 
     }
 
-    // Calculate integral
-    double denumerator;
-    denumerator = (Ye + m_sigma*m_yint)*(Ye + m_sigma*m_yint) + lookahead*lookahead;
-    m_yint += lookahead * Ye / denumerator;
+    
 
 
     // Calculate the vehicle's cross-track velocity for sideslip compenstation
@@ -850,6 +850,12 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         // m_cmd.orientation.z = gamma_p - atan(Ye/lookahead);
 
     }
+
+    // Calculate integral
+    double denumerator;
+    denumerator = (Ye + m_sigma*m_yint)*(Ye + m_sigma*m_yint) + lookahead*lookahead;
+    m_yint += lookahead * Ye / denumerator;
+    
     /// compute desired set point now
 
     double m_desired_heading = gamma_p - std::atan( Ye/ lookahead   + ye_dot*m_beta_gain + m_sigma*m_yint/lookahead);
@@ -901,6 +907,20 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         RCLCPP_INFO(m_logger, "current waypoints has reached, move to the next one");
         m_overshoot_timer = 0;
     }
+
+    ///publishing debugging data
+    std_msgs::msg::Float32MultiArray debug_msg;
+    debug_msg.data.clear();
+    debug_msg.data.push_back(gamma_p);
+    debug_msg.data.push_back(Xke);
+    debug_msg.data.push_back(Ye);
+    debug_msg.data.push_back(ye_dot);
+    debug_msg.data.push_back(m_yint);
+    debug_msg.data.push_back(lookahead);
+    debug_msg.data.push_back(m_desired_heading);
+
+    m_bhv_debug_publisher->publish(debug_msg);
+
 
     return true;
 }

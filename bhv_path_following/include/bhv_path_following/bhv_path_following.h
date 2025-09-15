@@ -28,6 +28,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float64.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
 #include "geometry_msgs/msg/polygon_stamped.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/point32.hpp"
@@ -121,6 +122,9 @@ private:
     * @brief Trajectory segment publisher
     */
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr m_trajectory_segment_publisher;
+
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr m_bhv_debug_publisher;
+
 
     ////////////////////////Service////////////////////////
     //! @brief Get next waypoint
