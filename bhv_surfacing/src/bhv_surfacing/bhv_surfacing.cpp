@@ -269,7 +269,7 @@ bool Surfacing::request_set_point(
         m_surfacing_flag.data[0] = 1;  
         m_set_point_pub = true;
         m_gps_flag = false; //set to false so we can get the first gps time.
-        printf("surfacing request triggered\r\n");
+        printf("bhv_surfacing: surfacing request triggered\r\n");
     }
 
     if(m_active_flag)
@@ -277,7 +277,7 @@ bool Surfacing::request_set_point(
         if(m_current_time - m_last_imu_time > u_no_imu_timeout)
         {
             m_surfacing_flag.data[2] = 1;  
-            printf("No IMU triggered state change \r\n");
+            printf("bhv_surfacing: No IMU triggered state change \r\n");
             change_state(u_navigation_fail_state);
             return false;
 
@@ -286,7 +286,7 @@ bool Surfacing::request_set_point(
         if(m_current_time - m_last_dvl_time > u_no_dvl_timeout)
         {
             m_surfacing_flag.data[1] = 1;  
-            printf("DVL triggered state change \r\n");
+            printf("bhv_surfacing: DVL triggered state change \r\n");
             change_state(u_navigation_fail_state);
             return false;
 

@@ -127,11 +127,15 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
 void AltitudeTracking::activated() 
 {
     std::cout << "AltitudeTracking behavior is activated!" << std::endl;
+    m_active_flag = true;
+
 }
 
 void AltitudeTracking::disabled() 
 {
     std::cout << "AltitudeTracking behavior is disabled!" << std::endl;
+    m_active_flag = false;
+
 }
 
 void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::SharedPtr msg)
@@ -172,6 +176,11 @@ void AltitudeTracking::f_c_altitude_cb(const std_msgs::msg::Float64::SharedPtr m
 
 bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_point) 
 {
+
+    if(m_active_flag == false)
+    {
+        return false;
+    }
     //get the current pose and transform into the bhv frame
     auto temp_pose = std::make_shared<mvp_msgs::msg::ControlProcess>();
     transform_control_process_msg(BehaviorBase::m_process_values, temp_pose, 

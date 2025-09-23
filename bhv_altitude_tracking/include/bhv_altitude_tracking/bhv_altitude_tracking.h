@@ -92,6 +92,8 @@ private:
 
     int m_altitude_mode;  //-1: disabled, 0: safety_mode, 1:continuous
     
+    bool m_active_flag = false;
+
     /**
         * @brief global link id
     */
