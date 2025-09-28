@@ -13,7 +13,7 @@ namespace helm
 {
 
 Helm::Helm(const rclcpp::NodeOptions & options)
-: NodeWrapper("mvp_helm", "", options), m_state_start(0.0)
+: NodeWrapper("mvp_helm", "", options), m_state_start(0.0), running_(false)
 {
     RCLCPP_INFO(get_logger(), "helm constructor");
 
@@ -41,7 +41,11 @@ Helm::Helm(const rclcpp::NodeOptions & options)
 
 Helm::~Helm()
 {
-    rclcpp::shutdown();
+    // rclcpp::shutdown();
+    running_ = false;
+    if (m_controller_worker.joinable()) {
+        m_controller_worker.join();
+    }
 }
 
 void Helm::initialize() {
@@ -150,8 +154,10 @@ void Helm::initialize() {
     /***************************************************************************
      * setup behavior management thread
      */
+    // m_controller_worker = std::thread([this] { f_helm_loop(); });
+    // m_controller_worker.detach();   
+    running_ = true;
     m_controller_worker = std::thread([this] { f_helm_loop(); });
-    m_controller_worker.detach();   
 }
 
 void Helm::f_initialize_behaviors() {
