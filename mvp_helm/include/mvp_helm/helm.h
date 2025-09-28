@@ -66,6 +66,8 @@ private:
 
     std::thread m_controller_worker;
 
+    // bool running_;
+    std::atomic<bool> running_;
     /**
       * @brief Controller state
       * This variable holds the state of the low level controller such as
