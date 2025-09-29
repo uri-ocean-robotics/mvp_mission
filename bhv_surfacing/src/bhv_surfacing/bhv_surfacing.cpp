@@ -204,6 +204,7 @@ void Surfacing::disabled() {
      * defined by #BehaviorBase::m_actived changes to false.
      */
     std::cout << "surfacing behavior is disabled!" << std::endl;
+    m_set_point_pub = false;
 }
 
 void Surfacing::f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
@@ -244,7 +245,9 @@ void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
             m_first_gps_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
             m_bhv_setpoint.position.z = c_surfacing_depth;  //record the current depth for the next time
             
-            printf("initial GPS obtained \r\n");
+            // printf("initial GPS obtained \r\n");
+            RCLCPP_INFO(m_logger, "Surfacing_bhv: initial GPS obtained");
+
             m_surface_gps_count = 0; 
         }
 
@@ -252,13 +255,14 @@ void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
         // c_surfacing_depth = BehaviorBase::m_process_values.position.z;
         m_last_gps_time =  rclcpp::Clock(RCL_ROS_TIME).now().seconds();
         m_surface_gps_count ++;
-        printf("total valid gps fix count = %d\r\n", m_surface_gps_count);
+        // printf("total valid gps fix count = %d\r\n", m_surface_gps_count);
     }
 }
 
 
 bool Surfacing::request_set_point(
     mvp_msgs::msg::ControlProcess *set_point) {
+    auto steady_clock = rclcpp::Clock();
     
     if(m_activated == false)
     {
@@ -273,13 +277,14 @@ bool Surfacing::request_set_point(
         {
         m_set_point_pub = false;  //duration has exceeded and i will not set depth
         m_surfacing_flag.data[0] = 0;  
-        RCLCPP_WARN(m_logger, "Surfacing_bhv: valid gps fix count has reached");
+        RCLCPP_WARN(m_logger, "Surfacing_bhv: valid gps fix count [%d] has reached", u_min_surface_gps_count);
         }
         else{
-        RCLCPP_WARN(m_logger, "Surfacing_bhv: valid gps fix count has not reached");
-                    
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Surfacing_bhv: valid gps fix count [" + std::to_string(u_min_surface_gps_count) + "] has not reached"));
+
         }
-        RCLCPP_WARN(m_logger, "Surfacing_bhv: surfacing duration has exceeded");
+        // RCLCPP_WARN(m_logger, "Surfacing_bhv: surfacing duration has exceeded");
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Surfacing_bhv: surfacing duration [" + std::to_string(u_surfacing_duration) + "] has exceeded"));
 
     }
 
@@ -293,6 +298,7 @@ bool Surfacing::request_set_point(
         m_surface_gps_count = 0; 
         RCLCPP_WARN(m_logger, "Surfacing_bhv: surfacing request triggered");
 
+
     }
 
     if(m_activated)
@@ -301,7 +307,9 @@ bool Surfacing::request_set_point(
         {
             m_surfacing_flag.data[2] = 1;  
             // printf("bhv_surfacing: No IMU triggered state change \r\n");
-            RCLCPP_WARN(m_logger, "No IMU triggered state change");
+            // RCLCPP_WARN(m_logger, "No IMU triggered state change");
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Surfacing_bhv: No IMU timeout triggered state change"));
+
 
             change_state(u_navigation_fail_state);
             return false;
@@ -312,7 +320,9 @@ bool Surfacing::request_set_point(
         {
             m_surfacing_flag.data[1] = 1;  
             // printf("bhv_surfacing: DVL triggered state change \r\n");
-            RCLCPP_WARN(m_logger, "No DVL triggered state change");
+            // RCLCPP_WARN(m_logger, "No DVL triggered state change");
+            RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Surfacing_bhv: No DVL timeout triggered state change"));
+
 
             change_state(u_navigation_fail_state);
             return false;
