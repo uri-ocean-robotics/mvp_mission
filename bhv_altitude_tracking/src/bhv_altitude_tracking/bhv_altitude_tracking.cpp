@@ -127,14 +127,12 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
 void AltitudeTracking::activated() 
 {
     std::cout << "AltitudeTracking behavior is activated!" << std::endl;
-    m_active_flag = true;
 
 }
 
 void AltitudeTracking::disabled() 
 {
     std::cout << "AltitudeTracking behavior is disabled!" << std::endl;
-    m_active_flag = false;
 
 }
 
@@ -177,7 +175,7 @@ void AltitudeTracking::f_c_altitude_cb(const std_msgs::msg::Float64::SharedPtr m
 bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_point) 
 {
 
-    if(m_active_flag == false)
+    if(m_activated == false)
     {
         return false;
     }
@@ -195,7 +193,7 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
 
     if(rclcpp::Clock(RCL_ROS_TIME).now().seconds()-m_last_altitude_time > m_no_altitude_timeout)
     {
-        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("no altitude timeout trigged"));
+        RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Altitude tracking bhv: no altitude timeout trigged"));
 
         //reserved for change state//
         change_state(m_state_done);
@@ -209,7 +207,7 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
                 c_depth = m_bottom_depth - m_desired_altitude;
                 // printf("altitude safety depth =%lf\n\r", set_point->position.z);
                 
-                RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("minimum altitude exceeded"));
+                RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Altitude tracking bhv: minimum altitude exceeded"));
             }
             else{
                 return false;

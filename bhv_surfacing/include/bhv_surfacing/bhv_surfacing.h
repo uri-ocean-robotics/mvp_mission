@@ -99,6 +99,10 @@ private:
 
     double u_submerged_period_with_no_gps; //the timeout for triggering the surfacing
 
+    int u_min_surface_gps_count = 0; 
+
+    int m_surface_gps_count;
+
     double u_submerged_period_with_no_comm;  //the timeout for triggering the surfacing
 
     double m_last_imu_time;

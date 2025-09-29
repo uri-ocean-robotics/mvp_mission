@@ -74,17 +74,14 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "no_gps_timeout", 3600.0);
     node->get_parameter(prefix + "no_gps_timeout", u_submerged_period_with_no_gps);
 
-    node->declare_parameter(prefix + "no_comm_timeout", INFINITY);
-    node->get_parameter(prefix + "no_comm_timeout", u_submerged_period_with_no_comm);
+    node->declare_parameter(prefix + "min_gps_count_at_surface", 20);
+    node->get_parameter(prefix + "min_gps_count_at_surface", u_min_surface_gps_count);
 
     node->declare_parameter(prefix + "surfacing_duration", 3600.0);
     node->get_parameter(prefix + "surfacing_duration", u_surfacing_duration);
 
     node->declare_parameter(prefix + "surfacing_depth", 0.0);
     node->get_parameter(prefix + "surfacing_depth", c_surfacing_depth);
-
-    node->declare_parameter(prefix + "float_to_surface", false);
-    node->get_parameter(prefix + "float_to_surface", u_floating_to_surface_flag);
 
     node->declare_parameter(prefix + "surfacing_at_start", false);
     node->get_parameter(prefix + "surfacing_at_start", m_set_point_pub);
@@ -100,6 +97,13 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     node->declare_parameter(prefix + "navigation_fail_state", "");
     node->get_parameter(prefix + "navigation_fail_state", u_navigation_fail_state);
+
+    //reserved params
+    node->declare_parameter(prefix + "no_comm_timeout", INFINITY);
+    node->get_parameter(prefix + "no_comm_timeout", u_submerged_period_with_no_comm);
+    //reserved
+    node->declare_parameter(prefix + "float_to_surface", false);
+    node->get_parameter(prefix + "float_to_surface", u_floating_to_surface_flag);
 
     node->declare_parameter(prefix + "ctrl_set_srv", "controller/set");
 
@@ -182,7 +186,6 @@ void Surfacing::activated() {
     std::cout << "No DVL time condition:"<< u_no_dvl_timeout << std::endl;
     std::cout << "Surfacing condition: "<< u_surfacing_duration << std::endl;
 
-    m_active_flag = true;
 
     m_last_dvl_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
 
@@ -201,7 +204,6 @@ void Surfacing::disabled() {
      * defined by #BehaviorBase::m_actived changes to false.
      */
     std::cout << "surfacing behavior is disabled!" << std::endl;
-    m_active_flag = false;
 }
 
 void Surfacing::f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
@@ -234,32 +236,51 @@ void Surfacing::f_cb_dvl(const geometry_msgs::msg::TwistWithCovarianceStamped::S
 void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
 {
 
+    //if GPS has fix
     if (msg->status.status != sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX)
+    {
+        if (m_gps_flag == false)
         {
-            if (m_gps_flag == false)
-            {
-                m_first_gps_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
-                m_bhv_setpoint.position.z = c_surfacing_depth;  //record the current depth for the next time
-                printf("initial GPS obtained \r\n");
-            }
-
-            m_gps_flag = true;     
-            // c_surfacing_depth = BehaviorBase::m_process_values.position.z;
-            m_last_gps_time =  rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+            m_first_gps_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+            m_bhv_setpoint.position.z = c_surfacing_depth;  //record the current depth for the next time
+            
+            printf("initial GPS obtained \r\n");
+            m_surface_gps_count = 0; 
         }
+
+        m_gps_flag = true;     
+        // c_surfacing_depth = BehaviorBase::m_process_values.position.z;
+        m_last_gps_time =  rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+        m_surface_gps_count ++;
+        printf("total valid gps fix count = %d\r\n", m_surface_gps_count);
+    }
 }
 
 
 bool Surfacing::request_set_point(
     mvp_msgs::msg::ControlProcess *set_point) {
     
+    if(m_activated == false)
+    {
+        return false;
+    }
+
     m_surfacing_flag_pub->publish(m_surfacing_flag);
 
     if( (m_last_gps_time - m_first_gps_time > u_surfacing_duration)  && m_gps_flag && m_set_point_pub)
     {
+        if(m_surface_gps_count>u_min_surface_gps_count)
+        {
         m_set_point_pub = false;  //duration has exceeded and i will not set depth
         m_surfacing_flag.data[0] = 0;  
-        printf("surfacing duration has exceeded\r\n");
+        RCLCPP_WARN(m_logger, "Surfacing_bhv: valid gps fix count has reached");
+        }
+        else{
+        RCLCPP_WARN(m_logger, "Surfacing_bhv: valid gps fix count has not reached");
+                    
+        }
+        RCLCPP_WARN(m_logger, "Surfacing_bhv: surfacing duration has exceeded");
+
     }
 
     double m_current_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
@@ -269,15 +290,19 @@ bool Surfacing::request_set_point(
         m_surfacing_flag.data[0] = 1;  
         m_set_point_pub = true;
         m_gps_flag = false; //set to false so we can get the first gps time.
-        printf("bhv_surfacing: surfacing request triggered\r\n");
+        m_surface_gps_count = 0; 
+        RCLCPP_WARN(m_logger, "Surfacing_bhv: surfacing request triggered");
+
     }
 
-    if(m_active_flag)
+    if(m_activated)
     {
         if(m_current_time - m_last_imu_time > u_no_imu_timeout)
         {
             m_surfacing_flag.data[2] = 1;  
-            printf("bhv_surfacing: No IMU triggered state change \r\n");
+            // printf("bhv_surfacing: No IMU triggered state change \r\n");
+            RCLCPP_WARN(m_logger, "No IMU triggered state change");
+
             change_state(u_navigation_fail_state);
             return false;
 
@@ -286,7 +311,9 @@ bool Surfacing::request_set_point(
         if(m_current_time - m_last_dvl_time > u_no_dvl_timeout)
         {
             m_surfacing_flag.data[1] = 1;  
-            printf("bhv_surfacing: DVL triggered state change \r\n");
+            // printf("bhv_surfacing: DVL triggered state change \r\n");
+            RCLCPP_WARN(m_logger, "No DVL triggered state change");
+
             change_state(u_navigation_fail_state);
             return false;
 

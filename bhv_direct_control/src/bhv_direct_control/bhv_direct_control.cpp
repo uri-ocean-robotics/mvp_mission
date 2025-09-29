@@ -170,6 +170,10 @@ void DirectControl::disabled()
 bool DirectControl::request_set_point(
     mvp_msgs::msg::ControlProcess *set_point) 
 {
+    if(m_activated == false)
+    {
+        return false;
+    }
     *set_point = m_bhv_setpoint;
 
     return true;

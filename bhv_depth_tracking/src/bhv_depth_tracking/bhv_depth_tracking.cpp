@@ -190,6 +190,12 @@ bool DepthTracking::request_set_point(
     auto steady_clock = rclcpp::Clock();
     rclcpp::Clock clock(RCL_SYSTEM_TIME);
     rclcpp::Time now = clock.now();
+
+    if(m_activated == false)
+    {
+        return false;
+    }
+
     if(m_depth_tracking_enabled)
     {
         if(now.seconds() - bhv_timer.seconds() > m_initial_wait_time && !m_depth_initial_timeout)
