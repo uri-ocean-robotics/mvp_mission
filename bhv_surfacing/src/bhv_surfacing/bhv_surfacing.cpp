@@ -215,6 +215,8 @@ void Surfacing::f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Req
     m_last_gps_time =  rclcpp::Clock(RCL_ROS_TIME).now().seconds(); //use current time as the last gps time for timing the surfacing
     response->success = true;
     response->message = "dive triggered";
+    RCLCPP_WARN(m_logger, "Surfacing_bhv: Stop surfacing service called");
+
 }
 
 void Surfacing::f_cb_imu(const sensor_msgs::msg::Imu::SharedPtr msg)
