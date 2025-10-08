@@ -90,6 +90,8 @@ private:
 
     double m_max_pitch;
 
+    double m_preset_water_depth;
+
     int m_altitude_mode;  //-1: disabled, 0: safety_mode, 1:continuous
     
     bool m_active_flag = false;
@@ -110,13 +112,18 @@ private:
     
     mvp_msgs::msg::ControlProcess m_bhv_setpoint; 
     //altitude topic from dvl
-    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr m_altitude_sub;
+    // rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr m_altitude_sub;
+
+    std::vector<rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr> m_altitude_subs;
 
     //allowing user to change desired altitude on-the-fly
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr m_desired_altitude_sub;
     
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr m_water_depth_pub;
     
-    void f_m_altitude_cb(const geometry_msgs::msg::PointStamped::SharedPtr msg);
+    // void f_m_altitude_cb(const geometry_msgs::msg::PointStamped::SharedPtr msg);
+
+    void f_m_altitude_cb(const geometry_msgs::msg::PointStamped::SharedPtr msg, int i);
 
     void f_c_altitude_cb(const std_msgs::msg::Float64::SharedPtr msg);
 

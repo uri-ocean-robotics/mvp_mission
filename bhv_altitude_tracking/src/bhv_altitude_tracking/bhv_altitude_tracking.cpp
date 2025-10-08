@@ -100,23 +100,42 @@ void AltitudeTracking::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "no_altitude_timeout", 5.0);
     node->get_parameter(prefix + "no_altitude_timeout", m_no_altitude_timeout);
 
+    node->declare_parameter(prefix + "preset_water_depth", 100.0);
+    node->get_parameter(prefix + "preset_water_depth", m_preset_water_depth);
 
-    std::string m_altitude_measurement_topic;
+    //initial bottom depth to m_preset water depth
+    m_bottom_depth = m_preset_water_depth;
+
+    std::vector<std::string> m_altitude_measurement_topics;
     std::string m_desired_altitude_topic;
 
-    node->declare_parameter(prefix + "altitude_measurement_topic", m_altitude_measurement_topic);
-    node->get_parameter(prefix + "altitude_measurement_topic", m_altitude_measurement_topic);
+    node->declare_parameter(prefix + "altitude_measurement_topics", m_altitude_measurement_topics);
+    node->get_parameter(prefix + "altitude_measurement_topics", m_altitude_measurement_topics);
 
     node->declare_parameter(prefix + "desired_altitude_topic", m_desired_altitude_topic);
     node->get_parameter(prefix + "desired_altitude_topic", m_desired_altitude_topic);
-    
-    m_altitude_sub = node->create_subscription<geometry_msgs::msg::PointStamped>(m_altitude_measurement_topic, 1, 
-                                                                std::bind(&AltitudeTracking::f_m_altitude_cb, 
-                                                                this, _1));
+
+    for (int i =0; i < static_cast<int>(m_altitude_measurement_topics.size()); i++)
+    { 
+        int idx = i;  // capture index by value
+        auto sub = node->create_subscription<geometry_msgs::msg::PointStamped>(
+                                                                                m_altitude_measurement_topics[i],
+                                                                                rclcpp::QoS(3),
+                                                                                [this, idx](const geometry_msgs::msg::PointStamped::SharedPtr msg)
+                                                                                {
+                                                                                    this->f_m_altitude_cb(msg, idx);
+                                                                                }
+                                                                            );
+        m_altitude_subs.push_back(sub);
+    }
 
     m_desired_altitude_sub = node->create_subscription<std_msgs::msg::Float64>("~/"+ prefix + m_desired_altitude_topic, 1, 
                                                                 std::bind(&AltitudeTracking::f_c_altitude_cb, 
                                                                 this, _1));
+
+    m_water_depth_pub = node->create_publisher<std_msgs::msg::Float64>("~/"+ prefix + "calculated_depth", 1);
+
+
     BehaviorBase::m_dofs = decltype(m_dofs){
         mvp_msgs::msg::ControlMode::DOF_Z,
         mvp_msgs::msg::ControlMode::DOF_PITCH
@@ -136,7 +155,7 @@ void AltitudeTracking::disabled()
 
 }
 
-void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::SharedPtr msg)
+void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::SharedPtr msg, int i)
 {
     //msg is a point in the sensor frame?
     auto steady_clock = rclcpp::Clock();
@@ -144,16 +163,8 @@ void AltitudeTracking::f_m_altitude_cb(const geometry_msgs::msg::PointStamped::S
     geometry_msgs::msg::PointStamped point_in_bhv_global;
    
     try{
-        // printf("transforming frame from %s to %s\r\n", msg->header.frame_id.c_str(), m_bhv_setpoint.header.frame_id.c_str());
-        // RCLCPP_INFO(
-        //     m_logger,
-        //     "Header time: sec = %d, nanosec = %u",
-        //     msg->header.stamp.sec,
-        //     msg->header.stamp.nanosec
-        // );
         point_in_bhv_global = m_transform_buffer->transform(*msg, m_bhv_setpoint.header.frame_id.c_str(), 1000ms);   
         m_bottom_depth =  point_in_bhv_global.point.z;
-        // printf("altitude transformed =%lf\n\r", m_bottom_depth);
         m_last_altitude_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
     }
 
@@ -190,6 +201,13 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
     double c_depth;
     double m_d_pitch;
     auto steady_clock = rclcpp::Clock();
+    
+
+    //publish water depth
+    std_msgs::msg::Float64 m_water_depth;
+    m_water_depth.data = m_bottom_depth;
+    m_water_depth_pub->publish(m_water_depth);
+
 
     if(rclcpp::Clock(RCL_ROS_TIME).now().seconds()-m_last_altitude_time > m_no_altitude_timeout)
     {
@@ -235,7 +253,6 @@ bool AltitudeTracking::request_set_point(mvp_msgs::msg::ControlProcess *set_poin
     else{
         m_d_pitch = 0;
     }
-
 
     m_bhv_setpoint.orientation.y = m_d_pitch;
     m_bhv_setpoint.position.z = c_depth;

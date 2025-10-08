@@ -297,10 +297,6 @@ bool Helm::f_cb_change_state(const std::shared_ptr<mvp_msgs::srv::ChangeState::R
         std_msgs::msg::String caller;
         caller.data=req->caller;
         m_helm_state_change_caller->publish(caller);
-
-        std_msgs::msg::String c_state;
-        c_state.data = resp->state.name;
-        m_helm_state_publisher->publish(c_state);
         return true;
     }
 
@@ -565,6 +561,10 @@ void Helm::f_iterate() {
      * respective mode to that state.
      */
     auto active_state = m_state_machine->get_active_state();
+    //publish the current state in string
+    std_msgs::msg::String c_state;
+    c_state.data = active_state.name;
+    m_helm_state_publisher->publish(c_state);
 
     //update the set point frame if a state has empty setpoint frames, we use the default.
     std::string state_set_point_world_frame, state_set_point_child_frame;
