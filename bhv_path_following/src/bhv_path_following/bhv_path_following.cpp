@@ -137,7 +137,13 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
 
     node->declare_parameter(prefix + "max_pitch", 0.0);
     node->get_parameter(prefix + "max_pitch", m_max_pitch);
-    
+
+    node->declare_parameter(prefix + "min_surge_pitch", 0.2);
+    node->get_parameter(prefix + "min_surge_pitch", m_min_surge_pitch);
+
+    node->declare_parameter(prefix + "max_surge_pitch", 0.45);
+    node->get_parameter(prefix + "min_surge_pitch", m_max_surge_pitch);
+
     node->declare_parameter(prefix + "sigma", 0.0);
     node->get_parameter(prefix + "sigma", m_sigma);
 
@@ -883,7 +889,22 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         m_bhv_setpoint.velocity.x = m_turning_surge_velocity;
     }
     else{
-        m_bhv_setpoint.velocity.x = m_surge_velocity;
+        //asdaptive surge
+
+        if(fabs(temp_pose->orientation.y) > m_max_surge_pitch)
+        {
+            m_bhv_setpoint.velocity.x = m_turning_surge_velocity;
+        }
+        else if (fabs(temp_pose->orientation.y) < m_min_surge_pitch)
+        {
+            m_bhv_setpoint.velocity.x = m_surge_velocity;
+        }
+        else
+        {
+            double ratio = fabs(temp_pose->orientation.y) - m_min_surge_pitch;
+            double adaptive_range = m_max_surge_pitch - m_min_surge_pitch;
+            m_surge_velocity - (m_surge_velocity-m_turning_surge_velocity)* ratio /adaptive_range;
+        }
     }
 
 

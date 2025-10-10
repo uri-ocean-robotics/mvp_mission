@@ -193,6 +193,10 @@ private:
 
     double m_turning_angle_sector;
 
+    double m_min_surge_pitch;
+
+    double m_max_surge_pitch;
+
     std::vector<double> m_wpt_u;
 
 
