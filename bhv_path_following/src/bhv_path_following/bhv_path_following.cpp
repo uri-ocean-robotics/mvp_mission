@@ -903,7 +903,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         {
             double ratio = fabs(temp_pose->orientation.y) - m_min_surge_pitch;
             double adaptive_range = m_max_surge_pitch - m_min_surge_pitch;
-            m_surge_velocity - (m_surge_velocity-m_turning_surge_velocity)* ratio /adaptive_range;
+           m_bhv_setpoint.velocity.x = m_surge_velocity - (m_surge_velocity-m_turning_surge_velocity)* ratio /adaptive_range;
         }
     }
 
