@@ -83,6 +83,9 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "surfacing_depth", 0.0);
     node->get_parameter(prefix + "surfacing_depth", c_surfacing_depth);
 
+    node->declare_parameter(prefix + "use_valid_gps_depth_for_surfacing", false);
+    node->get_parameter(prefix + "use_valid_gps_depth_for_surfacing", u_use_gps_for_depth);
+
     node->declare_parameter(prefix + "surfacing_at_start", false);
     node->get_parameter(prefix + "surfacing_at_start", m_set_point_pub);
 
@@ -135,11 +138,14 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
     m_dvl_sub = node->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(m_dvl_topic, 10,
                                                             std::bind(&Surfacing::f_cb_dvl, 
                                                             this, std::placeholders::_1));
-
+    
+    m_update_surfacing_params_sub = node->create_subscription<std_msgs::msg::String>("~/" + prefix + "update_surfacing_params", 10,
+                                                                std::bind(&Surfacing::f_cb_update_surfacing_params, 
+                                                                this, std::placeholders::_1));
                                                                 
 
 
-    m_surfacing_flag_pub = node->create_publisher<std_msgs::msg::Int8MultiArray>(prefix + "surfacing_flags", 0);
+    m_surfacing_flag_pub = node->create_publisher<std_msgs::msg::Int8MultiArray>("~/" + prefix + "surfacing_flags", 0);
 
     /*************************************************************************/
     /* Setup ROS2 sub/pub/srv/... */
@@ -188,6 +194,8 @@ void Surfacing::activated() {
     std::cout << "No IMU time condition:"<< u_no_imu_timeout << std::endl;
     std::cout << "No DVL time condition:"<< u_no_dvl_timeout << std::endl;
     std::cout << "Surfacing condition: "<< u_surfacing_duration << std::endl;
+    std::cout << "Use valid gps depth for surfacing: "<< u_use_gps_for_depth << std::endl;
+
 
 
     m_last_dvl_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
@@ -222,6 +230,65 @@ void Surfacing::f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Req
 
 }
 
+void Surfacing::f_cb_update_surfacing_params(const std_msgs::msg::String::SharedPtr msg)
+{   
+    //msg format "param_name=value"
+    const std::string &text = msg->data;
+    size_t pos = text.find('=');
+    if (pos == std::string::npos) {
+        RCLCPP_WARN(m_logger, "Invalid param string: '%s'", text.c_str());
+        return;
+    }
+
+    std::string key  = text.substr(0, pos);
+    std::string value = text.substr(pos + 1);
+    
+    auto trim = [](std::string &s) {
+        s.erase(0, s.find_first_not_of(" \t"));
+        s.erase(s.find_last_not_of(" \t") + 1);
+    };
+
+    trim(key);
+    trim(value);
+
+    // RCLCPP_INFO(m_logger, "Received key='%s', value='%s'", key.c_str(), value.c_str());
+
+    if (key == "no_gps_timeout") {
+        u_submerged_period_with_no_gps = std::stod(value);
+        RCLCPP_INFO(m_logger, "no_gps_timeout updated to %.1f", u_submerged_period_with_no_gps);
+    }
+    else if (key == "no_comm_timeout") {
+        u_submerged_period_with_no_comm = std::stod(value);
+        RCLCPP_INFO(m_logger, "Updated %s to %.1f", key.c_str(), u_submerged_period_with_no_comm);
+    }
+    else if (key == "min_gps_count_at_surface") {
+        double v = std::stoi(value);
+        u_min_surface_gps_count = v;
+        RCLCPP_INFO(m_logger, "Updated %s to %d", key.c_str(), u_min_surface_gps_count);
+    }
+    else if (key == "surfacing_duration") {
+        u_surfacing_duration = std::stod(value);
+        RCLCPP_INFO(m_logger, "Updated %s to %.1f", key.c_str(), u_surfacing_duration);
+    }
+    else if (key == "surfacing_depth") {
+        c_surfacing_depth = std::stod(value);
+        RCLCPP_INFO(m_logger, "Updated %s to %.1f", key.c_str(), c_surfacing_depth);
+    }
+    else if (key == "no_imu_timeout") {
+        u_no_imu_timeout = std::stod(value);
+        RCLCPP_INFO(m_logger, "Updated %s to %.1f", key.c_str(), u_no_imu_timeout);
+    }
+    else if (key == "no_dvl_timeout") {
+        u_no_dvl_timeout = std::stod(value);
+        RCLCPP_INFO(m_logger, "Updated %s to %.1f", key.c_str(), u_no_dvl_timeout);
+    }
+
+    else {
+        RCLCPP_WARN(m_logger, "Unknown parameter key: '%s'", key.c_str());
+    }
+
+}
+
 void Surfacing::f_cb_imu(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
     m_last_imu_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
@@ -248,8 +315,14 @@ void Surfacing::f_cb_gps_fix(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
         if (m_gps_flag == false)
         {
             m_first_gps_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
-            m_bhv_setpoint.position.z = c_surfacing_depth;  //record the current depth for the next time
             
+            m_bhv_setpoint.position.z = c_surfacing_depth;  //record the current depth for the next time?
+
+            if(u_use_gps_for_depth)
+            {
+                m_bhv_setpoint.position.z = BehaviorBase::m_process_values.position.z;
+
+            }            
             // printf("initial GPS obtained \r\n");
             RCLCPP_INFO(m_logger, "Surfacing_bhv: initial GPS obtained");
 
