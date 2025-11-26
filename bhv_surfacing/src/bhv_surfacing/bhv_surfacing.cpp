@@ -136,6 +136,9 @@ void Surfacing::initialize(const rclcpp::Node::WeakPtr &parent) {
                                                             std::bind(&Surfacing::f_cb_dvl, 
                                                             this, std::placeholders::_1));
 
+                                                                
+
+
     m_surfacing_flag_pub = node->create_publisher<std_msgs::msg::Int8MultiArray>(prefix + "surfacing_flags", 0);
 
     /*************************************************************************/

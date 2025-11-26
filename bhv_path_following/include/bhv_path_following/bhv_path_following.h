@@ -169,6 +169,10 @@ private:
 
     double  m_overshoot_timer;
 
+    double m_current_waypoint_start_time;
+
+    double m_wpt_timeout;
+
     double m_surge_velocity;
 
     double m_pitch;
