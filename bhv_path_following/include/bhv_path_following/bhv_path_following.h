@@ -201,6 +201,8 @@ private:
 
     double m_max_surge_pitch;
 
+    bool m_pitch_adaptive_surge_flag = false;
+
     std::vector<double> m_wpt_u;
 
 
