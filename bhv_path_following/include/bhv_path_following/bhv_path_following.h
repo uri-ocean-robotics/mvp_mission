@@ -169,6 +169,10 @@ private:
 
     double  m_overshoot_timer;
 
+    double m_current_waypoint_start_time;
+
+    double m_wpt_timeout;
+
     double m_surge_velocity;
 
     double m_pitch;
@@ -192,6 +196,10 @@ private:
     double m_turning_surge_velocity;
 
     double m_turning_angle_sector;
+
+    double m_min_surge_pitch;
+
+    double m_max_surge_pitch;
 
     std::vector<double> m_wpt_u;
 

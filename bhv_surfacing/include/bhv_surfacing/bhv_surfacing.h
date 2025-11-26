@@ -28,6 +28,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float64.hpp"
+#include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/int8_multi_array.hpp"
 #include "sensor_msgs/msg/nav_sat_fix.hpp"
 #include "sensor_msgs/msg/imu.hpp"
@@ -135,11 +136,15 @@ private:
 
     bool m_active_flag = false;
 
+    bool u_use_gps_for_depth = false;
+
     rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr m_gps_fix_subscriber;
 
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr m_imu_sub;
 
     rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr m_dvl_sub;
+
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr m_update_surfacing_params_sub;
 
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr m_dive_trigger_srv;
 
@@ -153,6 +158,7 @@ private:
 
     void f_cb_dvl(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
+    void f_cb_update_surfacing_params(const std_msgs::msg::String::SharedPtr msg);
 
     void f_dive_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                         std::shared_ptr<std_srvs::srv::Trigger::Response> response);

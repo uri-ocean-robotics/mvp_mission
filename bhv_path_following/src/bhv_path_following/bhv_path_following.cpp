@@ -117,6 +117,10 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
     node->declare_parameter(prefix + "overshoot_timeout", 1.0);
     node->get_parameter(prefix + "overshoot_timeout", m_overshoot_timeout);
 
+    node->declare_parameter(prefix + "waypoint_timeout", INFINITY);
+    node->get_parameter(prefix + "waypoint_timeout", m_wpt_timeout);
+
+    
     // node->declare_parameter(prefix + "surge_velocity", 1.0);
     // node->get_parameter(prefix + "surge_velocity", m_surge_velocity);
 
@@ -137,7 +141,13 @@ void PathFollowing::initialize(const rclcpp::Node::WeakPtr &parent)
 
     node->declare_parameter(prefix + "max_pitch", 0.0);
     node->get_parameter(prefix + "max_pitch", m_max_pitch);
-    
+
+    node->declare_parameter(prefix + "min_surge_pitch", 0.2);
+    node->get_parameter(prefix + "min_surge_pitch", m_min_surge_pitch);
+
+    node->declare_parameter(prefix + "max_surge_pitch", 0.45);
+    node->get_parameter(prefix + "min_surge_pitch", m_max_surge_pitch);
+
     node->declare_parameter(prefix + "sigma", 0.0);
     node->get_parameter(prefix + "sigma", m_sigma);
 
@@ -311,28 +321,29 @@ bool PathFollowing::resume_or_start() {
     geometry_msgs::msg::PolygonStamped poly;
    if( f_transform_waypoints(m_bhv_setpoint.header.frame_id,m_waypoints,&m_transformed_waypoints))
     {
-    // convert m_process value into the behavior frame
-    auto temp_pose = std::make_shared<mvp_msgs::msg::ControlProcess>();
-    transform_control_process_msg(BehaviorBase::m_process_values, temp_pose, 
-                                  m_bhv_setpoint.header.frame_id, m_bhv_setpoint.child_frame_id);
-    
-    
-    geometry_msgs::msg::Point32 p;
-    p.x = static_cast<float>(temp_pose->position.x);
-    p.y = static_cast<float>(temp_pose->position.y);
-    p.z = static_cast<float>(temp_pose->position.z);
-    m_wpt_first = p;
+        // convert m_process value into the behavior frame
+        auto temp_pose = std::make_shared<mvp_msgs::msg::ControlProcess>();
+        transform_control_process_msg(BehaviorBase::m_process_values, temp_pose, 
+                                    m_bhv_setpoint.header.frame_id, m_bhv_setpoint.child_frame_id);
+        
+        
+        geometry_msgs::msg::Point32 p;
+        p.x = static_cast<float>(temp_pose->position.x);
+        p.y = static_cast<float>(temp_pose->position.y);
+        p.z = static_cast<float>(temp_pose->position.z);
+        m_wpt_first = p;
 
-    // Select second waypoint to be the next point in the way point list
-    m_wpt_second = m_transformed_waypoints.polygon.points[
-        m_line_index % m_transformed_waypoints.polygon.points.size()
-    ];
+        // Select second waypoint to be the next point in the way point list
+        m_wpt_second = m_transformed_waypoints.polygon.points[
+            m_line_index % m_transformed_waypoints.polygon.points.size()
+        ];
 
-    m_surge_velocity = m_wpt_u[0];
+        m_surge_velocity = m_wpt_u[0];
     }
     else{
         return false;
     }
+    m_current_waypoint_start_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
 
     return true;
 
@@ -351,6 +362,9 @@ void PathFollowing::f_next_line_segment() {
 
     m_yint = 0;  //reset the integral?
     m_line_index++;
+
+    m_current_waypoint_start_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+
     // printf("m_line_index= %d vs length=%d\r\n", m_line_index, length);
     if(m_line_index == length) {
         RCLCPP_INFO(m_logger, "Done with all waypoints");
@@ -802,10 +816,7 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
     if(Xke > 0 ) {
         auto steady_clock = rclcpp::Clock();
         // overshoot detected
-        // ROS_WARN_THROTTLE(5, "Overshoot detected!");
-        // RCLCPP_ERROR(m_logger, "Overshoot Detected!");
          RCLCPP_WARN_STREAM_THROTTLE(m_logger, steady_clock, 1000, std::string("Overshoot Detected!"));
-        // RCLCPP_WARN_THROTTLE(m_logger, *node->get_clock(), 5000, "Overshoot detected!");
         // Look back
         lookahead = -lookahead;
 
@@ -819,12 +830,11 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         if( (t.seconds() - m_overshoot_timer) == t.seconds())
         {
             m_overshoot_timer = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
+
         }
 
         // check if overshoot timer passed the timeout.
         if((t.seconds() - m_overshoot_timer) > m_overshoot_timeout) {
-            // ROS_ERROR_THROTTLE(10, "Overshoot abort!");
-            // RCLCPP_WARN_THROTTLE(m_logger, *node->get_clock(), 10000, "Overshoot abort!");
             RCLCPP_ERROR(m_logger, "Overshoot caused abort!");
             change_state(m_state_fail);
             return false;
@@ -883,7 +893,22 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         m_bhv_setpoint.velocity.x = m_turning_surge_velocity;
     }
     else{
-        m_bhv_setpoint.velocity.x = m_surge_velocity;
+        //asdaptive surge
+
+        if(fabs(temp_pose->orientation.y) > m_max_surge_pitch)
+        {
+            m_bhv_setpoint.velocity.x = m_turning_surge_velocity;
+        }
+        else if (fabs(temp_pose->orientation.y) < m_min_surge_pitch)
+        {
+            m_bhv_setpoint.velocity.x = m_surge_velocity;
+        }
+        else
+        {
+            double ratio = fabs(temp_pose->orientation.y) - m_min_surge_pitch;
+            double adaptive_range = m_max_surge_pitch - m_min_surge_pitch;
+           m_bhv_setpoint.velocity.x = m_surge_velocity - (m_surge_velocity-m_turning_surge_velocity)* ratio /adaptive_range;
+        }
     }
 
 
@@ -905,7 +930,16 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         f_next_line_segment();
         // printf("waypoint_reached\r\n");
         RCLCPP_INFO(m_logger, "current waypoints has reached, move to the next one");
-        m_overshoot_timer = 0;
+        // m_overshoot_timer = 0;
+    }
+
+    //check time in current wpt
+    if (rclcpp::Clock(RCL_ROS_TIME).now().seconds() - m_current_waypoint_start_time > m_wpt_timeout)
+    {
+        f_next_line_segment();
+        // printf("waypoint_reached\r\n");
+        RCLCPP_INFO(m_logger, "current waypoint timeout has reached, current waypoint will be ignored and moving to the next one");
+        // m_overshoot_timer = 0;
     }
 
     ///publishing debugging data
