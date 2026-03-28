@@ -368,6 +368,8 @@ void PathFollowing::f_next_line_segment() {
 
     m_current_waypoint_start_time = rclcpp::Clock(RCL_ROS_TIME).now().seconds();
 
+    m_overshoot_timer = 0;
+
     // printf("m_line_index= %d vs length=%d\r\n", m_line_index, length);
     if(m_line_index == length) {
         RCLCPP_INFO(m_logger, "Done with all waypoints");
@@ -742,6 +744,7 @@ void PathFollowing::activated() {
      * defined by #BehaviorBase::m_actived changes to true.
      */
     std::cout << "path following behavior is activated!" << std::endl;
+    m_overshoot_timer = 0;
 
     if(!m_waypoints.polygon.points.empty()) {
         resume_or_start();
@@ -937,7 +940,6 @@ bool PathFollowing::request_set_point(mvp_msgs::msg::ControlProcess *set_point)
         f_next_line_segment();
         // printf("waypoint_reached\r\n");
         RCLCPP_INFO(m_logger, "current waypoints has reached, move to the next one");
-        // m_overshoot_timer = 0;
     }
 
     //check time in current wpt
