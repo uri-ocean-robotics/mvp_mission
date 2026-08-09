@@ -158,8 +158,8 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         //left axis up and down
         m_bhv_setpoint.velocity.x = msg->axes[1] * m_tele_s_surge;
 
-        //left axis up and down 
-        m_bhv_setpoint.velocity.y = msg->axes[0] * m_tele_s_sway; 
+        //right axis left and right 
+        m_bhv_setpoint.velocity.y = msg->axes[2] * m_tele_s_sway; 
 
         //X button decrease heading B button increase heading
         m_bhv_setpoint.orientation.z = m_bhv_setpoint.orientation.z 
@@ -212,7 +212,7 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     }
 
     // the following two button won't affect the controller.
-    //set tele-op to false
+    //reset the set points and make teleop active
     if(msg->buttons[6]==1)
     {
         // first time enable joystick and record vehicle pose
