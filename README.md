@@ -6,12 +6,12 @@ This repository contains MVP-Helm program and several useful behaviors.
 
 Pull the `mvp_msgs` repository if you don't have it already
 ```bash
-git clone --single-branch --branch noetic-devel https://github.com/uri-ocean-robotics/mvp_msgs
+git clone https://github.com/uri-ocean-robotics/mvp_msgs
 ```
 
 Pull the repository
 ```bash
-git clone --sigle-branch --branch noetic-devel https://github.com/uri-ocean-robotics/mvp_mission
+git clone https://github.com/uri-ocean-robotics/mvp_mission
 ```
 
 Install dependencies
@@ -21,7 +21,7 @@ sudo apt-get install libyaml-cpp-dev
 rosdep install --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} -y
 ```
 
-Compile using `catkin_make`.
+Compile using `colcon build`.
 
 ## Citation
 ```
