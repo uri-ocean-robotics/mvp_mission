@@ -123,6 +123,17 @@ private:
     */
     double m_tele_c_roll;
 
+    bool m_twist_mode;
+
+    //heave speed increments
+    double m_tele_d_w; 
+
+    //q velocity increments
+    double m_tele_d_q;
+
+    //r velocity increments
+    double m_tele_d_r;
+
     /**
         * @brief teleop no joy command timeout
     */

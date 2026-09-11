@@ -75,10 +75,10 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
     node->declare_parameter(prefix + "tele_s_sway", 1.0);
     node->get_parameter(prefix + "tele_s_sway", m_tele_s_sway); 
 
-    node->declare_parameter(prefix + "tele_d_yaw", 1.0);
+    node->declare_parameter(prefix + "tele_d_yaw", 1.0);  //deg
     node->get_parameter(prefix + "tele_d_yaw", m_tele_d_yaw);
 
-    node->declare_parameter(prefix + "tele_d_pitch", 1.0);
+    node->declare_parameter(prefix + "tele_d_pitch", 1.0);  //deg
     node->get_parameter(prefix + "tele_d_pitch", m_tele_d_pitch);
 
     node->declare_parameter(prefix + "tele_d_depth", 1.0);
@@ -86,6 +86,18 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     node->declare_parameter(prefix + "tele_desired_roll", 0.0);
     node->get_parameter(prefix + "tele_desired_roll", m_tele_c_roll);
+
+    node->declare_parameter(prefix + "twist_mode", false);
+    node->get_parameter(prefix + "twist_mode", m_twist_mode);
+
+    node->declare_parameter(prefix + "tele_d_w", 0.1);
+    node->get_parameter(prefix + "tele_d_w", m_tele_d_w);
+
+    node->declare_parameter(prefix + "tele_d_q", 10.0);  //deg/sec
+    node->get_parameter(prefix + "tele_d_q", m_tele_d_q);
+
+    node->declare_parameter(prefix + "tele_d_r", 10.0); //deg/sec
+    node->get_parameter(prefix + "tele_d_r", m_tele_d_r);
 
     node->declare_parameter(prefix + "ctrl_set_srv", "controller/set");
     node->get_parameter(prefix + "ctrl_set_srv", m_ctrl_set_srv);
@@ -126,27 +138,52 @@ void Teleoperation::initialize(const rclcpp::Node::WeakPtr &parent) {
 
     /*************************************************************************/
     /* Declare the degree of freedoms to be controlled by the behavior */
+    if (m_twist_mode)
+    {
+        BehaviorBase::m_dofs = decltype(m_dofs){
+            // for poistion
+            // for orientation 
+            mvp_msgs::msg::ControlMode::DOF_ROLL,
+            mvp_msgs::msg::ControlMode::DOF_Q,
+            mvp_msgs::msg::ControlMode::DOF_R,
+            // for velocity
+            mvp_msgs::msg::ControlMode::DOF_U,
+            mvp_msgs::msg::ControlMode::DOF_V,
+            mvp_msgs::msg::ControlMode::DOF_W,
 
-    BehaviorBase::m_dofs = decltype(m_dofs){
-        // for poistion
-        mvp_msgs::msg::ControlMode::DOF_Z,
-        // for orientation 
-        mvp_msgs::msg::ControlMode::DOF_ROLL,
-        mvp_msgs::msg::ControlMode::DOF_PITCH,
-        mvp_msgs::msg::ControlMode::DOF_YAW,
-        // for velocity
-        mvp_msgs::msg::ControlMode::DOF_U,
-        mvp_msgs::msg::ControlMode::DOF_V,
-    };
+        };
+
+        /////initialize the desired pose first
+        m_bhv_setpoint.orientation.x = m_tele_c_roll;
+        m_bhv_setpoint.angular_rate.y = 0;
+        m_bhv_setpoint.angular_rate.z = 0;
+        m_bhv_setpoint.velocity.z = 0;
+        m_bhv_setpoint.velocity.x = 0;
+        m_bhv_setpoint.velocity.y = 0;
+    }
+    else{
+        BehaviorBase::m_dofs = decltype(m_dofs){
+            // for poistion
+            mvp_msgs::msg::ControlMode::DOF_Z,
+            // for orientation 
+            mvp_msgs::msg::ControlMode::DOF_ROLL,
+            mvp_msgs::msg::ControlMode::DOF_PITCH,
+            mvp_msgs::msg::ControlMode::DOF_YAW,
+            // for velocity
+            mvp_msgs::msg::ControlMode::DOF_U,
+            mvp_msgs::msg::ControlMode::DOF_V,
+        };
+         /////initialize the desired pose first
+        m_bhv_setpoint.orientation.x = m_tele_c_roll;
+        m_bhv_setpoint.orientation.y = 0;
+        m_bhv_setpoint.orientation.z = 0;
+        m_bhv_setpoint.position.z = 0;
+        m_bhv_setpoint.velocity.x = 0;
+        m_bhv_setpoint.velocity.y = 0;
+    }   
 
 
-    /////initialize the desired pose first
-    m_bhv_setpoint.orientation.x = m_tele_c_roll;
-    m_bhv_setpoint.orientation.y = 0;
-    m_bhv_setpoint.orientation.z = 0;
-    m_bhv_setpoint.position.z = 0;
-    m_bhv_setpoint.velocity.x = 0;
-    m_bhv_setpoint.velocity.y = 0;
+   
 }
 
 //tele op is good for control surge, pitch, depth and  heading
@@ -161,17 +198,34 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         //right axis left and right 
         m_bhv_setpoint.velocity.y = msg->axes[2] * m_tele_s_sway; 
 
-        //X button decrease heading B button increase heading
+        
+
+        if(m_twist_mode)
+        {
+            //X button decrease heading B button increase heading
+        m_bhv_setpoint.angular_rate.z = m_bhv_setpoint.angular_rate.z 
+                                        + m_tele_d_r/180*M_PI * 
+                                        (-msg->buttons[0] + msg->buttons[2]); 
+
+        m_bhv_setpoint.angular_rate.y = m_bhv_setpoint.angular_rate.y 
+                                            + m_tele_d_q/180*M_PI * 
+                                        (-msg->buttons[3] + msg->buttons[1]); 
+
+        m_bhv_setpoint.velocity.z = 
+            m_bhv_setpoint.velocity.z + m_tele_d_w * (-msg->buttons[5] + msg->buttons[7]); 
+        }
+        else
+        {
+            //X button decrease heading B button increase heading
         m_bhv_setpoint.orientation.z = m_bhv_setpoint.orientation.z 
                                         + m_tele_d_yaw/180*M_PI * 
                                         (-msg->buttons[0] + msg->buttons[2]); 
-        
         //wrap yaw into -pi to pi.
         m_bhv_setpoint.orientation.z = 
             (fmod(m_bhv_setpoint.orientation.z + std::copysign(M_PI, m_bhv_setpoint.orientation.z), 2*M_PI) 
-            - std::copysign(M_PI, m_bhv_setpoint.orientation.z));        
-
-        //Y->decrease A->increase
+            - std::copysign(M_PI, m_bhv_setpoint.orientation.z));  
+            
+         //Y->decrease A->increase
         m_bhv_setpoint.orientation.y = 
             m_bhv_setpoint.orientation.y + m_tele_d_pitch/180*M_PI * 
             (-msg->buttons[3] + msg->buttons[1]); 
@@ -179,6 +233,7 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
         //RB depth decrease, RT depth increase
         m_bhv_setpoint.position.z = 
             m_bhv_setpoint.position.z + m_tele_d_depth * (-msg->buttons[5] + msg->buttons[7]); 
+        }
 
     }
 
@@ -215,13 +270,26 @@ void Teleoperation::f_tele_op(const sensor_msgs::msg::Joy::SharedPtr msg) {
     //reset the set points and make teleop active
     if(msg->buttons[6]==1)
     {
-        // first time enable joystick and record vehicle pose
-        m_bhv_setpoint.orientation.x = m_tele_c_roll;
-        m_bhv_setpoint.orientation.y = 0;
-        m_bhv_setpoint.orientation.z = BehaviorBase::m_process_values.orientation.z;
-        m_bhv_setpoint.position.z = BehaviorBase::m_process_values.position.z;
-        m_bhv_setpoint.velocity.x = 0;
-        m_bhv_setpoint.velocity.y = 0;
+        if(m_twist_mode)
+        {
+            // first time enable joystick and record vehicle pose
+            m_bhv_setpoint.orientation.x = m_tele_c_roll;
+            m_bhv_setpoint.angular_rate.y = 0;
+            m_bhv_setpoint.angular_rate.z = 0;
+            m_bhv_setpoint.velocity.z = 0;
+            m_bhv_setpoint.velocity.x = 0;
+            m_bhv_setpoint.velocity.y = 0;
+        }
+        else
+        {
+            // first time enable joystick and record vehicle pose
+            m_bhv_setpoint.orientation.x = m_tele_c_roll;
+            m_bhv_setpoint.orientation.y = 0;
+            m_bhv_setpoint.orientation.z = BehaviorBase::m_process_values.orientation.z;
+            m_bhv_setpoint.position.z = BehaviorBase::m_process_values.position.z;
+            m_bhv_setpoint.velocity.x = 0;
+            m_bhv_setpoint.velocity.y = 0;
+        }
         m_use_joy = true;
         RCLCPP_WARN(m_logger, "teleop enabled !");
     }
