@@ -137,6 +137,11 @@ void DirectControl::initialize(const rclcpp::Node::WeakPtr &parent)
         mvp_msgs::msg::ControlMode::DOF_U,
         mvp_msgs::msg::ControlMode::DOF_V,
         mvp_msgs::msg::ControlMode::DOF_W,
+
+        // for velocity
+        mvp_msgs::msg::ControlMode::DOF_P,
+        mvp_msgs::msg::ControlMode::DOF_Q,
+        mvp_msgs::msg::ControlMode::DOF_R,
     };
 
 }
